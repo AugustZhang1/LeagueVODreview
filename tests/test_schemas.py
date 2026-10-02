@@ -1,5 +1,4 @@
 import pytest
-from fastapi.testclient import TestClient
 
 from lolreview import api, schemas
 
@@ -129,14 +128,6 @@ def test_openapi_has_the_four_paths():
     params = {p["name"] for p in paths["/api/player/{platform}/{name}/{tag}"]["get"]["parameters"]}
     assert {"start", "count"} <= params
     assert "p" in {p["name"] for p in paths["/api/review/{match_id}"]["get"]["parameters"]}
-
-
-def test_routes_return_501_error_body():
-    client = TestClient(api.app)
-    for url in ("/api/health", "/api/player/na1/Me/NA1", "/api/review/NA1_1?p=1", "/api/model"):
-        r = client.get(url)
-        assert r.status_code == 501
-        assert r.json()["error"]["code"] == "not_implemented"
 
 
 def test_committed_openapi_is_current():

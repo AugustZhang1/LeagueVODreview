@@ -22,3 +22,12 @@ uv pip install -p .venv -e ".[dev]"
 ```
 
 Regenerate the synthetic games with `.venv/bin/python tests/fixtures/make_synthetic.py` and the API schema with `.venv/bin/python scripts/export_openapi.py`.
+
+## Review app
+
+`python -m lolreview.app [--port 8000]` serves the API and the built UI (`frontend/dist`) at
+`http://127.0.0.1:8000`; build the UI once with `cd frontend && npm ci && npm run build`. It needs a
+Riot key after `RIOT_API_KEY=` in `.env`. Everything fetched is cached in `cache.db`.
+
+Demo mode (`--demo` or `LOLREVIEW_DEMO=1`) needs no key and no network: it serves the synthetic
+games for `Me#NA1` on `na1`.
