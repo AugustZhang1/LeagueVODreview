@@ -6,7 +6,8 @@
 - **Step 3** (real data) is done. Findings, including the 2026 role quests, are under Step 3 in `Plan.md`.
 - **Crawler** runs 24/7 on the Google Cloud VM `lol-crawler` (e2-micro, `us-central1-a`) with the personal Riot key.
   - It covers NA, EUW, KR and VN (one per regional rate limit) and goes top down from Challenger, 20,000 games per tier per region.
-  - It spends one request per game when the patch is known from the game id (deployed today; speed not measured yet).
+  - It spends one request per game when the patch is known from the game id. Measured: about 2,700 games/hour each for EUW, KR and VN and about 2,150 for NA (NA keeps 15 requests per 2 min free for the review app). That is the rate limit's ceiling, up from about 1,100.
+  - A stop waits up to 150 s so every region saves its games (it used to give up after 30 s and NA, often waiting on the limiter, lost up to 500 games per restart).
 - **Model:** a pilot model is in `models/`: 2,936 Challenger games, 76% accuracy.
   - Training builds a model per rank and keeps one only if it beats the overall model on that rank.
   - Retraining isn't automatic yet.
@@ -43,10 +44,9 @@ gcloud compute ssh lol-crawler --zone us-central1-a --command "cd LeagueVODrevie
 
 ## Next
 
-1. Measure the crawler's speed with the new one-request path: games per hour on the progress page, about 1,100 per region before.
-2. Retrain on the larger data set; check the report's "Rank models" table.
-3. Optional: automate retraining (weekly upload + Kaggle run from the VM, and the app fetching the newest model).
-4. You: review a few of your own games and note anything that looks wrong (Step 15).
+1. Retrain on the larger data set; check the report's "Rank models" table.
+2. Optional: automate retraining (weekly upload + Kaggle run from the VM, and the app fetching the newest model).
+3. You: review a few of your own games and note anything that looks wrong (Step 15).
 
 ## Gotchas
 

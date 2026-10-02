@@ -10,6 +10,8 @@ ExecStart=@REPO@/.venv/bin/python -m lolreview.crawler
 Environment=PYTHONUNBUFFERED=1
 Restart=always
 RestartSec=10
+# Longer than the crawler's JOIN_TIMEOUT_S, so a stop saves every thread's games.
+TimeoutStopSec=180
 
 [Install]
 WantedBy=multi-user.target

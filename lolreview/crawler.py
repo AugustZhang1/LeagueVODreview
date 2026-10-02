@@ -30,7 +30,9 @@ DAY_S = 86400
 IDLE_SLEEP_S = 60.0
 ERROR_SLEEP_S = 30.0
 PENDING_CHUNK = 50
-JOIN_TIMEOUT_S = 30.0
+# A thread can sit in the rate limiter for up to a full long window (120 s) before it sees the
+# stop; leaving earlier loses its unsaved games. systemd's TimeoutStopSec must be longer.
+JOIN_TIMEOUT_S = 150.0
 PATCH_DIR = re.compile(r"^\d+\.\d+$")
 PART_NAME = re.compile(r"^part-(\d+)\.parquet(?:\.tmp)?$")
 
