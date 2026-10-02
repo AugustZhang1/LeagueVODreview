@@ -144,3 +144,25 @@ def test_models_changed(trained, tmp_path):
     stub = load_model(tmp_path / "nothing")
     assert not models_changed(tmp_path / "nothing", stub)
     assert models_changed(tmp_path, stub)
+
+
+def test_stray_isotonic_ignored_when_metrics_say_false(trained, tmp_path):
+    _, out = trained
+    for name in ("model.txt", "isotonic.json"):
+        (tmp_path / name).write_bytes((out / name).read_bytes())
+    metrics = json.loads((out / "metrics.json").read_text())
+    (tmp_path / "metrics.json").write_text(json.dumps({**metrics, "isotonic": False}))
+    plain = load_model(tmp_path)
+    assert plain.iso is None
+    with_iso = load_model(out)
+    assert with_iso.iso is not None
+    assert plain.version != with_iso.version
+
+
+def test_version_changes_with_isotonic_file(trained, tmp_path):
+    _, out = trained
+    for name in ("model.txt", "isotonic.json", "metrics.json"):
+        (tmp_path / name).write_bytes((out / name).read_bytes())
+    before = load_model(tmp_path).version
+    (tmp_path / "isotonic.json").write_text('{"x": [0, 1], "y": [0.1, 0.9]}')
+    assert load_model(tmp_path).version != before

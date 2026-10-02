@@ -356,11 +356,14 @@ def main(argv: list[str] | None = None) -> dict:
     log(f"LightGBM validation log loss (weight={args.weight}): {val_ll:.4f}")
     booster.save_model(str(out / "model.txt"), num_iteration=booster.best_iteration)
 
-    if args.isotonic:
+    iso_path = out / "isotonic.json"
+    if not args.isotonic:
+        iso_path.unlink(missing_ok=True)  # never leave a calibration from an earlier run
+    else:
         log("== isotonic calibration on validation predictions")
         iso = fit_isotonic(val["blue_won"].to_numpy(), p_val)
         xs, ys = iso.X_thresholds_.tolist(), iso.y_thresholds_.tolist()
-        (out / "isotonic.json").write_text(json.dumps({"x": xs, "y": ys}))
+        iso_path.write_text(json.dumps({"x": xs, "y": ys}))
         p_test = apply_isotonic(xs, ys, p_test)
 
     log("== evaluating on the test set")

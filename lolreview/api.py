@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 from lolreview import replay, riot
 from lolreview.cache import Cache, default_path
@@ -132,6 +133,13 @@ def _rank_from_entry(entry: dict | None) -> Rank | None:
     return Rank(tier=tier, division=division, lp=entry.get("leaguePoints", 0))
 
 
+ROLES = {"TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"}
+
+
+def _real_role(position: str | None) -> str | None:
+    return position if position in ROLES else None
+
+
 class _Context:
     def __init__(self, demo: bool, cache: Cache | None, client, ddragon: DataDragon | None):
         self.demo = demo
@@ -194,7 +202,11 @@ class _Context:
     def summary(self, cluster: str, match_id: str, puuid: str) -> dict:
         cached = self.cache.get_summary(match_id, puuid)
         if cached is not None:
-            return cached
+            try:
+                GameSummary(**cached, reviewed=False)
+                return cached
+            except ValidationError:
+                log.warning("cached summary of %s no longer validates; rebuilding", match_id)
         match = self.match(cluster, match_id)
         info = match["info"]
         me = next((p for p in info["participants"] if p["puuid"] == puuid), None)
@@ -209,7 +221,7 @@ class _Context:
             "match_id": match_id,
             "participant_id": me["participantId"],
             "champion": champions[me["championId"]][0],
-            "role": me.get("teamPosition") or me.get("individualPosition"),
+            "role": _real_role(me.get("teamPosition") or me.get("individualPosition")),
             "result": result,
             "k": me["kills"],
             "d": me["deaths"],
@@ -219,6 +231,7 @@ class _Context:
             "started_at": _iso(info.get("gameStartTimestamp") or info["gameCreation"]),
             "patch": _patch_of(match),
         }
+        GameSummary(**summary, reviewed=False)
         self.cache.put_summary(match_id, puuid, summary)
         return summary
 

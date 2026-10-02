@@ -1,10 +1,10 @@
 import { memo, useMemo, useState, type MouseEvent } from "react";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import type { Moment, Review } from "../../api/models";
-import { formatTime, formatWinChance } from "../../lib/format";
+import { formatTime } from "../../lib/format";
 import { isGoodGrade, isStrongGrade } from "../../lib/grades";
 import { GradeBadge } from "../../components/GradeBadge";
-import { winAt } from "./curve";
+import { winAtClock, winLabel } from "./curve";
 import { PLOT_LEFT, PLOT_RIGHT } from "./layout";
 import styles from "./WinGraph.module.css";
 
@@ -156,7 +156,7 @@ export function WinGraph({ review, t, selected, hoveredId, onSeek }: Props) {
     () =>
       review.moments
         .filter((m) => m.grade !== null)
-        .map((m) => ({ m, x: m.t_end / duration, p: winAt(curve, m.t_end) })),
+        .map((m) => ({ m, x: m.t_end / duration, p: winAtClock(curve, m.t_end, duration) })),
     [review.moments, curve, duration],
   );
 
@@ -168,15 +168,12 @@ export function WinGraph({ review, t, selected, hoveredId, onSeek }: Props) {
   };
 
   const hoverMoment = hoverT === null ? null : momentAt(review.moments, hoverT, duration);
-  const hoverP = hoverT === null ? 0 : winAt(curve, hoverT);
 
   return (
     <section className={styles.graph} aria-label="Win chance">
       <h2 className={styles.label}>
         Win chance
-        <span className={`${styles.value} num`}>
-          {formatWinChance(winAt(curve, t), t >= duration)}
-        </span>
+        <span className={`${styles.value} num`}>{winLabel(curve, t, duration)}</span>
       </h2>
       <div className={styles.stage} style={{ height: HEIGHT }}>
         <div className={styles.layer} style={plotInset} aria-hidden="true">
@@ -223,7 +220,7 @@ export function WinGraph({ review, t, selected, hoveredId, onSeek }: Props) {
               >
                 <div className={styles.tipHead}>
                   <span className="num">{formatTime(hoverT)}</span>
-                  <span className="num">{formatWinChance(hoverP, hoverT >= duration)}</span>
+                  <span className="num">{winLabel(curve, hoverT, duration)}</span>
                 </div>
                 {hoverMoment && (
                   <div className={styles.tipMoment}>
