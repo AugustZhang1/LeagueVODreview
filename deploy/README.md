@@ -21,7 +21,7 @@ firewall rules are added, so only SSH (port 22) is reachable.
 
 ```
 gcloud compute scp deploy/setup_vm.sh .env lol-crawler:~ --zone us-central1-a
-gcloud compute ssh lol-crawler --zone us-central1-a -- bash setup_vm.sh
+gcloud compute ssh lol-crawler --zone us-central1-a --command "bash setup_vm.sh"
 ```
 
 The script adds a 2 GB swap file, installs Python and git, clones the repo to
@@ -42,17 +42,18 @@ journalctl -u lolcrawler -f
 The page listens on `127.0.0.1:8080` on the VM only. Tunnel it:
 
 ```
-gcloud compute ssh lol-crawler --zone us-central1-a -- -L 8080:localhost:8080
+gcloud compute ssh lol-crawler --zone us-central1-a --ssh-flag="-N" --ssh-flag="-L 8080:localhost:8080"
 ```
 
-Then open <http://localhost:8080> while the SSH session is open.
+Then open <http://localhost:8080> while it runs (Ctrl+C ends it). Use `--ssh-flag` and
+`--command` rather than `-- ...`: PowerShell drops the `--`.
 
 ## 5. Update the dev key
 
 The dev key expires daily. From the laptop:
 
 ```
-gcloud compute ssh lol-crawler --zone us-central1-a -- "sed -i 's/^RIOT_API_KEY=.*/RIOT_API_KEY=NEW_KEY/' ~/LeagueVODreview/.env"
+gcloud compute ssh lol-crawler --zone us-central1-a --command "sed -i 's/^RIOT_API_KEY=.*/RIOT_API_KEY=NEW_KEY/' ~/LeagueVODreview/.env"
 ```
 
 The crawler picks it up within a minute. Update the laptop's `.env` too.

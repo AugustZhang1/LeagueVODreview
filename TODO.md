@@ -58,7 +58,7 @@ Claude does the rest (see `Plan.md` for every step, `UI.md` for the app).
 - [x] `.env` with the personal key on the laptop and the VM.
 
 ### Step 7: the VM
-- [x] Done 2026-10-02: `lol-crawler` (e2-micro, us-central1-a) runs the crawler as a service and survives reboots. It clones the repo with a read-only deploy key. See the progress page with `gcloud compute ssh lol-crawler --zone us-central1-a -- -L 8080:localhost:8080`, then <http://localhost:8080>.
+- [x] Done 2026-10-02: `lol-crawler` (e2-micro, us-central1-a) runs the crawler as a service and survives reboots. It clones the repo with a read-only deploy key. See the progress page with `gcloud compute ssh lol-crawler --zone us-central1-a --ssh-flag="-N" --ssh-flag="-L 8080:localhost:8080"`, then <http://localhost:8080>.
 
 ### Steps 9–10: training
 - [ ] Run `upload.py` over SSH when Claude asks.

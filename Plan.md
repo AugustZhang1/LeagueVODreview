@@ -208,7 +208,7 @@ A small page served by Python's built-in `http.server`, running in a thread insi
 To open it from the laptop:
 
 ```
-gcloud compute ssh lol-crawler --zone us-central1-a -- -L 8080:localhost:8080
+gcloud compute ssh lol-crawler --zone us-central1-a --ssh-flag="-N" --ssh-flag="-L 8080:localhost:8080"
 ```
 
 then browse to `http://localhost:8080`.
@@ -250,7 +250,7 @@ then browse to `http://localhost:8080`.
   4. install `lolcrawler.service` (systemd, `Restart=always`, starts on boot).
 - **Updating the dev key** (until the personal key arrives), from the laptop:
   ```
-  gcloud compute ssh lol-crawler -- "sed -i 's/^RIOT_API_KEY=.*/RIOT_API_KEY=NEW_KEY/' ~/LeagueVODreview/.env"
+  gcloud compute ssh lol-crawler --command "sed -i 's/^RIOT_API_KEY=.*/RIOT_API_KEY=NEW_KEY/' ~/LeagueVODreview/.env"
   ```
   The crawler picks it up within a minute. Update the laptop's `.env` too; the app re-reads it the same way.
 
