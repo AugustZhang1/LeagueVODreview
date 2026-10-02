@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Run on the Linux VM as-is
+*.sh text eol=lf
+*.service text eol=lf

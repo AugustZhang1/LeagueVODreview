@@ -1,8 +1,8 @@
 # Deploy the crawler to the VM
 
-Run these on your laptop unless a step says "on the VM". Replace `USER/LeagueVODreview` in
-`setup_vm.sh` (the `REPO_URL` line) with your repo first. For a private repo, make a deploy key on
-the VM and use the SSH URL (see the note at the top of the script).
+Run these on your laptop unless a step says "on the VM". The repo is private, so the first run of
+`setup_vm.sh` prints a deploy key to add under the repo's Settings -> Deploy keys (read-only);
+then run it again.
 
 ## 1. Create the VM
 
