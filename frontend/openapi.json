@@ -284,15 +284,22 @@
             "type": "boolean"
           },
           "role": {
-            "enum": [
-              "TOP",
-              "JUNGLE",
-              "MIDDLE",
-              "BOTTOM",
-              "UTILITY"
+            "anyOf": [
+              {
+                "enum": [
+                  "TOP",
+                  "JUNGLE",
+                  "MIDDLE",
+                  "BOTTOM",
+                  "UTILITY"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Role",
-            "type": "string"
+            "title": "Role"
           },
           "started_at": {
             "title": "Started At",
