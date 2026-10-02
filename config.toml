@@ -11,6 +11,8 @@ games_per_tier_per_pass = 20000
 batch_games = 500
 patches_kept = 3
 queue = 420
+patch_window_days = 42
+status_port = 8080
 
 [rate_limit]
 short_count = 18
