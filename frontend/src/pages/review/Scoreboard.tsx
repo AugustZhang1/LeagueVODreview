@@ -5,10 +5,11 @@ import { ItemIcon } from "../../components/ItemIcon";
 import { Panel } from "../../components/Panel";
 import { Tooltip } from "../../components/Tooltip";
 import { formatTime } from "../../lib/format";
+import { respawnAt } from "./board/minimapModel";
 import { buildScoreboard, type Row, type TeamHeader } from "./board/boardModel";
 import styles from "./Scoreboard.module.css";
 
-type Props = { review: Review; snapshot: Snapshot };
+type Props = { review: Review; snapshot: Snapshot; t: number };
 
 function Pair({ label, value }: { label: string; value: string | number }) {
   return (
@@ -75,8 +76,8 @@ function PlayerRow({ row, version }: { row: Row; version: string }) {
   );
 }
 
-function ScoreboardView({ review, snapshot }: Props) {
-  const blocks = buildScoreboard(review, snapshot);
+function ScoreboardView({ review, snapshot, t }: Props) {
+  const blocks = buildScoreboard(review, snapshot, t);
   const version = review.match.ddragon_version;
   return (
     <Panel title={`Scoreboard at ${formatTime(snapshot.t)}`} className={styles.panel}>
@@ -96,5 +97,15 @@ function ScoreboardView({ review, snapshot }: Props) {
   );
 }
 
-/** Re-renders only when the review or the snapshot object changes, not on every scrubber tick. */
-export const Scoreboard = memo(ScoreboardView);
+/** Whole seconds still on each death timer; the only thing besides the snapshot that changes the table. */
+const timers = ({ snapshot, t }: Props) =>
+  snapshot.players.map((p) => Math.ceil(respawnAt(p, t, snapshot))).join(",");
+
+/**
+ * Re-renders when the review or snapshot changes, or a death timer ticks over; not on every
+ * scrubber tick.
+ */
+export const Scoreboard = memo(
+  ScoreboardView,
+  (a, b) => a.review === b.review && a.snapshot === b.snapshot && timers(a) === timers(b),
+);

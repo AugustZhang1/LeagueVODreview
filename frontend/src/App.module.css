@@ -3,5 +3,5 @@
   width: 100%;
   max-width: var(--page-max);
   margin: 0 auto;
-  padding: var(--space-5);
+  padding: var(--space-4) var(--space-5) 0;
 }

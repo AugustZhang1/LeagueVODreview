@@ -53,7 +53,9 @@ afterEach(() => vi.unstubAllGlobals());
 describe("parseRiotId", () => {
   it("checks the # and the lengths", () => {
     expect(parseRiotId("Name")).toHaveProperty("error");
-    expect(parseRiotId("ab#NA1")).toHaveProperty("error");
+    expect(parseRiotId("#NA1")).toHaveProperty("error");
+    expect(parseRiotId("A".repeat(17) + "#NA1")).toHaveProperty("error");
+    expect(parseRiotId("Me#NA1")).toEqual({ name: "Me", tag: "NA1" });
     expect(parseRiotId("Name#NA")).toHaveProperty("error");
     expect(parseRiotId("Name#NA1234")).toHaveProperty("error");
     expect(parseRiotId(" Name#NA1 ")).toEqual({ name: "Name", tag: "NA1" });
@@ -134,7 +136,7 @@ describe("ModelPage", () => {
   it("writes the summary in words", async () => {
     mockFetch({ "/api/model": () => json(modelJson), "/api/health": () => json(healthJson) });
     renderAt("/model");
-    expect(await screen.findByText(/412,000/)).toBeInTheDocument();
+    expect(await screen.findByText(/1,998/)).toBeInTheDocument();
     expect(screen.getByText("Accuracy by minute")).toBeInTheDocument();
     expect(screen.getAllByText("Numbers")).toHaveLength(3);
     expect(screen.getByText("your tier")).toBeInTheDocument();

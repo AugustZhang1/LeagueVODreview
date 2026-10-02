@@ -63,7 +63,8 @@ export function parseRiotId(input: string): ParsedRiotId {
   if (at < 0) return { error: "Enter your Riot ID with its tag, like Name#NA1." };
   const name = text.slice(0, at).trim();
   const tag = text.slice(at + 1).trim();
-  if (name.length < 3 || name.length > 16) return { error: "The name is 3 to 16 characters." };
+  if (name.length < 1) return { error: "Enter the name before the #." };
+  if (name.length > 16) return { error: "The name is up to 16 characters." };
   if (tag.length < 3 || tag.length > 5) return { error: "The tag after # is 3 to 5 characters." };
   return { name, tag };
 }

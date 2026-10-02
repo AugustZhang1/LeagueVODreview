@@ -49,6 +49,17 @@ describe("championMarks", () => {
     expect(dead.opacity).toBe(0.4);
     expect(dead.respawn).toBe(12);
   });
+  it("counts the respawn down with t and revives the icon at zero", () => {
+    const state = { ...snap.players[0], respawn_in_s: 10, pos_age_s: 0 };
+    const s = { ...snap, players: [state, ...snap.players.slice(1)] };
+    const mark = (t: number) =>
+      championMarks(review.players, s, t, 360).find(
+        (m) => m.player.participant_id === state.participant_id,
+      )!;
+    expect(mark(s.t + 8).respawn).toBe(2);
+    expect(mark(s.t + 8).dead).toBe(true);
+    expect(mark(s.t + 12).dead).toBe(false);
+  });
   it("fades with position age", () => {
     expect(positionOpacity(0)).toBe(1);
     expect(positionOpacity(30)).toBeCloseTo(0.75);

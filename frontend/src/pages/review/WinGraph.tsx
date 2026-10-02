@@ -5,11 +5,12 @@ import { formatTime, formatWinChance } from "../../lib/format";
 import { isGoodGrade, isStrongGrade } from "../../lib/grades";
 import { GradeBadge } from "../../components/GradeBadge";
 import { winAt } from "./curve";
+import { PLOT_LEFT, PLOT_RIGHT } from "./layout";
 import styles from "./WinGraph.module.css";
 
-const HEIGHT = 240;
-const MARGIN = { top: 8, right: 16, bottom: 0, left: 0 };
-const Y_AXIS_WIDTH = 36;
+const HEIGHT = 192;
+const MARGIN = { top: 8, right: PLOT_RIGHT, bottom: 0, left: 0 };
+const Y_AXIS_WIDTH = PLOT_LEFT;
 const X_AXIS_HEIGHT = 24;
 const PLOT_TOP = MARGIN.top;
 const PLOT_BOTTOM = HEIGHT - X_AXIS_HEIGHT;
@@ -60,10 +61,10 @@ export const GraphChart = memo(function GraphChart({ review }: { review: Review 
             x2="0"
             y2={PLOT_BOTTOM}
           >
-            <stop offset="0" style={{ stopColor: "var(--ally-tint)" }} />
-            <stop offset="0.5" style={{ stopColor: "var(--ally-tint)" }} />
-            <stop offset="0.5" style={{ stopColor: "var(--enemy-tint)" }} />
-            <stop offset="1" style={{ stopColor: "var(--enemy-tint)" }} />
+            <stop offset="0" style={{ stopColor: "var(--ally-fill)" }} />
+            <stop offset="0.5" style={{ stopColor: "var(--ally-fill)" }} />
+            <stop offset="0.5" style={{ stopColor: "var(--enemy-fill)" }} />
+            <stop offset="1" style={{ stopColor: "var(--enemy-fill)" }} />
           </linearGradient>
         </defs>
         <XAxis
@@ -76,7 +77,7 @@ export const GraphChart = memo(function GraphChart({ review }: { review: Review 
           tick={axisText}
           tickMargin={6}
           axisLine={false}
-          tickLine={{ stroke: "var(--border)" }}
+          tickLine={false}
           allowDataOverflow
         />
         <YAxis
