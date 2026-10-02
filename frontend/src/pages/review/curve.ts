@@ -1,4 +1,5 @@
 import type { CurvePoint, Moment } from "../../api/models";
+import { formatWinChance } from "../../lib/format";
 
 /** Win chance (0–1) at time `t`, by linear interpolation along the curve. */
 export function winAt(curve: CurvePoint[], t: number): number {
@@ -16,6 +17,20 @@ export function winAt(curve: CurvePoint[], t: number): number {
   const a = curve[lo];
   const b = curve[hi];
   return a.p + ((b.p - a.p) * (t - a.t)) / (b.t - a.t || 1);
+}
+
+/**
+ * Win chance (0–1) on the scrubber clock. The final point sits a moment after the
+ * whole-second duration, so the end of the scrubber reads the curve's last point.
+ */
+export function winAtClock(curve: CurvePoint[], t: number, duration: number): number {
+  if (curve.length > 0 && t >= duration) return curve[curve.length - 1].p;
+  return winAt(curve, t);
+}
+
+/** The win chance shown at scrubber time `t`: 100% / 0% once the game is over. */
+export function winLabel(curve: CurvePoint[], t: number, duration: number): string {
+  return formatWinChance(winAtClock(curve, t, duration), t >= duration);
 }
 
 /** Where selecting a moment puts the clock: whole seconds, the state after it. */

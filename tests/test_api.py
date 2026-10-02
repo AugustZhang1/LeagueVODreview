@@ -1,3 +1,4 @@
+import copy
 import json
 
 import pytest
@@ -396,3 +397,38 @@ def test_missing_dist_explains_build(env, tmp_path):
     r = TestClient(app).get("/")
     assert r.status_code == 200
     assert "npm ci" in r.text
+
+
+class RemakeRiot(CountingRiot):
+    """Two of the recent games come back with no real position, as remakes do."""
+
+    def match(self, cluster, match_id):
+        match = copy.deepcopy(super().match(cluster, match_id))
+        bad = {"NA1_9000000004": "", "NA1_9000000003": "Invalid"}.get(match_id)
+        if bad is not None:
+            for p in match["info"]["participants"]:
+                p["teamPosition"] = p["individualPosition"] = bad
+            match["info"]["gameDuration"] = 150
+        return match
+
+
+def test_player_with_remakes_in_recent_games(env):
+    c = env.make(RemakeRiot())
+    r = c.get("/api/player/na1/Me/NA1")
+    assert r.status_code == 200
+    games = {g["match_id"]: g for g in r.json()["games"]}
+    for mid in ("NA1_9000000004", "NA1_9000000003"):
+        assert games[mid]["role"] is None
+        assert games[mid]["result"] == "remake"
+    assert games["NA1_9000000001"]["role"] == "MIDDLE"
+
+
+def test_poisoned_summary_cache_is_rebuilt(env):
+    c = env.make()
+    cache = env.app.state.context().cache
+    good = env.app.state.context().summary("americas", MID, env.client.puuid)
+    cache.put_summary(MID, env.client.puuid, {**good, "role": "Invalid"})
+    r = c.get("/api/player/na1/Me/NA1")
+    assert r.status_code == 200
+    games = {g["match_id"]: g for g in r.json()["games"]}
+    assert games[MID]["role"] == "MIDDLE"

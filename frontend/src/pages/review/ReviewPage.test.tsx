@@ -36,10 +36,10 @@ const ended = [...review.moments].sort((a, b) => a.t_end - b.t_end);
 const end = (i: number) => Math.round(ended[i].t_end);
 const graded = ended.filter((m) => m.grade);
 
-function setup(search = "?p=4") {
+function setup(search = "?p=4", data = review) {
   window.history.replaceState(null, "", `/review/${review.match.match_id}${search}`);
   const client = new QueryClient();
-  client.setQueryData(["review", review.match.match_id, 4], review);
+  client.setQueryData(["review", review.match.match_id, 4], data);
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[`/review/${review.match.match_id}${search}`]}>
@@ -61,6 +61,21 @@ describe("review page", () => {
     vi.unstubAllGlobals();
   });
   afterEach(() => vi.useRealTimers());
+
+  it("reads the final result at the end of the scrubber", async () => {
+    const d = review.match.duration_s;
+    const curve = [
+      ...review.curve.filter((pt) => pt.t < d),
+      { t: d - 1, p: 0.85 },
+      { t: d + 0.4, p: 1 },
+    ];
+    setup("?p=4", { ...review, curve });
+    const user = userEvent.setup();
+    await user.keyboard("{End}");
+    expect(slider().value).toBe(String(d));
+    expect(slider().getAttribute("aria-valuetext")).toMatch(/win chance 100%$/);
+    expect(screen.getAllByText("100%").length).toBeGreaterThan(0);
+  });
 
   it("starts at the t in the URL", () => {
     setup("?p=4&t=300");

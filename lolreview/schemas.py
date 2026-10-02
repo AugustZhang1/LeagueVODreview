@@ -30,7 +30,7 @@ class GameSummary(BaseModel):
     match_id: str
     participant_id: int
     champion: str
-    role: Role
+    role: Role | None
     result: Literal["win", "loss", "remake"]
     k: int
     d: int

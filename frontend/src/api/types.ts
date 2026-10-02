@@ -213,11 +213,8 @@ export interface components {
             result: "win" | "loss" | "remake";
             /** Reviewed */
             reviewed: boolean;
-            /**
-             * Role
-             * @enum {string}
-             */
-            role: "TOP" | "JUNGLE" | "MIDDLE" | "BOTTOM" | "UTILITY";
+            /** Role */
+            role: ("TOP" | "JUNGLE" | "MIDDLE" | "BOTTOM" | "UTILITY") | null;
             /** Started At */
             started_at: string;
         };
