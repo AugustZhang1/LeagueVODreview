@@ -9,12 +9,12 @@ REPO_DIR="$HOME/LeagueVODreview"
 SERVICE_USER="$(id -un)"
 
 echo "== 1/4 swap file"
-if ! swapon --show=NAME --noheadings | grep -q '^/swapfile$' && [ ! -f /swapfile ]; then
+if [ ! -f /swapfile ]; then
     sudo fallocate -l 2G /swapfile
     sudo chmod 600 /swapfile
     sudo mkswap /swapfile
 fi
-if ! swapon --show=NAME --noheadings | grep -q '^/swapfile$'; then
+if ! grep -q '^/swapfile ' /proc/swaps; then  # swapon is in /usr/sbin, not on PATH
     sudo swapon /swapfile
 fi
 if ! grep -q '^/swapfile ' /etc/fstab; then
