@@ -18,3 +18,86 @@
   color: var(--text-2);
   font-size: 16px;
 }
+
+.form {
+  width: 100%;
+  max-width: 640px;
+  margin-top: var(--space-6);
+}
+
+.group {
+  display: flex;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.group:focus-within {
+  border-color: var(--ally);
+}
+
+.input,
+.select {
+  height: 100%;
+  border: 0;
+  background: transparent;
+  font-size: 16px;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 var(--space-3);
+  text-align: left;
+}
+
+.input::placeholder {
+  color: var(--text-3);
+}
+
+.input:focus-visible,
+.select:focus-visible {
+  outline: none;
+}
+
+.select {
+  width: 80px;
+  padding: 0 var(--space-2);
+  border-left: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.select option {
+  background: var(--surface);
+}
+
+.submit {
+  min-width: 140px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.error {
+  min-height: 20px;
+  margin-top: var(--space-2);
+  color: var(--enemy);
+  text-align: left;
+}
+
+.recent {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+  color: var(--text-2);
+}
+
+.recentLabel {
+  color: var(--text-3);
+}
+
+.recent a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
