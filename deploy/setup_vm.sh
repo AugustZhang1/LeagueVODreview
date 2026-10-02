@@ -4,7 +4,7 @@ set -euo pipefail
 
 # For a private repo, create a deploy key on the VM (ssh-keygen -t ed25519), add the public key
 # under the repo's Settings -> Deploy keys, and use the SSH URL here.
-REPO_URL="https://github.com/USER/LeagueVODreview.git"
+REPO_URL="https://github.com/AugustZhang1/LeagueVODreview.git"
 REPO_DIR="$HOME/LeagueVODreview"
 SERVICE_USER="$(id -un)"
 
