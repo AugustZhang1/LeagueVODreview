@@ -1,0 +1,127 @@
+.graph {
+  min-width: 0;
+}
+
+.label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  height: 28px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.value {
+  font-size: 20px;
+  font-weight: 600;
+  min-width: 3ch;
+}
+
+.stage {
+  position: relative;
+}
+
+.chart {
+  position: absolute;
+  inset: 0;
+}
+
+.layer {
+  position: absolute;
+  pointer-events: none;
+}
+
+.span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--surface-2);
+}
+
+.marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  outline: 2px solid var(--surface);
+  box-sizing: border-box;
+}
+
+.filled.good {
+  background: var(--ally);
+}
+
+.filled.bad {
+  background: var(--enemy);
+}
+
+.ring {
+  background: var(--surface);
+  border: 2px solid;
+}
+
+.ring.good {
+  border-color: var(--ally);
+}
+
+.ring.bad {
+  border-color: var(--enemy);
+}
+
+.now {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  margin-left: -0.5px;
+  background: var(--text);
+}
+
+.cross {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  margin-left: -0.5px;
+  background: var(--text-3);
+}
+
+.hit {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+.tip {
+  position: absolute;
+  top: 8px;
+  z-index: 2;
+  margin-left: 12px;
+  max-width: 280px;
+  padding: 6px var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.tipLeft {
+  margin-left: 0;
+  transform: translateX(calc(-100% - 12px));
+}
+
+.tipHead {
+  display: flex;
+  gap: var(--space-3);
+  font-size: 14px;
+}
+
+.tipMoment {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  color: var(--text-2);
+}
