@@ -1,0 +1,39 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: 28px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-num);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.strong.good {
+  background: var(--ally);
+  color: var(--bg);
+}
+
+.strong.bad {
+  background: var(--enemy);
+  color: var(--bg);
+}
+
+.soft.good {
+  background: var(--ally-tint);
+  color: var(--ally);
+}
+
+.soft.bad {
+  background: var(--enemy-tint);
+  color: var(--enemy);
+}
+
+.count {
+  font-weight: 500;
+}

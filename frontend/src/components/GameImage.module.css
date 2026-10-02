@@ -1,0 +1,34 @@
+.frame {
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+  background: var(--surface-2);
+  object-fit: cover;
+}
+
+.round {
+  border-radius: 50%;
+}
+
+.ally {
+  box-shadow: 0 0 0 2px var(--ally);
+}
+
+.enemy {
+  box-shadow: 0 0 0 2px var(--enemy);
+}
+
+.you {
+  box-shadow: 0 0 0 2px var(--you);
+}
+
+.fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  font-family: var(--font-num);
+  font-weight: 600;
+  line-height: 1;
+  overflow: hidden;
+}

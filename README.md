@@ -31,3 +31,16 @@ Riot key after `RIOT_API_KEY=` in `.env`. Everything fetched is cached in `cache
 
 Demo mode (`--demo` or `LOLREVIEW_DEMO=1`) needs no key and no network: it serves the synthetic
 games for `Me#NA1` on `na1`.
+
+## Frontend
+
+```
+cd frontend
+npm ci
+npm run dev:mock    # UI on mock data, no backend; add ?mock=key_expired, rate_limited, unavailable or empty
+npm run dev         # UI on :5173, proxies /api to the backend on :8000
+npm run lint && npm run typecheck && npm run test && npm run build
+npm run gen:api     # regenerate src/api/types.ts from openapi.json
+```
+
+In a dev build, `/dev/components` shows every shared component on the real tokens.
