@@ -126,9 +126,9 @@ def test_trained_round_trip(trained):
 
 def test_feature_mismatch_raises(trained, tmp_path):
     _, out = trained
-    text = (out / "model.txt").read_text()
-    assert "Column_0" not in text and "gold_diff" in text
-    (tmp_path / "model.txt").write_text(text.replace("gold_diff", "gold_dif2", 1))
+    text = (out / "model.txt").read_bytes()  # bytes: LightGBM checks tree sizes, so keep newlines
+    assert b"Column_0" not in text and b"gold_diff" in text
+    (tmp_path / "model.txt").write_bytes(text.replace(b"gold_diff", b"gold_dif2", 1))
     with pytest.raises(FeatureMismatch, match="trained on features"):
         load_model(tmp_path)
 

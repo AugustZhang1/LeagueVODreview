@@ -14,7 +14,7 @@
     "cs_diff",
     "grub_diff",
     "herald_diff",
-    "atakhan_diff",
+    "quest_diff",
     "inhibs_down_diff",
     "baron_active",
     "elder_active",
@@ -389,7 +389,7 @@
       "gain": 251.1007004380226
     },
     {
-      "feature": "atakhan_diff",
+      "feature": "quest_diff",
       "gain": 113.51872634887695
     },
     {

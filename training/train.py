@@ -33,13 +33,13 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler  # noqa: E402
 
 FEATURE_COLUMNS = [
     "tier", "minute", "gold_diff", "kill_diff", "tower_diff", "level_diff", "cs_diff",
-    "grub_diff", "herald_diff", "atakhan_diff", "inhibs_down_diff", "baron_active",
+    "grub_diff", "herald_diff", "quest_diff", "inhibs_down_diff", "baron_active",
     "elder_active", "blue_dragons", "red_dragons", "soul_diff", "soul_type",
 ]  # fmt: skip
 CATEGORICAL = ["soul_type"]
 MONOTONE = {
     "tier": 0, "minute": 0, "gold_diff": 1, "kill_diff": 1, "tower_diff": 1, "level_diff": 1,
-    "cs_diff": 1, "grub_diff": 1, "herald_diff": 1, "atakhan_diff": 1, "inhibs_down_diff": 1,
+    "cs_diff": 1, "grub_diff": 1, "herald_diff": 1, "quest_diff": 1, "inhibs_down_diff": 1,
     "baron_active": 1, "elder_active": 1, "blue_dragons": 1, "red_dragons": -1, "soul_diff": 1,
     "soul_type": 0,
 }  # fmt: skip

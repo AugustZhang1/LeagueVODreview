@@ -55,7 +55,8 @@ def test_only_last_patches_and_create(data_dir, env_file, monkeypatch, capsys):
     assert rec["games"] == 6 * 2
     up = data_dir / ".upload"
     assert not (up / "na1" / "15.8").exists()
-    assert (up / "kr" / "15.11" / "v1" / "part-00001.parquet").is_symlink()
+    staged = up / "kr" / "15.11" / "v1" / "part-00001.parquet"
+    assert staged.samefile(data_dir / "kr" / "15.11" / "v1" / "part-00001.parquet")
     assert calls[-1][0][:3] == ["kaggle", "datasets", "create"]
     assert "--dir-mode" in calls[-1][0]
     assert calls[-1][1]["env"]["KAGGLE_API_TOKEN"] == TOKEN

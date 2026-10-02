@@ -663,6 +663,17 @@
             "title": "Pos Age S",
             "type": "number"
           },
+          "quest_item": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quest Item"
+          },
           "respawn_in_s": {
             "title": "Respawn In S",
             "type": "number"

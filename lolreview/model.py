@@ -62,7 +62,7 @@ class PlaceholderModel(WinModel):
         "soul_diff": 0.4,
         "grub_diff": 0.08,
         "herald_diff": 0.15,
-        "atakhan_diff": 0.12,
+        "quest_diff": 0.06,
         "blue_dragons": 0.15,
         "red_dragons": -0.15,
     }

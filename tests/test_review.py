@@ -2,14 +2,14 @@ import math
 import time
 
 import pytest
-from conftest import SYNTHETIC_IDS
+from conftest import REAL_IDS, SYNTHETIC_IDS
 
 from lolreview import schemas
 from lolreview.config import load_config
 from lolreview.model import PlaceholderModel
 from lolreview.review import Remake, UnsupportedQueue, build_review
 
-GOOD = SYNTHETIC_IDS[:3]
+GOOD = SYNTHETIC_IDS[:3] + REAL_IDS
 MODEL = PlaceholderModel()
 CFG = load_config()["review"]
 
@@ -38,7 +38,7 @@ def expected_event_count(timeline):
         for e in f["events"]:
             if e["type"] in ("CHAMPION_KILL", "BUILDING_KILL", "TURRET_PLATE_DESTROYED"):
                 n += 1
-            elif e["type"] == "ELITE_MONSTER_KILL":
+            elif e["type"] == "ELITE_MONSTER_KILL" and e.get("killerTeamId") != 300:
                 n += e["monsterType"] in (
                     "DRAGON", "HORDE", "RIFTHERALD", "BARON_NASHOR", "ATAKHAN"
                 )  # fmt: skip
@@ -108,6 +108,8 @@ def test_every_game_and_side(load_game):
             held = sorted(p[f"item{i}"] for i in range(6) if p[f"item{i}"])
             assert sorted(i for i in s.items if i) == held, (mid, p["participantId"])
             assert s.trinket == (p["item6"] or None)
+            if p["teamPosition"] == "BOTTOM" and p.get("roleBoundItem", 0) > 1300:  # boots
+                assert s.quest_item == p["roleBoundItem"], (mid, p["participantId"])
 
         counts = {g: 0 for g in ("!!", "!", "?", "??")}
         for m in r.moments:

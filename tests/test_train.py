@@ -92,7 +92,7 @@ def test_gold_diff_monotone(run):
             "cs_diff": rng.normal(0, 30, 200),
             "grub_diff": rng.integers(-3, 3, 200),
             "herald_diff": rng.integers(-1, 2, 200),
-            "atakhan_diff": rng.integers(-1, 2, 200),
+            "quest_diff": rng.integers(-3, 4, 200),
             "inhibs_down_diff": rng.integers(-2, 3, 200),
             "baron_active": rng.integers(-1, 2, 200),
             "elder_active": rng.integers(-1, 2, 200),

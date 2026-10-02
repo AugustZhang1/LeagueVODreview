@@ -25,9 +25,12 @@ def test_crawl_settings_are_consistent():
 
 def test_timers_present():
     timers = config.load_config()["timers"]
-    for name in ("dragon", "grubs", "herald", "baron", "atakhan", "elder"):
+    for name in ("dragon", "grubs", "herald", "baron", "elder"):
         assert timers[f"{name}_first_s"] > 0
+    for name in ("dragon", "baron", "elder"):
         assert timers[f"{name}_respawn_s"] > 0
+    for name in ("grubs", "herald"):
+        assert timers[f"{name}_despawn_s"] > timers[f"{name}_first_s"]
     for name in ("baron_buff_s", "elder_buff_s", "inhibitor_respawn_s"):
         assert timers[name] > 0
 

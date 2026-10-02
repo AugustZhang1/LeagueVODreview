@@ -24,5 +24,6 @@ regenerates the games in memory and compares them to the committed files.
 
 ## Real fixtures
 
-Step 3 of `Plan.md` adds real games under `tests/fixtures/real/`. Any field the synthetic games got
-wrong is fixed in the generator and the code, and tests then run on both sets.
+`real/` holds three real ranked solo games from NA Challenger on patch 16.19, saved by
+`scripts/fetch_samples.py` in Step 3, and `REPORT.md`, its summary of 20 games. The feature and
+review tests run on them as well as on the synthetic games.

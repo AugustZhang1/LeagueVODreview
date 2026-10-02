@@ -20,7 +20,7 @@ export type Row = {
   /** "dead 0:12" while dead, otherwise null. */
   deadText: string | null;
   gold: string;
-  /** Six item slots then the trinket; null is an empty slot. */
+  /** Six item slots, the trinket, then boots in the Bot Lane quest slot if any; null is empty. */
   slots: (number | null)[];
 };
 
@@ -58,7 +58,11 @@ export function buildRow(player: Player, state: PlayerState, left = state.respaw
     dead,
     deadText: dead ? `dead ${formatRespawn(left)}` : null,
     gold: formatGold(state.gold),
-    slots: [...state.items.slice(0, 6), state.trinket],
+    slots: [
+      ...state.items.slice(0, 6),
+      state.trinket,
+      ...(state.quest_item ? [state.quest_item] : []),
+    ],
   };
 }
 

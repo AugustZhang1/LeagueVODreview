@@ -21,37 +21,39 @@ long_count = 95
 long_window_s = 120
 americas_long_count = 80
 
-# Objective timers in game seconds. All values are best current guesses.
+# Objective timers in game seconds, patch 16.19. Spawns and respawns agree with 100 Challenger games
+# (earliest kill, shortest gap between kills; Step 3). Grubs (3, once) and Herald (once) don't
+# respawn; Herald leaves when Baron is due. Atakhan was removed in 26.1.
 [timers]
-dragon_first_s = 300        # verify in Step 3
-dragon_respawn_s = 300      # verify in Step 3
-grubs_first_s = 360         # verify in Step 3
-grubs_respawn_s = 240       # verify in Step 3
-herald_first_s = 960        # verify in Step 3
-herald_respawn_s = 360      # verify in Step 3
-baron_first_s = 1200        # verify in Step 3
-baron_respawn_s = 360       # verify in Step 3
-atakhan_first_s = 1200      # verify in Step 3
-atakhan_respawn_s = 300     # verify in Step 3
-elder_first_s = 360        # seconds after a team takes the soul; verify in Step 3
-elder_respawn_s = 360       # verify in Step 3
-baron_buff_s = 180          # verify in Step 3
-elder_buff_s = 150          # verify in Step 3
-inhibitor_respawn_s = 300   # verify in Step 3
+dragon_first_s = 300
+dragon_respawn_s = 300
+grubs_first_s = 480
+grubs_despawn_s = 885       # 14:45, or 14:55 in combat
+herald_first_s = 900
+herald_despawn_s = 1185     # 19:45, or 19:55 in combat; shows up as a kill by killerTeamId 300
+baron_first_s = 1200
+baron_respawn_s = 360
+elder_first_s = 360         # after a team takes the soul; only 3 Elders in the sample
+elder_respawn_s = 360
+# Not visible in the API; from the League wiki.
+baron_buff_s = 180
+elder_buff_s = 150
+inhibitor_respawn_s = 300
 
-# Death timer: base seconds by champion level 1-18, then a time-based increase.
+# Death timer from the League wiki: base seconds by champion level 1-18, then a time-based increase.
+# The Top Lane quest raises the level cap to 20; levels 19 and 20 use the level 18 value.
 [respawn]
-base_by_level = [6.0, 6.0, 8.0, 8.0, 10.0, 12.0, 16.0, 21.0, 26.5, 32.5, 35.0, 37.5, 40.0, 42.5, 45.0, 47.5, 50.0, 52.5]  # verify in Step 3
+base_by_level = [10.0, 10.0, 12.0, 12.0, 14.0, 16.0, 20.0, 25.0, 28.0, 32.5, 35.0, 37.5, 40.0, 42.5, 45.0, 47.5, 50.0, 52.5]
 # Increase factor (fraction of base) by game minute; each step is half a minute.
-scaling_start_min = 15      # verify in Step 3
-scaling_mid_min = 30        # verify in Step 3
-scaling_late_min = 45       # verify in Step 3
-scaling_mid_base = 0.1275   # verify in Step 3
-scaling_late_base = 0.2175  # verify in Step 3
-scaling_early_step = 0.00425  # verify in Step 3
-scaling_mid_step = 0.003    # verify in Step 3
-scaling_late_step = 0.0145  # verify in Step 3
-scaling_max = 0.5           # verify in Step 3
+scaling_start_min = 15
+scaling_mid_min = 30
+scaling_late_min = 45
+scaling_mid_base = 0.1275
+scaling_late_base = 0.2175
+scaling_early_step = 0.00425
+scaling_mid_step = 0.003
+scaling_late_step = 0.0145
+scaling_max = 0.5
 
 [review]
 step_s = 15

@@ -236,13 +236,13 @@ def check_timers(match: dict, timeline: dict) -> None:
             kind = "DRAGON"
         else:
             key = {"HORDE": "grubs", "RIFTHERALD": "herald", "BARON_NASHOR": "baron"}.get(mt)
-            key = key or "atakhan"
-            assert t >= TIMERS[f"{key}_first_s"] * 1000, (mt, t)
+            if key:  # Atakhan has no timers since 26.1; game 3 keeps one for the code path
+                assert t >= TIMERS[f"{key}_first_s"] * 1000, (mt, t)
+            if key in ("grubs", "herald"):  # once a game, gone 10 s after despawn at the latest
+                assert t <= (TIMERS[f"{key}_despawn_s"] + 10) * 1000, (mt, t)
             kind = mt
-        if kind in ("DRAGON", "ELDER", "BARON_NASHOR", "ATAKHAN", "RIFTHERALD"):
-            key = {"DRAGON": "dragon", "ELDER": "elder", "BARON_NASHOR": "baron"}.get(
-                kind, kind.lower()
-            )
+        if kind in ("DRAGON", "ELDER", "BARON_NASHOR"):
+            key = {"DRAGON": "dragon", "ELDER": "elder", "BARON_NASHOR": "baron"}[kind]
             if kind in last:
                 assert t - last[kind] >= TIMERS[f"{key}_respawn_s"] * 1000, (kind, t)
             last[kind] = t
