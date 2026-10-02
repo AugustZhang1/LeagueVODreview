@@ -1,0 +1,13 @@
+{
+  "id": "augustzhang1/lol-winprob-train",
+  "title": "lol-winprob-train",
+  "code_file": "train.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": false,
+  "dataset_sources": ["augustzhang1/lol-winprob"],
+  "competition_sources": [],
+  "kernel_sources": []
+}

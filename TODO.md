@@ -61,8 +61,7 @@ Claude does the rest (see `Plan.md` for every step, `UI.md` for the app).
 - [x] Done 2026-10-02: `lol-crawler` (e2-micro, us-central1-a) runs the crawler as a service and survives reboots. It clones the repo with a read-only deploy key. See the progress page with `gcloud compute ssh lol-crawler --zone us-central1-a --ssh-flag="-N" --ssh-flag="-L 8080:localhost:8080"`, then <http://localhost:8080>.
 
 ### Steps 9–10: training
-- [ ] Run `upload.py` over SSH when Claude asks.
-- [ ] On kaggle.com, open the notebook → **Save & Run All**. When it's done, download `model.txt` and `metrics.json` from the Output tab into `models/` on the laptop.
+- [x] Pilot done 2026-10-02 (Steps 8-10): 2,936 Challenger games uploaded to the private dataset `augustzhang1/lol-winprob`, trained by the private Kaggle script `augustzhang1/lol-winprob-train` through the API (no clicking needed), and the model is in `models/`: 76% accuracy, calibration within 6 points. Retrain the same way once the crawl reaches the lower tiers (Step 11).
 
 ### Step 15: check the reviews
 - [ ] Review 5 of your own games. Write down anything that looks wrong (the time and what you expected).

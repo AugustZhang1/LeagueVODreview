@@ -6,7 +6,18 @@ It reads the crawler's Parquet folder (`<platform>/<patch>/v<N>/part-*.parquet`)
 writes `model.txt`, `metrics.json`, `calibration.png`, `accuracy_by_minute.png` and `report.md`
 (plus `isotonic.json` with `--isotonic`).
 
-## On Kaggle
+## On Kaggle, through the API
+
+`kernel-metadata.json` makes this folder a private Kaggle script (`augustzhang1/lol-winprob-train`)
+attached to the `augustzhang1/lol-winprob` dataset. With `KAGGLE_API_TOKEN` set:
+
+```
+kaggle kernels push -p training                                  # uploads train.py and runs it
+kaggle kernels status augustzhang1/lol-winprob-train             # until COMPLETE
+kaggle kernels output augustzhang1/lol-winprob-train -p out       # then copy model.txt, metrics.json to models/
+```
+
+## On Kaggle, by hand
 
 1. Upload the crawler's data as a Kaggle dataset and create a notebook attached to it.
 2. Put `train.py` in the notebook (or attach it as a script) and run it with no arguments:
