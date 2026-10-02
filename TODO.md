@@ -27,7 +27,28 @@ Keep every key out of the repo and out of chat.
 
 ## After Step 1
 
-- [ ] Tell Claude it's done. Next up: Steps 2–4 (Riot client, checking real data, feature extraction).
+- [x] ~~Tell Claude it's done.~~ The Stage 1 code is written (Steps 2, 4–7, 9, 10, 13, 14, 16), and tested on made-up games, since there's no key here yet.
+
+## Now
+
+### Try the app without a key
+- [ ] On the laptop, in the repo folder:
+  ```
+  uv venv -p 3.12 .venv && uv pip install -p .venv -e ".[dev]"
+  cd frontend && npm ci && npm run build && cd ..
+  .venv/bin/python -m lolreview.app --demo
+  ```
+  Open `http://127.0.0.1:8000` and search `Me#NA1`. These are made-up games and a placeholder model, so the numbers mean nothing yet.
+
+### Step 3: check real data (needs the dev key)
+- [ ] Put a fresh dev key after `RIOT_API_KEY=` in `.env`, then run `.venv/bin/python scripts/fetch_samples.py --platform na1 --games 20 --save 3`.
+- [ ] Tell Claude it's done. It reads `tests/fixtures/real/REPORT.md`, fixes every value marked `# verify in Step 3` in `config.toml`, and runs all tests on the real games too.
+
+### Replay button certificate (Step 16)
+- [ ] Download Riot's certificate from `https://static.developer.riotgames.com/docs/lol/riotgames.pem` into `lolreview/certs/riotgames.pem` (the cloud sandbox couldn't reach it). Until then the button says how.
+
+### Leftover in the cloud sandbox
+- [ ] Optional: a coding agent left 504 KB of made-up test data at `/s` in the cloud container (not in the repo). `rm -rf /s` clears it; it goes away with the container anyway.
 
 ## Later steps that need you
 
