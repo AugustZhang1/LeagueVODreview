@@ -4,7 +4,7 @@
 # crawl data, models, caches
 data/
 models/
-cache.db
+cache*.db*
 *.sqlite
 
 # python
