@@ -314,3 +314,48 @@ def test_malformed_match_is_failed_and_not_retried(tmp_path):
     c2 = make_crawler(tmp_path, client)
     c2._run_pass()
     assert bad not in seen
+
+
+def test_known_patch_ids_cost_one_request(tmp_path):
+    client = FakeRiotClient("na1", apex_size=12)
+    calls = {"match": 0, "timeline": 0}
+    real_match, real_timeline = client.match, client.timeline
+
+    def match(*a):
+        calls["match"] += 1
+        return real_match(*a)
+
+    def timeline(*a):
+        calls["timeline"] += 1
+        return real_timeline(*a)
+
+    client.match, client.timeline = match, timeline
+    c = make_crawler(tmp_path, client)
+    c.state.meta_set("patches_seen", '["26.19"]')
+    c.state.meta_set("patch_ids", '{"26.19": [0, 99999999999]}')
+    c._run_pass()
+    c.flush()
+    st = State(state_path(tmp_path, "na1"))
+    done, games = st.match_ids_with_status("done"), sum(st.match_counts().values())
+    st.close()
+    assert calls == {"match": 0, "timeline": games}
+    expected = []
+    for match_id in done:
+        expected += features.extract_rows(
+            real_match("americas", match_id), real_timeline("americas", match_id), "CHALLENGER"
+        )
+    want = sorted(
+        features.rows_to_table(expected).to_pylist(), key=lambda r: (r["match_id"], r["t"])
+    )
+    assert all_rows(batch_files(tmp_path)) == want
+
+
+def test_patch_of_id(tmp_path):
+    c = make_crawler(tmp_path)
+    assert c._patch_of_id("NA1_5") is None
+    c._note_patch_id("NA1_10", "16.18")
+    c._note_patch_id("NA1_20", "16.18")
+    c._note_patch_id("NA1_30", "16.19")
+    assert [c._patch_of_id(f"NA1_{n}") for n in (10, 15, 20, 25, 30, 31)] == [
+        "16.18", "16.18", "16.18", None, "16.19", None
+    ]  # fmt: skip

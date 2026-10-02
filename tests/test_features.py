@@ -313,3 +313,13 @@ def test_rows_to_table(game):
         assert pa.types.is_dictionary(schema.field(name).type)
     assert table.column("soul_type").to_pylist() == [r["soul_type"] for r in rows]
     assert table.column("patch").to_pylist() == [r["patch"] for r in rows]
+
+
+def test_rows_from_timeline_alone(game):
+    match, timeline = game
+    rebuilt = F.match_from_timeline(timeline, F.patch_of(match))
+    assert F.extract_rows(rebuilt, timeline, "GOLD") == F.extract_rows(match, timeline, "GOLD")
+    no_end = copy.deepcopy(timeline)
+    for f in no_end["info"]["frames"]:
+        f["events"] = [e for e in f["events"] if e["type"] != "GAME_END"]
+    assert F.match_from_timeline(no_end, "26.19") is None

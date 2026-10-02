@@ -467,6 +467,38 @@ def feature_row(state: GameState, tier: str | int) -> dict:
     }
 
 
+def match_from_timeline(timeline: dict, patch: str) -> dict | None:
+    """The parts of a match `extract_rows` needs, rebuilt from its timeline, or None without a
+    GAME_END. Saves the crawler one request per game: it only asks for ranked solo games, the
+    patch comes from the game id, and participants 1-5 are blue (true in 100 real games)."""
+    info = timeline["info"]
+    end = next((e for f in info["frames"] for e in f["events"] if e["type"] == "GAME_END"), None)
+    if end is None:
+        return None
+    match_id = timeline["metadata"]["matchId"]
+    winner = end.get("winningTeam")
+    return {
+        "metadata": {"matchId": match_id},
+        "info": {
+            "platformId": match_id.split("_")[0],
+            "gameVersion": f"{patch}.0",
+            "queueId": QUEUE_RANKED_SOLO,
+            "gameDuration": end["timestamp"] // 1000,
+            "participants": [
+                {
+                    "participantId": p["participantId"],
+                    "teamId": BLUE if p["participantId"] <= 5 else RED,
+                }
+                for p in info["participants"]
+            ],
+            "teams": [
+                {"teamId": BLUE, "win": winner == BLUE},
+                {"teamId": RED, "win": winner == RED},
+            ],
+        },
+    }
+
+
 def extract_rows(match: dict, timeline: dict, tier: str | int) -> list[dict]:
     if skip_reason(match) is not None:
         return []
