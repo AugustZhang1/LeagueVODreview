@@ -94,6 +94,8 @@ Two tracks. The data track is slow because the crawl takes days. The app track o
 
 Rows 4–5 and 6 overlap: the UI gets built while the VM pilot crawls.
 
+**Before a dev key is available**, code is built and tested on **synthetic fixtures**: three made-up games shaped exactly like Riot's documented match-v5 match and timeline JSON (`tests/fixtures/synthetic/`, written by a small generator). They are labelled as synthetic everywhere. Step 3 adds the real fixtures next to them, every test then runs on both, and any field the synthetic games got wrong is fixed in the code.
+
 ---
 
 # Stage 1 — Win model + basic review
@@ -147,7 +149,7 @@ Rows 4–5 and 6 overlap: the UI gets built while the VM pilot crawls.
 
 `extract_rows(match, timeline, tier)` → rows. The match data has no rank, so `tier` is passed in: the crawler passes the tier of the player the game was found through; a review passes the reviewed player's tier.
 
-- **Skip** non-ranked-solo games (`queueId != 420`) and remakes (`gameDuration < 300`). Check this on the match data, before fetching the timeline.
+- **Skip** non-ranked-solo games (`queueId != 420`) and remakes (any participant's `gameEndedInEarlySurrender`, or `gameDuration < 300`). Check this on the match data, before fetching the timeline.
 - **Training rows:** one per minute frame plus one right after each kill, elite monster, building or plate event.
 - **State** is built by walking events in time order:
   - Gold per team = sum of `totalGold` at the last minute frame + kill bounties since that frame. No interpolation, no passive-gold simulation.
@@ -310,8 +312,8 @@ Pro esports games aren't in the public Riot API. The only full-timeline source i
 - `GET /api/review/{match_id}?p={participantId}` → the review JSON from that player's side.
 - `GET /api/model` → `metrics.json`, for the Model page.
 - Errors are `{"error": {"code", "message", "retry_after_s"}}`; the codes and their messages are in `UI.md`.
-- Listens on `127.0.0.1` only. Gzip on. CORS only for `localhost:5173`, in dev.
-- `app.py` serves the built UI (`frontend/dist`) from the same server, so daily use is one command.
+- Listens on `127.0.0.1` only. Gzip on. CORS only for `localhost:5173`, in dev. The Riot key stays in the backend; it never reaches the browser.
+- `app.py` serves the built UI (`frontend/dist`) from the same server, so daily use is one command. Any path that isn't `/api/…` or a file returns `index.html`, so the UI's own routes (`/review/…`) survive a reload.
 
 **Riot calls from the laptop:** same key and limits as the crawler (Step 2). A first player lookup is about 12 Americas calls (account, match IDs, 10 match summaries) plus 1 NA1 rank call; a first review is 1 timeline call. Everything is cached, so opening it again costs nothing. A 429 is waited out once, then reported to the UI as `rate_limited`.
 
@@ -319,10 +321,12 @@ Pro esports games aren't in the public Riot API. The only full-timeline source i
 
 **Model (`model.py`):** loads `models/model.txt` and checks its feature list against `features.py`'s at startup, so a mismatch is an error rather than wrong numbers later. `model_version` is the start of the file's hash. With no model yet, a **placeholder** (a logistic formula on gold, kill and tower diffs with hand-set weights) lets the whole app run end to end; the UI labels it everywhere it's used.
 
+**Champions:** each participant's numeric `championId` is mapped to its Data Dragon id and display name through `champion.json` (`key` → `id`, `name`) for the game's patch; the match's `championName` isn't used for images because it doesn't always match (Fiddlesticks). Data Dragon files are cached in `cache.db`.
+
 **Tier:** the player's current solo rank (one league-v4 call). If they're unranked, the median rank of the other 9 players (9 calls, only then, cached); if nobody is ranked, Silver.
 
 **Building a review:**
-1. Fetch (or load) the match and timeline. Reject other queues (`unsupported_queue`) and remakes.
+1. Fetch (or load) the match and timeline. Reject other queues (`unsupported_queue`) and remakes. `surrender` comes from the participants' `gameEndedInSurrender`.
 2. Rows from `features.py` every 15 s, plus just before and just after each event.
 3. Run the model. Flip to your team's side (1 − p if you're red). The last point is 100% or 0% at `GAME_END`.
 4. **Group events into moments:** kills, objectives and buildings within 20 s of each other become one moment. Its value = win % after the group − win % before.
@@ -363,8 +367,9 @@ Pro esports games aren't in the public Riot API. The only full-timeline source i
 ## Step 14 — Review frontend (`frontend/`)
 
 Built as `UI.md` describes, in its build steps U1–U11. In short:
-- Four pages: Search → Games → Review → Model. Dark theme; blue means your team or good for you, red the enemy or bad for you; everything else gray.
-- **Review page:** a header with the grade summary, the win % graph with grade markers, a scrubber (← → step through moments), a canvas minimap, the scoreboard, and the moments list with inline detail. Everything follows the selected time.
+- Four pages: Search → Games → Review → Model. Dark slate theme in Barlow; blue means your team or good for you, red the enemy or bad for you, gold means you; everything else gray.
+- The win chance graph is the one bold element, full width at the top of the review, like a broadcast gold-lead graph. Design checked against Anthropic's `frontend-design` skill (`UI.md`, "Design direction").
+- **Review page:** a header with the grade summary, the win % graph with grade markers, a scrubber (← → step through moments), then the canvas minimap, the scoreboard and the moments list with inline detail side by side. Everything follows the selected time.
 - Built against mock data first (MSW), then the real backend with the placeholder model, then the pilot and real models. No step waits for the crawl.
 - Champion, item and map images come from Data Dragon, at the game's patch.
 - Riot's legal line is in the footer.
