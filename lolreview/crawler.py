@@ -203,13 +203,23 @@ class PlatformCrawler:
     def _fetch_game(self, match_id: str, tier: str) -> None:
         st = self.state
         try:
-            match = self.client.match(self.cluster, match_id)
-            patch = features.patch_of(match)
-            self._see_patch(patch)
-            if features.skip_reason(match) is not None or patch not in self._kept_patches():
-                st.set_status([match_id], "skipped")
-                return
-            timeline = self.client.timeline(self.cluster, match_id)
+            patch = self._patch_of_id(match_id)
+            match = timeline = None
+            if patch is not None:  # one request: the timeline has everything the rows need
+                if patch not in self._kept_patches():
+                    st.set_status([match_id], "skipped")
+                    return
+                timeline = self.client.timeline(self.cluster, match_id)
+                match = features.match_from_timeline(timeline, patch)
+            if match is None:  # learn the patch from the match itself
+                match = self.client.match(self.cluster, match_id)
+                patch = features.patch_of(match)
+                self._see_patch(patch)
+                self._note_patch_id(match_id, patch)
+                if features.skip_reason(match) is not None or patch not in self._kept_patches():
+                    st.set_status([match_id], "skipped")
+                    return
+                timeline = timeline or self.client.timeline(self.cluster, match_id)
             rows = features.extract_rows(match, timeline, tier)
         except RiotError as e:
             st.add_error(f"{self.platform}: {match_id}: {e}", self.clock())
@@ -225,6 +235,23 @@ class PlatformCrawler:
             return
         self.buffer.append(Game(match_id, patch, rows))
         self.buffered.add(match_id)
+
+    def _patch_ids(self) -> dict[str, list[int]]:
+        return json.loads(self.state.meta_get("patch_ids", "{}"))
+
+    def _patch_of_id(self, match_id: str) -> str | None:
+        """The patch whose seen game ids (lowest to highest) include this one, else None. Ids grow
+        over time and a patch starts at one id, so between two ids of a patch it's that patch."""
+        n = int(match_id.rsplit("_", 1)[1])
+        hits = [p for p, (lo, hi) in self._patch_ids().items() if lo <= n <= hi]
+        return hits[0] if len(hits) == 1 else None
+
+    def _note_patch_id(self, match_id: str, patch: str) -> None:
+        n = int(match_id.rsplit("_", 1)[1])
+        ids = self._patch_ids()
+        lo, hi = ids.get(patch, (n, n))
+        ids[patch] = [min(lo, n), max(hi, n)]
+        self.state.meta_set("patch_ids", json.dumps(ids))
 
     def _kept_patches(self) -> list[str]:
         return json.loads(self.state.meta_get("patches_seen", "[]"))
