@@ -11,7 +11,7 @@ writes `model.txt`, `metrics.json`, `calibration.png`, `accuracy_by_minute.png` 
 1. Upload the crawler's data as a Kaggle dataset and create a notebook attached to it.
 2. Put `train.py` in the notebook (or attach it as a script) and run it with no arguments:
    it uses the first folder under `/kaggle/input/` and writes to `/kaggle/working`.
-   For options, use `!python train.py --patches 26.18,26.19 --weight game --isotonic`.
+   For options, use `!python train.py --patches 16.18,16.19 --weight game --isotonic`.
 3. Click **Save & Run All**. The log updates live.
 4. When it finishes, download `model.txt` and `metrics.json` from the Output tab into `models/`.
 
@@ -19,7 +19,7 @@ writes `model.txt`, `metrics.json`, `calibration.png`, `accuracy_by_minute.png` 
 
 ```
 python training/make_synthetic_dataset.py --out /tmp/synth --games 3000
-python training/train.py --data /tmp/synth --out /tmp/synth_out --patches 26.18,26.19
+python training/train.py --data /tmp/synth --out /tmp/synth_out --patches 16.18,16.19
 ```
 
 ## Options
@@ -27,7 +27,7 @@ python training/train.py --data /tmp/synth --out /tmp/synth_out --patches 26.18,
 | Flag | Meaning |
 |---|---|
 | `--data DIR` / `--out DIR` | input Parquet folder (searched recursively) / output folder |
-| `--patches 26.18,26.19` | patch window (default: all patches found) |
+| `--patches 16.18,16.19` | patch window (default: all patches found) |
 | `--features-version 1` | which `v<N>` folder (or `features_version` column) to use |
 | `--weight none\|game` | `game` weights each row by 1 / rows in its game; compare the printed validation log loss |
 | `--isotonic` | calibrate on the validation set; used for the test metrics |
