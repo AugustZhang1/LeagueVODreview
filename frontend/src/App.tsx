@@ -11,6 +11,8 @@ import styles from "./App.module.css";
 
 const DevComponents = import.meta.env.DEV ? lazy(() => import("./pages/DevComponents")) : null;
 
+const DevBoard = import.meta.env.DEV ? lazy(() => import("./pages/DevBoard")) : null;
+
 function Shell() {
   return (
     <>
@@ -38,6 +40,16 @@ export function App() {
             element={
               <Suspense fallback={null}>
                 <DevComponents />
+              </Suspense>
+            }
+          />
+        )}
+        {DevBoard && (
+          <Route
+            path="/dev/board"
+            element={
+              <Suspense fallback={null}>
+                <DevBoard />
               </Suspense>
             }
           />

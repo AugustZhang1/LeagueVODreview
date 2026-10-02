@@ -1,0 +1,28 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.slider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.slider input {
+  flex: 1;
+}
+
+.boards {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (max-width: 1023px) {
+  .boards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
