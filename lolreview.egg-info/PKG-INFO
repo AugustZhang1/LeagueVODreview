@@ -1,0 +1,61 @@
+Metadata-Version: 2.4
+Name: lolreview
+Version: 0.1.0
+Summary: Win-chance reviews of ranked League of Legends games
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: requests==2.34.2
+Requires-Dist: pydantic==2.13.5
+Provides-Extra: vm
+Requires-Dist: pyarrow==25.0.1; extra == "vm"
+Requires-Dist: kaggle==2.2.4; extra == "vm"
+Provides-Extra: app
+Requires-Dist: fastapi==0.142.2; extra == "app"
+Requires-Dist: uvicorn[standard]==0.54.0; extra == "app"
+Requires-Dist: lightgbm==4.7.0; extra == "app"
+Requires-Dist: numpy==2.5.3; extra == "app"
+Requires-Dist: pyarrow==25.0.1; extra == "app"
+Provides-Extra: train
+Requires-Dist: pandas==3.0.6; extra == "train"
+Requires-Dist: lightgbm==4.7.0; extra == "train"
+Requires-Dist: scikit-learn==1.9.1; extra == "train"
+Requires-Dist: matplotlib==3.11.2; extra == "train"
+Requires-Dist: pyarrow==25.0.1; extra == "train"
+Provides-Extra: dev
+Requires-Dist: pyarrow==25.0.1; extra == "dev"
+Requires-Dist: kaggle==2.2.4; extra == "dev"
+Requires-Dist: fastapi==0.142.2; extra == "dev"
+Requires-Dist: uvicorn[standard]==0.54.0; extra == "dev"
+Requires-Dist: lightgbm==4.7.0; extra == "dev"
+Requires-Dist: numpy==2.5.3; extra == "dev"
+Requires-Dist: pandas==3.0.6; extra == "dev"
+Requires-Dist: scikit-learn==1.9.1; extra == "dev"
+Requires-Dist: matplotlib==3.11.2; extra == "dev"
+Requires-Dist: pytest==9.1.1; extra == "dev"
+Requires-Dist: ruff==0.16.10; extra == "dev"
+Requires-Dist: httpx==0.28.1; extra == "dev"
+
+# LeagueVODreview
+
+Reviews a ranked solo League of Legends game by scoring the win chance every few seconds, grouping kills and objectives into moments, and grading each one. A crawler collects training games, a model learns win chance from them, and a local web app shows the review. See `Overview.md` for the idea, `Plan.md` for the build plan and `UI.md` for the app's design.
+
+## Layout
+
+- `lolreview/` the Python package (Riot client, features, model, review, API)
+- `training/` Kaggle training script
+- `frontend/` the review UI (Vite + React + TypeScript)
+- `deploy/` crawler VM setup
+- `tests/` tests; `tests/fixtures/synthetic/` holds generated match-v5 games
+- `config.toml` servers, timers, grade thresholds; `.env` (from `.env.example`) holds the keys
+
+## Development
+
+```
+uv venv -p 3.12 .venv
+uv pip install -p .venv -e ".[dev]"
+.venv/bin/pytest -q
+.venv/bin/ruff check .
+.venv/bin/ruff format --check .
+```
+
+Regenerate the synthetic games with `.venv/bin/python tests/fixtures/make_synthetic.py` and the API schema with `.venv/bin/python scripts/export_openapi.py`.

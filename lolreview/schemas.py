@@ -1,0 +1,226 @@
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+Role = Literal["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"]
+Side = Literal["ally", "enemy"]
+Grade = Literal["!!", "!", "?", "??"]
+ModelKind = Literal["trained", "stub"]
+
+
+class ModelInfo(BaseModel):
+    kind: ModelKind
+    version: str
+    trained_at: str | None = None
+    patches: list[str] | None = None
+
+
+class Health(BaseModel):
+    riot_key: Literal["ok", "expired", "missing"]
+    model: ModelInfo
+
+
+class Rank(BaseModel):
+    tier: str
+    division: str | None
+    lp: int
+
+
+class GameSummary(BaseModel):
+    match_id: str
+    participant_id: int
+    champion: str
+    role: Role
+    result: Literal["win", "loss", "remake"]
+    k: int
+    d: int
+    a: int
+    cs: int
+    duration_s: int
+    started_at: str
+    patch: str
+    reviewed: bool
+
+
+class PlayerGames(BaseModel):
+    puuid: str
+    riot_id: str
+    platform: str
+    rank: Rank | None
+    games: list[GameSummary]
+    next_start: int | None
+
+
+class ReviewModel(BaseModel):
+    kind: ModelKind
+    version: str
+
+
+class ReviewMatch(BaseModel):
+    match_id: str
+    platform: str
+    patch: str
+    ddragon_version: str
+    started_at: str
+    duration_s: int
+    result: Literal["win", "loss"]
+    surrender: bool
+    my_side: Literal["blue", "red"]
+    tier_used: str
+    tier_note: str | None
+    model: ReviewModel
+    patch_in_training: bool
+
+
+class Player(BaseModel):
+    participant_id: int
+    riot_id: str
+    champion: str
+    champion_name: str
+    role: Role
+    team: Side
+    is_me: bool
+
+
+class Building(BaseModel):
+    id: str
+    team: Side
+    kind: Literal["tower", "inhibitor", "nexus"]
+    x: float
+    y: float
+
+
+class CurvePoint(BaseModel):
+    t: float
+    p: float
+
+
+class GameEvent(BaseModel):
+    t: float
+    team: Side
+    kind: Literal[
+        "kill",
+        "dragon",
+        "elder",
+        "baron",
+        "herald",
+        "grubs",
+        "atakhan",
+        "tower",
+        "inhibitor",
+        "plate",
+    ]
+    killer: int | None = None
+    victim: int | None = None
+    assists: list[int] | None = None
+    detail: str | None = None
+    x: float | None = None
+    y: float | None = None
+
+
+class Moment(BaseModel):
+    id: str
+    t_start: float
+    t_end: float
+    p_before: float
+    p_after: float
+    delta: float
+    grade: Grade | None
+    title: str
+    zone: str
+    involves_me: bool
+    events: list[GameEvent]
+
+
+class PlayerState(BaseModel):
+    participant_id: int
+    x: float
+    y: float
+    pos_age_s: float
+    level: int
+    k: int
+    d: int
+    a: int
+    cs: int
+    gold: int
+    items: list[int | None]
+    trinket: int | None
+    respawn_in_s: float
+
+
+class Buff(BaseModel):
+    kind: Literal["baron", "elder"]
+    ends_in_s: float
+
+
+class TeamState(BaseModel):
+    kills: int
+    gold: int
+    towers: int
+    dragons: list[str]
+    soul: str | None
+    grubs: int
+    heralds: int
+    barons: int
+    buff: Buff | None
+
+
+class SnapshotTeams(BaseModel):
+    ally: TeamState
+    enemy: TeamState
+
+
+class RecentKill(BaseModel):
+    x: float
+    y: float
+    team: Side
+    age_s: float
+
+
+class Snapshot(BaseModel):
+    t: float
+    players: list[PlayerState]
+    teams: SnapshotTeams
+    buildings_down: list[str]
+    recent_kills: list[RecentKill]
+
+
+class GradeCounts(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    great: int = Field(alias="!!")
+    good: int = Field(alias="!")
+    mistake: int = Field(alias="?")
+    blunder: int = Field(alias="??")
+
+
+class Summary(BaseModel):
+    me: GradeCounts
+    team: GradeCounts
+    biggest_id: str
+
+
+class Review(BaseModel):
+    match: ReviewMatch
+    players: list[Player]
+    buildings: list[Building]
+    curve: list[CurvePoint]
+    moments: list[Moment]
+    snapshots: list[Snapshot]
+    summary: Summary
+
+
+class ModelMetrics(BaseModel):
+    """metrics.json from training; fields are whatever train.py writes."""
+
+    model_config = ConfigDict(extra="allow")
+
+
+class ErrorBody(BaseModel):
+    code: str
+    message: str
+    retry_after_s: int | None = None
+
+
+class ErrorResponse(BaseModel):
+    error: ErrorBody

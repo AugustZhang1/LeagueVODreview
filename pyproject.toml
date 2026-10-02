@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lolreview"
+version = "0.1.0"
+description = "Win-chance reviews of ranked League of Legends games"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "requests==2.34.2",
+    "pydantic==2.13.5",
+]
+
+[project.optional-dependencies]
+vm = [
+    "pyarrow==25.0.1",
+    "kaggle==2.2.4",
+]
+app = [
+    "fastapi==0.142.2",
+    "uvicorn[standard]==0.54.0",
+    "lightgbm==4.7.0",
+    "numpy==2.5.3",
+    "pyarrow==25.0.1",
+]
+train = [
+    "pandas==3.0.6",
+    "lightgbm==4.7.0",
+    "scikit-learn==1.9.1",
+    "matplotlib==3.11.2",
+    "pyarrow==25.0.1",
+]
+dev = [
+    "pyarrow==25.0.1",
+    "kaggle==2.2.4",
+    "fastapi==0.142.2",
+    "uvicorn[standard]==0.54.0",
+    "lightgbm==4.7.0",
+    "numpy==2.5.3",
+    "pandas==3.0.6",
+    "scikit-learn==1.9.1",
+    "matplotlib==3.11.2",
+    "pytest==9.1.1",
+    "ruff==0.16.10",
+    "httpx==0.28.1",
+]
+
+[tool.setuptools]
+packages = ["lolreview"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

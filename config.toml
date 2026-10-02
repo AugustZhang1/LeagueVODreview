@@ -1,0 +1,61 @@
+[paths]
+data_dir = "data"
+models_dir = "models"
+cache_db = "cache.db"
+
+[crawl]
+platforms = ["na1", "euw1", "kr"]
+tiers = ["CHALLENGER", "GRANDMASTER", "MASTER", "DIAMOND", "EMERALD", "PLATINUM", "GOLD", "SILVER"]
+bottom_tier = "SILVER"
+games_per_tier_per_pass = 20000
+batch_games = 500
+patches_kept = 3
+queue = 420
+
+[rate_limit]
+short_count = 18
+short_window_s = 1
+long_count = 95
+long_window_s = 120
+americas_long_count = 80
+
+# Objective timers in game seconds. All values are best current guesses.
+[timers]
+dragon_first_s = 300        # verify in Step 3
+dragon_respawn_s = 300      # verify in Step 3
+grubs_first_s = 360         # verify in Step 3
+grubs_respawn_s = 240       # verify in Step 3
+herald_first_s = 960        # verify in Step 3
+herald_respawn_s = 360      # verify in Step 3
+baron_first_s = 1200        # verify in Step 3
+baron_respawn_s = 360       # verify in Step 3
+atakhan_first_s = 1200      # verify in Step 3
+atakhan_respawn_s = 300     # verify in Step 3
+elder_first_s = 360        # seconds after a team takes the soul; verify in Step 3
+elder_respawn_s = 360       # verify in Step 3
+baron_buff_s = 180          # verify in Step 3
+elder_buff_s = 150          # verify in Step 3
+inhibitor_respawn_s = 300   # verify in Step 3
+
+# Death timer: base seconds by champion level 1-18, then a time-based increase.
+[respawn]
+base_by_level = [6.0, 6.0, 8.0, 8.0, 10.0, 12.0, 16.0, 21.0, 26.5, 32.5, 35.0, 37.5, 40.0, 42.5, 45.0, 47.5, 50.0, 52.5]  # verify in Step 3
+# Increase factor (fraction of base) by game minute; each step is half a minute.
+scaling_start_min = 15      # verify in Step 3
+scaling_mid_min = 30        # verify in Step 3
+scaling_late_min = 45       # verify in Step 3
+scaling_mid_base = 0.1275   # verify in Step 3
+scaling_late_base = 0.2175  # verify in Step 3
+scaling_early_step = 0.00425  # verify in Step 3
+scaling_mid_step = 0.003    # verify in Step 3
+scaling_late_step = 0.0145  # verify in Step 3
+scaling_max = 0.5           # verify in Step 3
+
+[review]
+step_s = 15
+group_window_s = 20
+recent_kill_s = 10
+great = 0.10
+good = 0.05
+mistake = -0.05
+blunder = -0.10
