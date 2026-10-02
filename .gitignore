@@ -1,0 +1,17 @@
+# secrets
+.env
+
+# crawl data, models, caches
+data/
+models/
+cache.db
+*.sqlite
+
+# python
+.venv/
+__pycache__/
+
+# frontend
+node_modules/
+dist/
+*.md
