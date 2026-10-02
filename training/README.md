@@ -19,7 +19,7 @@ writes `model.txt`, `metrics.json`, `calibration.png`, `accuracy_by_minute.png` 
 
 ```
 python training/make_synthetic_dataset.py --out /tmp/synth --games 3000
-python training/train.py --data /tmp/synth --out /tmp/synth_out --patches 16.18,16.19
+python training/train.py --data /tmp/synth --out /tmp/synth_out --patches 26.18,26.19
 ```
 
 ## Options
