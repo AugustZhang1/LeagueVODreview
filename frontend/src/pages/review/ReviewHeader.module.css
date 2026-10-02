@@ -1,0 +1,78 @@
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.header > img,
+.header > span {
+  flex: none;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.win {
+  color: var(--ally);
+}
+
+.loss {
+  color: var(--enemy);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-5);
+  min-height: 24px;
+  margin-top: var(--space-1);
+}
+
+.fact,
+.group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.fact {
+  gap: 6px;
+}
+
+.factLabel {
+  color: var(--text-3);
+}
+
+.link {
+  display: inline-flex;
+  gap: 6px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.notes {
+  margin-top: var(--space-2);
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 32px;
+  color: var(--text-2);
+}
+
+.back:hover {
+  color: var(--text);
+}
