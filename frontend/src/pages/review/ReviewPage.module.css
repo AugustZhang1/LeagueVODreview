@@ -1,0 +1,75 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.panels {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr) 360px;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.minimap,
+.scoreboard,
+.moments {
+  min-width: 0;
+}
+
+.moments {
+  position: relative;
+  align-self: stretch;
+  min-height: 400px;
+}
+
+.moments > * {
+  position: absolute;
+  inset: 0;
+}
+
+@media (max-width: 1279px) {
+  .panels {
+    grid-template-columns: 360px minmax(0, 1fr);
+  }
+
+  .moments {
+    grid-column: 1 / -1;
+    height: 400px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .panels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.skelHeader {
+  display: flex;
+  gap: var(--space-4);
+  height: 88px;
+}
+
+.skelHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.skelGraph {
+  position: relative;
+}
+
+.building {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+}
+
+.skelMoments {
+  overflow: hidden;
+}
