@@ -10,6 +10,9 @@ FIXTURES = ROOT / "tests" / "fixtures" / "synthetic"
 DEMO_PLATFORM = "na1"
 DEMO_NAME = "Me"
 DEMO_TAG = "NA1"
+# Me#NA1 plays red in this game (the red team lost), so the demo has a Defeat.
+LOSS_MATCH_ID = "NA1_9000000003"
+LOSS_SWAP_WITH = 7
 DEMO_RANK = {
     "queueType": "RANKED_SOLO_5x5",
     "tier": "GOLD",
@@ -68,6 +71,7 @@ class DemoRiot:
             self._timelines[mid] = json.loads(
                 path.with_name(f"{mid}.timeline.json").read_text(encoding="utf-8")
             )
+        self._put_me_on_red(self._matches.get(LOSS_MATCH_ID), self._timelines.get(LOSS_MATCH_ID))
         self._newest_first = sorted(
             self._matches, key=lambda m: self._matches[m]["info"]["gameCreation"], reverse=True
         )
@@ -76,6 +80,26 @@ class DemoRiot:
             for p in self._matches[self._newest_first[0]]["info"]["participants"]
             if p["riotIdGameName"] == DEMO_NAME
         )
+
+    @staticmethod
+    def _put_me_on_red(match: dict | None, timeline: dict | None) -> None:
+        """Swap Riot IDs between Me and a red-side participant, in memory only."""
+        if match is None:
+            return
+        people = match["info"]["participants"]
+        me = next((p for p in people if p["riotIdGameName"] == DEMO_NAME), None)
+        other = next((p for p in people if p["participantId"] == LOSS_SWAP_WITH), None)
+        if me is None or other is None or me["teamId"] == other["teamId"]:
+            return
+        for key in ("puuid", "riotIdGameName", "riotIdTagline"):
+            me[key], other[key] = other[key], me[key]
+        i, j = me["participantId"] - 1, other["participantId"] - 1
+        for doc in (match["metadata"], timeline["metadata"] if timeline else None):
+            if doc is not None:
+                doc["participants"][i], doc["participants"][j] = (
+                    doc["participants"][j],
+                    doc["participants"][i],
+                )
 
     def account_by_riot_id(self, cluster: str, name: str, tag: str) -> dict:
         if (name.lower(), tag.lower()) != (DEMO_NAME.lower(), DEMO_TAG.lower()):

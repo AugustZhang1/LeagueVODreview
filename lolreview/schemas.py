@@ -224,3 +224,17 @@ class ErrorBody(BaseModel):
 
 class ErrorResponse(BaseModel):
     error: ErrorBody
+
+
+class ReplayStatus(BaseModel):
+    available: bool
+    reason: str | None = None
+
+
+class ReplaySeek(BaseModel):
+    match_id: str
+    t: float
+
+
+class ReplaySeekResult(BaseModel):
+    ok: bool

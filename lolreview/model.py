@@ -46,23 +46,40 @@ class PlaceholderModel(WinModel):
 
     kind = "stub"
     version = "stub"
+    # Log-odds per unit of each blue-minus-red feature. The first group is scaled by a time
+    # factor (the same lead means more late); objectives count the same all game.
+    SCALED_WEIGHTS = {
+        "gold_diff": 0.0001,
+        "kill_diff": 0.045,
+        "level_diff": 0.03,
+        "cs_diff": 0.002,
+    }
     WEIGHTS = {
-        "gold_diff": 0.00018,
-        "kill_diff": 0.04,
-        "tower_diff": 0.14,
-        "inhibs_down_diff": 0.6,
-        "baron_active": 0.5,
-        "elder_active": 0.8,
-        "soul_diff": 0.35,
+        "tower_diff": 0.16,
+        "inhibs_down_diff": 0.7,
+        "baron_active": 0.9,
+        "elder_active": 0.9,
+        "soul_diff": 0.4,
+        "grub_diff": 0.08,
+        "herald_diff": 0.15,
+        "atakhan_diff": 0.12,
+        "blue_dragons": 0.15,
+        "red_dragons": -0.15,
     }
 
     def __init__(self, signature: tuple = ()) -> None:
         self.signature = signature
 
+    @staticmethod
+    def time_factor(minute: float) -> float:
+        return 0.6 + 1.4 * min(max(minute, 0.0), 40.0) / 40.0
+
     def predict(self, rows: list[dict]) -> list[float]:
         out = []
         for row in rows:
+            factor = self.time_factor(float(row.get("minute", 0)))
             z = sum(w * float(row.get(name, 0)) for name, w in self.WEIGHTS.items())
+            z += factor * sum(w * float(row.get(n, 0)) for n, w in self.SCALED_WEIGHTS.items())
             out.append(1.0 / (1.0 + math.exp(-z)))
         return out
 
