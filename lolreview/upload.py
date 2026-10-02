@@ -14,7 +14,7 @@ import pyarrow.parquet as pq
 
 from lolreview.config import ROOT, load_config, read_env
 
-DEFAULT_DATASET = "USER/lol-winprob"
+DEFAULT_DATASET = "augustzhang1/lol-winprob"
 UPLOAD_DIRNAME = ".upload"
 TITLE = "lol-winprob"
 

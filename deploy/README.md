@@ -64,8 +64,8 @@ On the VM, when you want to train:
 
 ```
 cd ~/LeagueVODreview
-.venv/bin/python -m lolreview.upload --dataset-id YOUR_KAGGLE_NAME/lol-winprob --dry-run
-.venv/bin/python -m lolreview.upload --dataset-id YOUR_KAGGLE_NAME/lol-winprob
+.venv/bin/python -m lolreview.upload --dry-run
+.venv/bin/python -m lolreview.upload
 ```
 
 `--dry-run` only prints what would be uploaded. The first real run creates the private dataset;
