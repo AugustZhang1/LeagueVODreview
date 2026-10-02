@@ -31,6 +31,8 @@ IDLE_SLEEP_S = 60.0
 ERROR_SLEEP_S = 30.0
 PENDING_CHUNK = 50
 JOIN_TIMEOUT_S = 30.0
+PATCH_DIR = re.compile(r"^\d+\.\d+$")
+PART_NAME = re.compile(r"^part-(\d+)\.parquet(?:\.tmp)?$")
 
 
 def patch_key(patch: str) -> tuple[int, ...]:
@@ -86,7 +88,7 @@ class PlatformCrawler:
         st = self.state
         st.meta_set("started_at", self.clock())
         st.meta_set("pass_no", st.meta_int("pass_no", 1))
-        self._remove_orphans()
+        self._recover_batches()
         self._drop_old_patch_folders()
         try:
             while not self.stop.is_set():
@@ -246,28 +248,47 @@ class PlatformCrawler:
     # batches
 
     def _drop_old_patch_folders(self) -> None:
-        kept = set(self._kept_patches())
+        kept = self._kept_patches()
         if not kept or not self.platform_dir.is_dir():
             return
+        oldest = min(patch_key(p) for p in kept)
         for folder in self.platform_dir.iterdir():
-            if folder.is_dir() and folder.name not in kept:
+            if not (folder.is_dir() and PATCH_DIR.match(folder.name)):
+                continue
+            if patch_key(folder.name) < oldest:
                 shutil.rmtree(folder, ignore_errors=True)
                 self.state.delete_patch_batches(folder.name)
 
-    def _remove_orphans(self) -> None:
-        """Delete batch files that were written but never recorded (crash before commit)."""
+    def _recover_batches(self) -> None:
+        """Settle batch files left by a crash; never delete a finished part file."""
         if not self.platform_dir.is_dir():
             return
         known = self.state.batch_files()
-        for path in self.platform_dir.rglob("*"):
-            if path.is_file() and str(path.relative_to(self.data_dir)) not in known:
-                path.unlink()
+        for tmp in sorted(self.platform_dir.rglob("part-*.parquet.tmp")):
+            final = tmp.with_suffix("")
+            if str(final.relative_to(self.data_dir)) in known and not final.exists():
+                os.replace(tmp, final)  # crash between the commit and the rename
+                log.info("%s: finished rename of %s", self.platform, final.name)
+            else:
+                tmp.unlink()  # crash before the commit, or a stale copy
+        stray = sorted(
+            str(p.relative_to(self.data_dir))
+            for p in self.platform_dir.rglob("part-*.parquet")
+            if str(p.relative_to(self.data_dir)) not in known
+        )
+        if stray:
+            log.warning(
+                "%s: %d batch file(s) not in the state database, left in place: %s",
+                self.platform,
+                len(stray),
+                ", ".join(stray),
+            )
 
     def _next_part(self, folder: Path) -> int:
         nums = [
             int(m.group(1))
-            for p in folder.glob("part-*.parquet")
-            if (m := re.search(r"(\d+)", p.stem))
+            for p in folder.glob("part-*.parquet*")
+            if (m := PART_NAME.match(p.name))
         ]
         return max(nums, default=0) + 1
 
@@ -282,7 +303,7 @@ class PlatformCrawler:
                 by_patch.setdefault(game.patch, []).append(game)
             else:
                 skipped.append(game.match_id)
-        written: list[Path] = []
+        written: list[tuple[Path, Path]] = []
         batches: list[dict] = []
         done: list[str] = []
         try:
@@ -291,13 +312,15 @@ class PlatformCrawler:
                 done.extend(g.match_id for g in games)
             self.state.record_batches(batches, done, skipped, self.clock())
         except BaseException:
-            for path in written:
-                path.unlink(missing_ok=True)
+            for tmp, _ in written:
+                tmp.unlink(missing_ok=True)
             raise
         self.buffer = []
         self.buffered = set()
+        for tmp, final in written:  # a failure here is finished by _recover_batches on start
+            os.replace(tmp, final)
 
-    def _write_batch(self, patch: str, games: list[Game], written: list[Path]) -> dict:
+    def _write_batch(self, patch: str, games: list[Game], written: list[tuple[Path, Path]]) -> dict:
         import pyarrow.parquet as pq
 
         version = features.FEATURES_VERSION
@@ -315,17 +338,16 @@ class PlatformCrawler:
                 "features_version": str(version),
             }
         )
-        tmp = path.with_name("." + path.name + ".tmp")
+        tmp = path.with_name(path.name + ".tmp")
+        written.append((tmp, path))
         pq.write_table(table, tmp, compression="zstd")
-        os.replace(tmp, path)
-        written.append(path)
         return {
             "file": str(path.relative_to(self.data_dir)),
             "patch": patch,
             "version": version,
             "games": len(games),
             "rows": len(rows),
-            "bytes": path.stat().st_size,
+            "bytes": tmp.stat().st_size,
             "blue_wins": blue_wins,
             "duration_s": duration,
         }

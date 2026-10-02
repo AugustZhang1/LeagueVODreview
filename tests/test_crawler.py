@@ -119,14 +119,94 @@ def test_stop_and_restart_no_duplicates(tmp_path):
     assert sum(len(s) for s in per_file) == len(unique)
 
 
-def test_orphan_batch_file_removed_on_start(tmp_path):
+def test_deleted_state_db_keeps_batch_files(tmp_path):
+    first = make_crawler(tmp_path)
+    first._run_pass()
+    first.flush()
+    first.state.close()
+    before = batch_files(tmp_path)
+    assert len(before) > 1
+    for f in tmp_path.glob("state-na1.sqlite*"):
+        f.unlink()
+
+    second = make_crawler(tmp_path)
+    second.stop.set()
+    second.run()
+    assert batch_files(tmp_path) == before
+    assert second._next_part(before[0].parent) == len(before) + 1
+
+
+def test_leftover_tmp_removed_and_recorded_tmp_renamed(tmp_path):
+    folder = tmp_path / "na1" / "26.19" / "v1"
+    folder.mkdir(parents=True)
+    st = State(state_path(tmp_path, "na1"))
+    st.record_batches(
+        [{"file": "na1/26.19/v1/part-00002.parquet", "patch": "26.19", "version": 1,
+          "games": 1, "rows": 1}],
+        [],
+    )  # fmt: skip
+    st.close()
+    unrecorded = folder / "part-00003.parquet.tmp"
+    recorded = folder / "part-00002.parquet.tmp"
+    unrecorded.write_bytes(b"x")
+    recorded.write_bytes(b"y")
+
     c = make_crawler(tmp_path)
-    orphan = tmp_path / "na1" / "26.19" / "v1" / "part-00007.parquet"
-    orphan.parent.mkdir(parents=True)
-    orphan.write_bytes(b"x")
+    assert c._next_part(folder) == 4
     c.stop.set()
     c.run()
-    assert not orphan.exists()
+    assert not unrecorded.exists() and not recorded.exists()
+    assert (folder / "part-00002.parquet").read_bytes() == b"y"
+
+
+def test_unrecorded_finished_batch_is_kept(tmp_path):
+    stray = tmp_path / "na1" / "26.19" / "v1" / "part-00007.parquet"
+    stray.parent.mkdir(parents=True)
+    stray.write_bytes(b"x")
+    c = make_crawler(tmp_path)
+    c.stop.set()
+    c.run()
+    assert stray.read_bytes() == b"x"
+
+
+def test_failed_commit_leaves_no_files(tmp_path):
+    c = make_crawler(tmp_path, batch_games=10_000)
+    c._run_pass()
+    assert c.buffer and not batch_files(tmp_path)
+
+    def boom(*a, **kw):
+        raise RuntimeError("db down")
+
+    c.state.record_batches = boom
+    try:
+        c.flush()
+    except RuntimeError:
+        pass
+    assert not list(tmp_path.rglob("part-*"))
+    assert c.buffer  # still buffered for a retry
+
+
+def test_foreign_files_survive_start_and_patch_change(tmp_path):
+    root = tmp_path / "na1"
+    (root / "notes").mkdir(parents=True)
+    (root / "notes" / "keep.txt").write_text("hi")
+    (root / "readme.txt").write_text("hi")
+    (root / "1.2.3").mkdir()
+    old = root / "26.16"
+    old.mkdir()
+    (old / "stale.txt").write_text("x")
+
+    client = FakeRiotClient("na1", apex_size=12, patches=("26.19", "26.18", "26.17"))
+    c = make_crawler(tmp_path, client)
+    c._recover_batches()
+    c._drop_old_patch_folders()
+    for _ in range(3):
+        c._run_pass()
+    c.flush()
+    assert (root / "notes" / "keep.txt").exists()
+    assert (root / "readme.txt").exists()
+    assert (root / "1.2.3").is_dir()  # not shaped like a patch
+    assert not old.exists()
 
 
 def test_cap_per_tier_per_pass(tmp_path):
