@@ -117,13 +117,15 @@ def test_error_response_shape():
     }
 
 
-def test_openapi_has_the_four_paths():
+def test_openapi_paths():
     paths = api.app.openapi()["paths"]
     assert set(paths) == {
         "/api/health",
         "/api/player/{platform}/{name}/{tag}",
         "/api/review/{match_id}",
         "/api/model",
+        "/api/replay/status",
+        "/api/replay/seek",
     }
     params = {p["name"] for p in paths["/api/player/{platform}/{name}/{tag}"]["get"]["parameters"]}
     assert {"start", "count"} <= params

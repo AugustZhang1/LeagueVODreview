@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
-from lolreview import riot
+from lolreview import replay, riot
 from lolreview.cache import Cache
 from lolreview.config import ROOT, load_config, read_env
 from lolreview.constants import (
@@ -29,6 +29,9 @@ from lolreview.schemas import (
     ModelMetrics,
     PlayerGames,
     Rank,
+    ReplaySeek,
+    ReplaySeekResult,
+    ReplayStatus,
     Review,
 )
 
@@ -36,6 +39,7 @@ log = logging.getLogger(__name__)
 
 DEV_ORIGIN = "http://localhost:5173"
 DEFAULT_TIER = "SILVER"
+DEMO_REPLAY_REASON = "Replays aren't available in demo mode"
 
 
 class ApiError(Exception):
@@ -257,7 +261,9 @@ def create_app(
     app = FastAPI(title="LeagueVODreview")
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     if dev:
-        app.add_middleware(CORSMiddleware, allow_origins=[DEV_ORIGIN], allow_methods=["GET"])
+        app.add_middleware(
+            CORSMiddleware, allow_origins=[DEV_ORIGIN], allow_methods=["GET", "POST"]
+        )
 
     state: dict[str, _Context] = {}
     state_lock = threading.Lock()
@@ -288,6 +294,7 @@ def create_app(
 
     errors = {
         404: {"model": ErrorResponse},
+        409: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
         429: {"model": ErrorResponse},
@@ -398,6 +405,44 @@ def create_app(
         if m.kind != "trained" or not metrics:
             raise ApiError(404, "model_missing", "No trained model yet.")
         return JSONResponse(metrics)
+
+    def replay_match(c: _Context, match_id: str) -> dict:
+        cluster = PLATFORM_TO_CLUSTER.get(match_id.split("_")[0].lower())
+        if cluster is None:
+            raise ApiError(404, "match_not_found", "Match not found.")
+        try:
+            return c.match(cluster, match_id)
+        except riot.NotFoundError as exc:
+            raise ApiError(404, "match_not_found", "Match not found.") from exc
+
+    def newest_patch(c: _Context) -> str | None:
+        try:
+            return ".".join(c.ddragon.versions()[0].split(".")[:2])
+        except Exception as exc:
+            log.warning("newest patch unknown (%s); skipping the replay patch check", exc)
+            return None
+
+    def replay_status_for(match_id: str) -> ReplayStatus:
+        c = ctx()
+        if c.demo:
+            return ReplayStatus(available=False, reason=DEMO_REPLAY_REASON)
+        match = replay_match(c, match_id)
+        return replay.status(match, newest_patch(c))
+
+    @app.get("/api/replay/status", response_model=ReplayStatus, responses=errors)
+    def replay_status(match_id: str):
+        return replay_status_for(match_id)
+
+    @app.post("/api/replay/seek", response_model=ReplaySeekResult, responses=errors)
+    def replay_seek(body: ReplaySeek):
+        status = replay_status_for(body.match_id)
+        if not status.available:
+            raise ApiError(409, "replay_unavailable", status.reason or replay.REASON_OPEN)
+        try:
+            replay.seek(body.t)
+        except replay.ReplayUnavailable as exc:
+            raise ApiError(409, "replay_unavailable", exc.reason) from exc
+        return ReplaySeekResult(ok=True)
 
     return app
 

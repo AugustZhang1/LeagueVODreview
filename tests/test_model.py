@@ -55,6 +55,38 @@ def test_placeholder_monotone_and_bounded():
         assert lo < 0.5 < hi
 
 
+@pytest.mark.parametrize("minute", [5.0, 20.0, 40.0])
+@pytest.mark.parametrize("col", [c for c, m in features.MONOTONE.items() if m != 0])
+def test_placeholder_monotone_per_feature(col, minute):
+    m = PlaceholderModel()
+    values = [-2, -1, 0, 1, 2] if col != "baron_active" else [0, 1]
+    if col in ("gold_diff", "cs_diff"):
+        values = [v * 1500 if col == "gold_diff" else v * 30 for v in values]
+    ps = m.predict([_row(minute=minute, **{col: v}) for v in values])
+    sign = features.MONOTONE[col]
+    assert all(0 < p < 1 for p in ps)
+    assert all((b - a) * sign > 0 for a, b in zip(ps, ps[1:], strict=False))
+
+
+def test_placeholder_objective_sizes():
+    m = PlaceholderModel()
+    base = m.predict([_row()])[0]
+
+    def gain(**kw):
+        return m.predict([_row(**kw)])[0] - base
+
+    assert 0.02 < gain(blue_dragons=1) < 0.06
+    assert gain(blue_dragons=1, red_dragons=1) == pytest.approx(0)
+    assert gain(baron_active=1) > 2 * gain(blue_dragons=1)
+    assert gain(inhibs_down_diff=1) > 2 * gain(blue_dragons=1)
+
+
+def test_placeholder_gold_matters_more_late():
+    m = PlaceholderModel()
+    early, late = m.predict([_row(minute=8, gold_diff=3000), _row(minute=32, gold_diff=3000)])
+    assert late > early
+
+
 def test_placeholder_swings_over_a_game():
     m = PlaceholderModel()
     late_lead = m.predict([_row(gold_diff=15000, kill_diff=15, tower_diff=8, inhibs_down_diff=2)])
