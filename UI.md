@@ -46,8 +46,10 @@ Dark theme only. The League client, the minimap and champion icons are all dark,
 | `--ally` | `#3987e5` | your team, good for you, focus ring (4.8:1) |
 | `--enemy` | `#e66767` | enemy team, bad for you, errors (5.4:1) |
 | `--you` | `#d4b26a` | you: minimap ring, scoreboard row bar, "you were in this" dot (8.6:1) |
-| `--ally-tint` | `#3987e529` | `!` badge, graph fill above 50% |
-| `--enemy-tint` | `#e6676729` | `?` badge, graph fill below 50% |
+| `--ally-tint` | `#3987e529` | `!` badge |
+| `--enemy-tint` | `#e6676729` | `?` badge |
+| `--ally-fill` | `#3987e547` | graph fill above 50% (28%, so the hero graph reads at a glance) |
+| `--enemy-fill` | `#e6676747` | graph fill below 50% |
 
 Checked: blue, red and gold pass the dataviz validator's colorblind and normal-vision separation checks on `--surface` (worst pair red/gold ΔE 10.8 colorblind, 18 normal). Every text token passes WCAG AA (4.5:1) on both `--surface` and `--surface-2`. Text on a filled `--ally` or `--enemy` badge is `--bg` (5.2:1 and 5.8:1), not white (3.6:1).
 
@@ -111,7 +113,7 @@ The review keeps the selected time in the URL (`t`, updated with `replaceState` 
 
 - One input group, 44 px tall, about a third of the way down the page. Autofocused.
 - Server select lists every platform; NA is the default; the last choice is remembered.
-- Checked on submit: needs a `#`, a 3–16 character name and a 3–5 character tag. The error shows under the input in `--enemy`.
+- Checked on submit: needs a `#`, a name of up to 16 characters and a 3–5 character tag (no minimum name length, so short test names like the demo's `Me#NA1` work; Riot answers "not found" for anything invalid). The error shows under the input in `--enemy`.
 - Enter submits; the button reads "Finding games…" while the lookup runs.
 - **Recent:** the last 5 Riot IDs as text links (in `localStorage`, read and written inside try/catch so the page still works without it).
 - Success goes to the Games page.
@@ -187,7 +189,7 @@ The main page. Everything on it follows one value: the selected time `t`.
 
 #### Win chance graph
 - The page's one bold element. Recharts area chart, full width, 240 px tall, no panel around it: your team's win chance from 0 to 100%. One series, so no legend: the label above it names it and shows the value at `t` ("Win chance 63%", the number in 20 px Semi Condensed).
-- A 2 px line in `--text-2`. The area between the line and 50% is `--ally-tint` above and `--enemy-tint` below (one gradient with a hard stop at 50%).
+- A 2 px line in `--text-2`. The area between the line and 50% is `--ally-fill` above and `--enemy-fill` below (one gradient with a hard stop at 50%).
 - The 50% line is dashed `--border`. Y ticks at 0, 50 and 100 only; x ticks every 5 minutes; no grid.
 - **Moment markers** on the line at each moment's end: `!!` and `??` as 10 px filled dots (`--ally`, `--enemy`), `!` and `?` as 8 px rings, each with a 2 px `--surface` outline so they stand off the line. Ungraded moments get no marker.
 - **Hover:** a vertical crosshair and a tooltip: the time and win chance on one line ("22:10  70%"), the moment under it ("!! Won fight 4 for 1"). The hit area is the whole column under the cursor, not just the dot.
@@ -198,7 +200,7 @@ The main page. Everything on it follows one value: the selected time `t`.
 
 #### Scrubber
 - A native `<input type="range">` from 0 to the game's length in 1 s steps: a 4 px `--border` track, the played part in `--text-2`, a 14 px `--text` thumb.
-- To its left: ◀ ▶ (previous/next moment) and ▷/❚❚ (play: one game minute per second, stops at the end). To its right: the time.
+- The track lines up exactly with the graph's plot area above it (same left and right edges), so a time on the track is the same x as on the graph. ◀ ▶ (previous/next moment) and ▷/❚❚ (play: one game minute per second, stops at the end) sit to the left of the plot area's start, in the space under the y-axis labels; the time sits to the right.
 - `aria-valuetext` reads "22:10, win chance 63%".
 
 Keyboard, anywhere on the page except while typing in an input:
@@ -281,7 +283,7 @@ Opens inline under the selected row; there's no separate panel.
 - **Calibration:** 10 dots (predicted vs actual win rate) and a dashed diagonal. Caption, from the bin nearest 70%: "When the model says 70%, teams won 69% of the time."
 - **By tier:** a table of tier, test games, accuracy and log loss. Your tier's row is highlighted.
 - **Top features:** the top 15 by gain as horizontal bars in `--text-3`, each with its value.
-- Each chart has a "Numbers" `<details>` under it with the same data as a plain table.
+- Each chart has a "Numbers" `<details>` under it, closed by default, with the same data as a plain table.
 - **No model yet:** one panel: "No trained model yet; the app is using a placeholder. Train on Kaggle (Plan Step 10) and put `model.txt` and `metrics.json` in `models/`."
 
 ### Progress page (VM)
