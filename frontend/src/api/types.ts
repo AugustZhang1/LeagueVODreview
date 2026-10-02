@@ -159,6 +159,15 @@ export interface components {
         ErrorResponse: {
             error: components["schemas"]["ErrorBody"];
         };
+        /** FightDamage */
+        FightDamage: {
+            /** Dealt */
+            dealt: number;
+            /** Participant Id */
+            participant_id: number;
+            /** Taken */
+            taken: number;
+        };
         /** GameEvent */
         GameEvent: {
             /** Assists */
@@ -261,6 +270,11 @@ export interface components {
         };
         /** Moment */
         Moment: {
+            /**
+             * Damage
+             * @default []
+             */
+            damage: components["schemas"]["FightDamage"][];
             /** Delta */
             delta: number;
             /** Events */
@@ -271,6 +285,11 @@ export interface components {
             id: string;
             /** Involves Me */
             involves_me: boolean;
+            /**
+             * Kill Gold
+             * @default 0
+             */
+            kill_gold: number;
             /** P After */
             p_after: number;
             /** P Before */

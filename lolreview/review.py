@@ -133,6 +133,54 @@ def _collect_events(
     return out, end_ms
 
 
+def _kill_pairs(kill: dict, team_of: dict[int, int]) -> dict[tuple[int, int], int]:
+    """Champion-on-champion damage in one kill record, as {(source, target): total}."""
+    victim = kill["victimId"]
+    pairs: dict[tuple[int, int], int] = {}
+    received = kill.get("victimTeamfightDamageReceived") or kill.get("victimDamageReceived") or []
+    dealt = kill.get("victimTeamfightDamageDealt") or kill.get("victimDamageDealt") or []
+    for entries, is_received in ((received, True), (dealt, False)):
+        for d in entries:
+            other = d.get("participantId")
+            src, dst = (other, victim) if is_received else (victim, other)
+            if src not in team_of or dst not in team_of or team_of[src] == team_of[dst]:
+                continue
+            total = d.get("physicalDamage", 0) + d.get("magicDamage", 0) + d.get("trueDamage", 0)
+            pairs[(src, dst)] = pairs.get((src, dst), 0) + total
+    return pairs
+
+
+def _fight_damage(kills: list[dict], team_of: dict[int, int]) -> list[schemas.FightDamage]:
+    best: dict[tuple[int, int], int] = {}
+    for k in kills:
+        for pair, total in _kill_pairs(k, team_of).items():
+            best[pair] = max(best.get(pair, 0), total)
+    dealt: dict[int, int] = {}
+    taken: dict[int, int] = {}
+    for (src, dst), total in best.items():
+        dealt[src] = dealt.get(src, 0) + total
+        taken[dst] = taken.get(dst, 0) + total
+    out = [
+        schemas.FightDamage(participant_id=p, dealt=dealt.get(p, 0), taken=taken.get(p, 0))
+        for p in dealt.keys() | taken.keys()
+    ]
+    out = [d for d in out if d.dealt > 0 or d.taken > 0]
+    return sorted(out, key=lambda d: (-d.dealt, d.participant_id))
+
+
+def _kill_gold(kills: list[dict], team_of: dict[int, int], my_team: int) -> int:
+    total = 0
+    for k in kills:
+        killer = k.get("killerId")
+        if killer in team_of:
+            team = team_of[killer]
+        else:
+            team = _other(team_of.get(k["victimId"]) or RED)
+        gold = k.get("bounty", 0) + k.get("shutdownBounty", 0)
+        total += gold if team == my_team else -gold
+    return total
+
+
 def _group(events: list, window_ms: int) -> list[list]:
     groups: list[list] = []
     for item in events:
@@ -275,6 +323,15 @@ def build_review(
     def p_at(t: int) -> float:
         return (1.0 if won else 0.0) if t > end_ms else p[t]
 
+    kills = sorted(
+        (
+            e
+            for f in timeline["info"]["frames"]
+            for e in f["events"]
+            if e["type"] == "CHAMPION_KILL"
+        ),
+        key=lambda e: e["timestamp"],
+    )
     moments = []
     for i, group in enumerate(_group(events, window_ms), 1):
         t_first, t_last = group[0][0], group[-1][0]
@@ -291,6 +348,7 @@ def build_review(
             or participant_id in (ev.assists or [])
             for ev in evs
         )
+        m_kills = [k for k in kills if t_first <= k["timestamp"] <= t_last]
         moments.append(
             schemas.Moment(
                 id=f"m{i}",
@@ -304,6 +362,8 @@ def build_review(
                 zone=zone,
                 involves_me=involves_me,
                 events=evs,
+                damage=_fight_damage(m_kills, team_of),
+                kill_gold=_kill_gold(m_kills, team_of, my_team),
             )  # fmt: skip
         )
 

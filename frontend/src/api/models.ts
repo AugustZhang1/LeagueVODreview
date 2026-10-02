@@ -14,6 +14,7 @@ export type Player = S["Player"];
 export type Building = S["Building"];
 export type CurvePoint = S["CurvePoint"];
 export type Moment = S["Moment"];
+export type FightDamage = S["FightDamage"];
 export type GameEvent = S["GameEvent"];
 export type Snapshot = S["Snapshot"];
 export type PlayerState = S["PlayerState"];

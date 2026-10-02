@@ -41,6 +41,7 @@ log = logging.getLogger(__name__)
 DEV_ORIGIN = "http://localhost:5173"
 DEFAULT_TIER = "SILVER"
 DEMO_REPLAY_REASON = "Replays aren't available in demo mode"
+REVIEW_FORMAT = 2  # bump when the Review JSON gains fields, so older cached reviews are rebuilt
 
 
 class ApiError(Exception):
@@ -362,7 +363,7 @@ def create_app(
         if ids is None:
             ids = c.client.match_ids(cluster, puuid, QUEUE_RANKED_SOLO, start=start, count=count)
             c.cache.put_match_ids(puuid, start, count, ids)
-        version = c.model().version
+        version = f"{c.model().version}+r{REVIEW_FORMAT}"
         games = []
         for match_id in ids:
             s = c.summary(cluster, match_id, puuid)
@@ -382,7 +383,7 @@ def create_app(
     @app.get("/api/review/{match_id}", response_model=Review, responses=errors)
     def review(match_id: str, p: int):
         c = ctx()
-        version = c.model().version
+        version = f"{c.model().version}+r{REVIEW_FORMAT}"
         cached = c.cache.get_review(match_id, p, version)
         if cached is not None:
             return JSONResponse(cached)

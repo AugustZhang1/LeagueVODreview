@@ -24,7 +24,11 @@ function writeUrlT(t: number) {
 }
 
 /** The selected time and everything that follows from it. `initialT` is the URL's `t`. */
-export function useReviewTime(review: Review, initialT: number | null) {
+export function useReviewTime(
+  review: Review,
+  initialT: number | null,
+  onSelectMoment?: (m: Moment) => void,
+) {
   const duration = Math.floor(review.match.duration_s);
   const moments = useMemo(
     () => [...review.moments].sort((a, b) => a.t_end - b.t_end),
@@ -57,8 +61,11 @@ export function useReviewTime(review: Review, initialT: number | null) {
   );
 
   const selectMoment = useCallback(
-    (m: Moment) => seek(momentEnd(m, duration), m.id),
-    [seek, duration],
+    (m: Moment) => {
+      seek(momentEnd(m, duration), m.id);
+      onSelectMoment?.(m);
+    },
+    [seek, duration, onSelectMoment],
   );
 
   const selectedIndex = moments.findIndex((m) => m.id === selectedId);

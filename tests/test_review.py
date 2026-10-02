@@ -7,7 +7,7 @@ from conftest import REAL_IDS, SYNTHETIC_IDS
 from lolreview import schemas
 from lolreview.config import load_config
 from lolreview.model import PlaceholderModel
-from lolreview.review import Remake, UnsupportedQueue, build_review
+from lolreview.review import Remake, UnsupportedQueue, _fight_damage, _kill_gold, build_review
 
 GOOD = SYNTHETIC_IDS[:3] + REAL_IDS
 MODEL = PlaceholderModel()
@@ -225,3 +225,66 @@ def test_fast(load_game):
     start = time.perf_counter()
     review_for(match, timeline, 1)
     assert time.perf_counter() - start < 1.0
+
+
+TEAMS = {1: 100, 2: 100, 6: 200, 7: 200}
+
+
+def hit(pid, phys=0, magic=0, true=0, kind="OTHER"):
+    return {
+        "participantId": pid,
+        "type": kind,
+        "physicalDamage": phys,
+        "magicDamage": magic,
+        "trueDamage": true,
+    }
+
+
+def test_fight_damage_max_per_pair_and_champions_only():
+    k1 = {
+        "victimId": 6,
+        "victimTeamfightDamageReceived": [
+            hit(1, 100, 50, 10),
+            hit(0, 999, kind="TOWER"),
+            hit(2, 5),
+        ],
+        "victimTeamfightDamageDealt": [hit(1, 30), hit(7, 500)],  # 7 is a teammate of 6
+    }
+    k2 = {
+        "victimId": 7,
+        "victimTeamfightDamageReceived": [hit(1, 40), hit(6, 77)],  # 6 is a teammate of 7
+        "victimTeamfightDamageDealt": [hit(2, 20), hit(0, 8, kind="MINION")],
+    }
+    got = {d.participant_id: (d.dealt, d.taken) for d in _fight_damage([k1, k2], TEAMS)}
+    # pairs: (1,6)=160 (max of 160 and 30), (2,6)=5, (1,7)=40, (7,2)=20, (6,1)=30
+    assert got == {1: (200, 30), 2: (5, 20), 6: (30, 165), 7: (20, 40)}
+    assert [d.participant_id for d in _fight_damage([k1, k2], TEAMS)][0] == 1
+
+
+def test_fight_damage_falls_back_to_plain_lists():
+    k = {
+        "victimId": 6,
+        "victimTeamfightDamageReceived": [],
+        "victimDamageReceived": [hit(1, 10)],
+        "victimDamageDealt": [hit(2, 3)],
+    }
+    got = {d.participant_id: (d.dealt, d.taken) for d in _fight_damage([k], TEAMS)}
+    assert got == {1: (10, 0), 6: (3, 10), 2: (0, 3)}
+    assert _fight_damage([{"victimId": 6}], TEAMS) == []
+
+
+def test_kill_gold_sign():
+    ally_kill = {"victimId": 6, "killerId": 1, "bounty": 300, "shutdownBounty": 50}
+    enemy_kill = {"victimId": 1, "killerId": 7, "bounty": 200}
+    executed = {"victimId": 2, "killerId": 0, "bounty": 100}  # killer isn't a participant
+    assert _kill_gold([ally_kill], TEAMS, 100) == 350
+    assert _kill_gold([ally_kill], TEAMS, 200) == -350
+    assert _kill_gold([enemy_kill], TEAMS, 100) == -200
+    assert _kill_gold([ally_kill, enemy_kill, executed], TEAMS, 100) == 350 - 200 - 100
+
+
+def test_moment_damage_on_real_game(load_game):
+    match, timeline = load_game(REAL_IDS[0])
+    r = review_for(match, timeline, 1)
+    assert any(m.damage for m in r.moments)
+    assert any(m.kill_gold for m in r.moments)
