@@ -1,0 +1,34 @@
+.group {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.option {
+  height: 28px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+}
+
+.option:first-child {
+  border-left: 0;
+}
+
+.option:hover {
+  background: var(--surface-2);
+}
+
+.selected,
+.selected:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.option:focus-visible {
+  outline-offset: -2px;
+}
