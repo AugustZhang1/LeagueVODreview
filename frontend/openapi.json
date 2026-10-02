@@ -1,0 +1,1338 @@
+{
+  "components": {
+    "schemas": {
+      "Buff": {
+        "properties": {
+          "ends_in_s": {
+            "title": "Ends In S",
+            "type": "number"
+          },
+          "kind": {
+            "enum": [
+              "baron",
+              "elder"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "ends_in_s"
+        ],
+        "title": "Buff",
+        "type": "object"
+      },
+      "Building": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "tower",
+              "inhibitor",
+              "nexus"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "team": {
+            "enum": [
+              "ally",
+              "enemy"
+            ],
+            "title": "Team",
+            "type": "string"
+          },
+          "x": {
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "title": "Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "team",
+          "kind",
+          "x",
+          "y"
+        ],
+        "title": "Building",
+        "type": "object"
+      },
+      "CurvePoint": {
+        "properties": {
+          "p": {
+            "title": "P",
+            "type": "number"
+          },
+          "t": {
+            "title": "T",
+            "type": "number"
+          }
+        },
+        "required": [
+          "t",
+          "p"
+        ],
+        "title": "CurvePoint",
+        "type": "object"
+      },
+      "ErrorBody": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "retry_after_s": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retry After S"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBody",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "GameEvent": {
+        "properties": {
+          "assists": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assists"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "killer": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Killer"
+          },
+          "kind": {
+            "enum": [
+              "kill",
+              "dragon",
+              "elder",
+              "baron",
+              "herald",
+              "grubs",
+              "atakhan",
+              "tower",
+              "inhibitor",
+              "plate"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "t": {
+            "title": "T",
+            "type": "number"
+          },
+          "team": {
+            "enum": [
+              "ally",
+              "enemy"
+            ],
+            "title": "Team",
+            "type": "string"
+          },
+          "victim": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Victim"
+          },
+          "x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "X"
+          },
+          "y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Y"
+          }
+        },
+        "required": [
+          "t",
+          "team",
+          "kind"
+        ],
+        "title": "GameEvent",
+        "type": "object"
+      },
+      "GameSummary": {
+        "properties": {
+          "a": {
+            "title": "A",
+            "type": "integer"
+          },
+          "champion": {
+            "title": "Champion",
+            "type": "string"
+          },
+          "cs": {
+            "title": "Cs",
+            "type": "integer"
+          },
+          "d": {
+            "title": "D",
+            "type": "integer"
+          },
+          "duration_s": {
+            "title": "Duration S",
+            "type": "integer"
+          },
+          "k": {
+            "title": "K",
+            "type": "integer"
+          },
+          "match_id": {
+            "title": "Match Id",
+            "type": "string"
+          },
+          "participant_id": {
+            "title": "Participant Id",
+            "type": "integer"
+          },
+          "patch": {
+            "title": "Patch",
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "win",
+              "loss",
+              "remake"
+            ],
+            "title": "Result",
+            "type": "string"
+          },
+          "reviewed": {
+            "title": "Reviewed",
+            "type": "boolean"
+          },
+          "role": {
+            "enum": [
+              "TOP",
+              "JUNGLE",
+              "MIDDLE",
+              "BOTTOM",
+              "UTILITY"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "started_at": {
+            "title": "Started At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "match_id",
+          "participant_id",
+          "champion",
+          "role",
+          "result",
+          "k",
+          "d",
+          "a",
+          "cs",
+          "duration_s",
+          "started_at",
+          "patch",
+          "reviewed"
+        ],
+        "title": "GameSummary",
+        "type": "object"
+      },
+      "GradeCounts": {
+        "properties": {
+          "!": {
+            "title": "!",
+            "type": "integer"
+          },
+          "!!": {
+            "title": "!!",
+            "type": "integer"
+          },
+          "?": {
+            "title": "?",
+            "type": "integer"
+          },
+          "??": {
+            "title": "??",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "!!",
+          "!",
+          "?",
+          "??"
+        ],
+        "title": "GradeCounts",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Health": {
+        "properties": {
+          "model": {
+            "$ref": "#/components/schemas/ModelInfo"
+          },
+          "riot_key": {
+            "enum": [
+              "ok",
+              "expired",
+              "missing"
+            ],
+            "title": "Riot Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "riot_key",
+          "model"
+        ],
+        "title": "Health",
+        "type": "object"
+      },
+      "ModelInfo": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "trained",
+              "stub"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "patches": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Patches"
+          },
+          "trained_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trained At"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "version"
+        ],
+        "title": "ModelInfo",
+        "type": "object"
+      },
+      "ModelMetrics": {
+        "additionalProperties": true,
+        "description": "metrics.json from training; fields are whatever train.py writes.",
+        "properties": {},
+        "title": "ModelMetrics",
+        "type": "object"
+      },
+      "Moment": {
+        "properties": {
+          "delta": {
+            "title": "Delta",
+            "type": "number"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/GameEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "!!",
+                  "!",
+                  "?",
+                  "??"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "involves_me": {
+            "title": "Involves Me",
+            "type": "boolean"
+          },
+          "p_after": {
+            "title": "P After",
+            "type": "number"
+          },
+          "p_before": {
+            "title": "P Before",
+            "type": "number"
+          },
+          "t_end": {
+            "title": "T End",
+            "type": "number"
+          },
+          "t_start": {
+            "title": "T Start",
+            "type": "number"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "zone": {
+            "title": "Zone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "t_start",
+          "t_end",
+          "p_before",
+          "p_after",
+          "delta",
+          "grade",
+          "title",
+          "zone",
+          "involves_me",
+          "events"
+        ],
+        "title": "Moment",
+        "type": "object"
+      },
+      "Player": {
+        "properties": {
+          "champion": {
+            "title": "Champion",
+            "type": "string"
+          },
+          "champion_name": {
+            "title": "Champion Name",
+            "type": "string"
+          },
+          "is_me": {
+            "title": "Is Me",
+            "type": "boolean"
+          },
+          "participant_id": {
+            "title": "Participant Id",
+            "type": "integer"
+          },
+          "riot_id": {
+            "title": "Riot Id",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "TOP",
+              "JUNGLE",
+              "MIDDLE",
+              "BOTTOM",
+              "UTILITY"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "team": {
+            "enum": [
+              "ally",
+              "enemy"
+            ],
+            "title": "Team",
+            "type": "string"
+          }
+        },
+        "required": [
+          "participant_id",
+          "riot_id",
+          "champion",
+          "champion_name",
+          "role",
+          "team",
+          "is_me"
+        ],
+        "title": "Player",
+        "type": "object"
+      },
+      "PlayerGames": {
+        "properties": {
+          "games": {
+            "items": {
+              "$ref": "#/components/schemas/GameSummary"
+            },
+            "title": "Games",
+            "type": "array"
+          },
+          "next_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Start"
+          },
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          },
+          "puuid": {
+            "title": "Puuid",
+            "type": "string"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Rank"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "riot_id": {
+            "title": "Riot Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "puuid",
+          "riot_id",
+          "platform",
+          "rank",
+          "games",
+          "next_start"
+        ],
+        "title": "PlayerGames",
+        "type": "object"
+      },
+      "PlayerState": {
+        "properties": {
+          "a": {
+            "title": "A",
+            "type": "integer"
+          },
+          "cs": {
+            "title": "Cs",
+            "type": "integer"
+          },
+          "d": {
+            "title": "D",
+            "type": "integer"
+          },
+          "gold": {
+            "title": "Gold",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "k": {
+            "title": "K",
+            "type": "integer"
+          },
+          "level": {
+            "title": "Level",
+            "type": "integer"
+          },
+          "participant_id": {
+            "title": "Participant Id",
+            "type": "integer"
+          },
+          "pos_age_s": {
+            "title": "Pos Age S",
+            "type": "number"
+          },
+          "respawn_in_s": {
+            "title": "Respawn In S",
+            "type": "number"
+          },
+          "trinket": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trinket"
+          },
+          "x": {
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "title": "Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "participant_id",
+          "x",
+          "y",
+          "pos_age_s",
+          "level",
+          "k",
+          "d",
+          "a",
+          "cs",
+          "gold",
+          "items",
+          "trinket",
+          "respawn_in_s"
+        ],
+        "title": "PlayerState",
+        "type": "object"
+      },
+      "Rank": {
+        "properties": {
+          "division": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Division"
+          },
+          "lp": {
+            "title": "Lp",
+            "type": "integer"
+          },
+          "tier": {
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tier",
+          "division",
+          "lp"
+        ],
+        "title": "Rank",
+        "type": "object"
+      },
+      "RecentKill": {
+        "properties": {
+          "age_s": {
+            "title": "Age S",
+            "type": "number"
+          },
+          "team": {
+            "enum": [
+              "ally",
+              "enemy"
+            ],
+            "title": "Team",
+            "type": "string"
+          },
+          "x": {
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "title": "Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "team",
+          "age_s"
+        ],
+        "title": "RecentKill",
+        "type": "object"
+      },
+      "Review": {
+        "properties": {
+          "buildings": {
+            "items": {
+              "$ref": "#/components/schemas/Building"
+            },
+            "title": "Buildings",
+            "type": "array"
+          },
+          "curve": {
+            "items": {
+              "$ref": "#/components/schemas/CurvePoint"
+            },
+            "title": "Curve",
+            "type": "array"
+          },
+          "match": {
+            "$ref": "#/components/schemas/ReviewMatch"
+          },
+          "moments": {
+            "items": {
+              "$ref": "#/components/schemas/Moment"
+            },
+            "title": "Moments",
+            "type": "array"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/Player"
+            },
+            "title": "Players",
+            "type": "array"
+          },
+          "snapshots": {
+            "items": {
+              "$ref": "#/components/schemas/Snapshot"
+            },
+            "title": "Snapshots",
+            "type": "array"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/Summary"
+          }
+        },
+        "required": [
+          "match",
+          "players",
+          "buildings",
+          "curve",
+          "moments",
+          "snapshots",
+          "summary"
+        ],
+        "title": "Review",
+        "type": "object"
+      },
+      "ReviewMatch": {
+        "properties": {
+          "ddragon_version": {
+            "title": "Ddragon Version",
+            "type": "string"
+          },
+          "duration_s": {
+            "title": "Duration S",
+            "type": "integer"
+          },
+          "match_id": {
+            "title": "Match Id",
+            "type": "string"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ReviewModel"
+          },
+          "my_side": {
+            "enum": [
+              "blue",
+              "red"
+            ],
+            "title": "My Side",
+            "type": "string"
+          },
+          "patch": {
+            "title": "Patch",
+            "type": "string"
+          },
+          "patch_in_training": {
+            "title": "Patch In Training",
+            "type": "boolean"
+          },
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "win",
+              "loss"
+            ],
+            "title": "Result",
+            "type": "string"
+          },
+          "started_at": {
+            "title": "Started At",
+            "type": "string"
+          },
+          "surrender": {
+            "title": "Surrender",
+            "type": "boolean"
+          },
+          "tier_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier Note"
+          },
+          "tier_used": {
+            "title": "Tier Used",
+            "type": "string"
+          }
+        },
+        "required": [
+          "match_id",
+          "platform",
+          "patch",
+          "ddragon_version",
+          "started_at",
+          "duration_s",
+          "result",
+          "surrender",
+          "my_side",
+          "tier_used",
+          "tier_note",
+          "model",
+          "patch_in_training"
+        ],
+        "title": "ReviewMatch",
+        "type": "object"
+      },
+      "ReviewModel": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "trained",
+              "stub"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "version"
+        ],
+        "title": "ReviewModel",
+        "type": "object"
+      },
+      "Snapshot": {
+        "properties": {
+          "buildings_down": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Buildings Down",
+            "type": "array"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerState"
+            },
+            "title": "Players",
+            "type": "array"
+          },
+          "recent_kills": {
+            "items": {
+              "$ref": "#/components/schemas/RecentKill"
+            },
+            "title": "Recent Kills",
+            "type": "array"
+          },
+          "t": {
+            "title": "T",
+            "type": "number"
+          },
+          "teams": {
+            "$ref": "#/components/schemas/SnapshotTeams"
+          }
+        },
+        "required": [
+          "t",
+          "players",
+          "teams",
+          "buildings_down",
+          "recent_kills"
+        ],
+        "title": "Snapshot",
+        "type": "object"
+      },
+      "SnapshotTeams": {
+        "properties": {
+          "ally": {
+            "$ref": "#/components/schemas/TeamState"
+          },
+          "enemy": {
+            "$ref": "#/components/schemas/TeamState"
+          }
+        },
+        "required": [
+          "ally",
+          "enemy"
+        ],
+        "title": "SnapshotTeams",
+        "type": "object"
+      },
+      "Summary": {
+        "properties": {
+          "biggest_id": {
+            "title": "Biggest Id",
+            "type": "string"
+          },
+          "me": {
+            "$ref": "#/components/schemas/GradeCounts"
+          },
+          "team": {
+            "$ref": "#/components/schemas/GradeCounts"
+          }
+        },
+        "required": [
+          "me",
+          "team",
+          "biggest_id"
+        ],
+        "title": "Summary",
+        "type": "object"
+      },
+      "TeamState": {
+        "properties": {
+          "barons": {
+            "title": "Barons",
+            "type": "integer"
+          },
+          "buff": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Buff"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dragons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Dragons",
+            "type": "array"
+          },
+          "gold": {
+            "title": "Gold",
+            "type": "integer"
+          },
+          "grubs": {
+            "title": "Grubs",
+            "type": "integer"
+          },
+          "heralds": {
+            "title": "Heralds",
+            "type": "integer"
+          },
+          "kills": {
+            "title": "Kills",
+            "type": "integer"
+          },
+          "soul": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Soul"
+          },
+          "towers": {
+            "title": "Towers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kills",
+          "gold",
+          "towers",
+          "dragons",
+          "soul",
+          "grubs",
+          "heralds",
+          "barons",
+          "buff"
+        ],
+        "title": "TeamState",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "LeagueVODreview",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/api/model": {
+      "get": {
+        "operationId": "model_api_model_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelMetrics"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          }
+        },
+        "summary": "Model"
+      }
+    },
+    "/api/player/{platform}/{name}/{tag}": {
+      "get": {
+        "operationId": "player_api_player__platform___name___tag__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "platform",
+            "required": true,
+            "schema": {
+              "title": "Platform",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tag",
+            "required": true,
+            "schema": {
+              "title": "Tag",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "title": "Start",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "title": "Count",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerGames"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          }
+        },
+        "summary": "Player"
+      }
+    },
+    "/api/review/{match_id}": {
+      "get": {
+        "operationId": "review_api_review__match_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "match_id",
+            "required": true,
+            "schema": {
+              "title": "Match Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "p",
+            "required": true,
+            "schema": {
+              "title": "P",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Review"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          }
+        },
+        "summary": "Review"
+      }
+    }
+  }
+}
