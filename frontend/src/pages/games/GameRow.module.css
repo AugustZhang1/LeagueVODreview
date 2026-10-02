@@ -1,0 +1,87 @@
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 32px 88px 88px 120px 80px 64px 1fr 24px;
+  align-items: center;
+  gap: var(--space-4);
+  height: 56px;
+  padding: 0 var(--space-4);
+}
+
+.link {
+  display: grid;
+}
+
+.link:hover {
+  background: var(--surface-2);
+}
+
+.link::before,
+.muted::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+}
+
+.link:has(.win)::before {
+  background: var(--ally);
+}
+
+.link:has(.loss)::before {
+  background: var(--enemy);
+}
+
+.muted {
+  color: var(--text-3);
+}
+
+.result {
+  font-weight: 600;
+}
+
+.win {
+  color: var(--ally);
+}
+
+.loss {
+  color: var(--enemy);
+}
+
+.role {
+  color: var(--text-2);
+}
+
+.muted .role,
+.muted .result {
+  color: var(--text-3);
+}
+
+.num {
+  text-align: right;
+}
+
+.date {
+  color: var(--text-3);
+}
+
+.check {
+  display: flex;
+  justify-content: flex-end;
+  color: var(--text-3);
+}
+
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: 32px 72px 1fr 24px;
+  }
+
+  .row > :nth-child(3),
+  .row > :nth-child(5),
+  .row > :nth-child(6),
+  .row > :nth-child(7) {
+    display: none;
+  }
+}
