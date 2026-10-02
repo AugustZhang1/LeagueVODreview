@@ -40,3 +40,65 @@
 .plus {
   color: var(--text-3);
 }
+
+.damage {
+  margin-top: var(--space-3);
+}
+
+.heading {
+  margin: 0 0 var(--space-1);
+  color: var(--text-3);
+  font: inherit;
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) 56px;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 22px;
+  color: var(--text-2);
+}
+
+.dealt {
+  text-align: right;
+}
+
+.me {
+  box-shadow: inset 3px 0 0 var(--you);
+  padding-left: var(--space-1);
+}
+
+.track {
+  height: 6px;
+}
+
+.bar {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+}
+
+.ally {
+  background: var(--ally);
+}
+
+.enemy {
+  background: var(--enemy);
+}
+
+.totals,
+.gold {
+  margin-top: var(--space-1);
+  color: var(--text-2);
+}
+
+.gold {
+  margin-top: var(--space-2);
+}

@@ -271,5 +271,47 @@ describe("review page", () => {
         expect(JSON.parse(c.body!)).toEqual({ match_id: review.match.match_id, t: 300 });
       }
     });
+
+    const seeks = (calls: { url: string; body?: string }[]) =>
+      calls.filter((c) => c.url.endsWith("/api/replay/seek")).map((c) => JSON.parse(c.body!).t);
+    const lead = (m: (typeof ended)[number]) => Math.max(0, m.t_start - 15);
+    const clickRow = async (user: ReturnType<typeof userEvent.setup>, id: string) => {
+      const row = document.querySelector(`[data-moment="${id}"]`) as HTMLElement;
+      await user.click(within(row).getByRole("button"));
+    };
+
+    it("seeks the replay to 15 s before a clicked moment, clamped at 0", async () => {
+      const calls = stubFetch(true, null);
+      const user = userEvent.setup();
+      setup();
+      await waitFor(() => expect(button()).toHaveAttribute("aria-disabled", "false"));
+      await clickRow(user, ended[0].id);
+      await waitFor(() => expect(seeks(calls)).toEqual([lead(ended[0])]));
+      await clickRow(user, ended[2].id);
+      await waitFor(() => expect(seeks(calls)).toEqual([lead(ended[0]), lead(ended[2])]));
+      expect(slider().value).toBe(String(end(2)));
+      expect(lead(ended[0])).toBeGreaterThanOrEqual(0);
+    });
+
+    it("does not seek the replay when a moment is clicked and no replay is open", async () => {
+      const calls = stubFetch(false, "No replay");
+      const user = userEvent.setup();
+      setup();
+      await waitFor(() => expect(calls.length).toBeGreaterThan(0));
+      await clickRow(user, ended[1].id);
+      expect(seeks(calls)).toEqual([]);
+    });
+
+    it("sends the button and the O key to the selected moment's lead-in", async () => {
+      const calls = stubFetch(true, null);
+      const user = userEvent.setup();
+      setup();
+      await waitFor(() => expect(button()).toHaveAttribute("aria-disabled", "false"));
+      await clickRow(user, ended[1].id);
+      await user.click(button());
+      await user.keyboard("o");
+      await waitFor(() => expect(seeks(calls)).toHaveLength(3));
+      expect(seeks(calls)).toEqual([lead(ended[1]), lead(ended[1]), lead(ended[1])]);
+    });
   });
 });

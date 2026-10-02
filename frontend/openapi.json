@@ -124,6 +124,29 @@
         "title": "ErrorResponse",
         "type": "object"
       },
+      "FightDamage": {
+        "properties": {
+          "dealt": {
+            "title": "Dealt",
+            "type": "integer"
+          },
+          "participant_id": {
+            "title": "Participant Id",
+            "type": "integer"
+          },
+          "taken": {
+            "title": "Taken",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "participant_id",
+          "dealt",
+          "taken"
+        ],
+        "title": "FightDamage",
+        "type": "object"
+      },
       "GameEvent": {
         "properties": {
           "assists": {
@@ -430,6 +453,14 @@
       },
       "Moment": {
         "properties": {
+          "damage": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FightDamage"
+            },
+            "title": "Damage",
+            "type": "array"
+          },
           "delta": {
             "title": "Delta",
             "type": "number"
@@ -465,6 +496,11 @@
           "involves_me": {
             "title": "Involves Me",
             "type": "boolean"
+          },
+          "kill_gold": {
+            "default": 0,
+            "title": "Kill Gold",
+            "type": "integer"
           },
           "p_after": {
             "title": "P After",

@@ -118,6 +118,12 @@ class GameEvent(BaseModel):
     y: float | None = None
 
 
+class FightDamage(BaseModel):
+    participant_id: int
+    dealt: int
+    taken: int
+
+
 class Moment(BaseModel):
     id: str
     t_start: float
@@ -130,6 +136,8 @@ class Moment(BaseModel):
     zone: str
     involves_me: bool
     events: list[GameEvent]
+    damage: list[FightDamage] = []
+    kill_gold: int = 0
 
 
 class PlayerState(BaseModel):

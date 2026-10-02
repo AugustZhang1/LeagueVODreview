@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import type { Review } from "../../api/models";
+import type { Moment, Review } from "../../api/models";
 import { useReplaySeek, useReplayStatus, useReview } from "../../api/queries";
 import { ErrorBox } from "../../components/ErrorBox";
 import { Panel } from "../../components/Panel";
@@ -13,6 +13,9 @@ import { Scrubber, type ReplayControl } from "./Scrubber";
 import { WinGraph } from "./WinGraph";
 import { useReviewTime, type ReviewTime } from "./useReviewTime";
 import styles from "./ReviewPage.module.css";
+
+/** How far before a moment starts the League replay is sent, in seconds. */
+const REPLAY_LEAD_S = 15;
 
 const TYPING = "input:not([type=range]), textarea, select, [contenteditable]";
 
@@ -72,15 +75,18 @@ function ReviewView({
   participantId: number;
   initialT: number | null;
 }) {
-  const time = useReviewTime(review, initialT);
   const matchId = review.match.match_id;
   const status = useReplayStatus(matchId);
   const seekReplay = useReplaySeek(matchId);
   const replayReady = status.data?.available === true;
+  const leadIn = (m: Moment) => Math.max(0, m.t_start - REPLAY_LEAD_S);
+  const time = useReviewTime(review, initialT, (m) => {
+    if (replayReady) seekReplay.mutate(leadIn(m));
+  });
   const replay: ReplayControl = {
     available: replayReady,
     reason: status.data?.reason ?? "Open this game's replay in the League client",
-    onOpen: () => seekReplay.mutate(time.t),
+    onOpen: () => seekReplay.mutate(time.selected ? leadIn(time.selected) : time.t),
   };
   useShortcuts(time, () => replayReady && replay.onOpen());
   const { t, snapshot, selected, moments } = time;

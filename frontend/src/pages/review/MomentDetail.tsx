@@ -56,6 +56,12 @@ export function MomentDetail({ moment, review }: { moment: Moment; review: Revie
     );
   };
 
+  const damage = moment.damage ?? [];
+  const goldSwing = moment.kill_gold ?? 0;
+  const maxDealt = Math.max(1, ...damage.map((d) => d.dealt));
+  const teamDealt = (side: Player["team"]) =>
+    damage.reduce((sum, d) => (byId.get(d.participant_id)?.team === side ? sum + d.dealt : sum), 0);
+
   return (
     <div className={styles.detail} data-testid={`detail-${moment.id}`}>
       <p className={styles.change}>
@@ -85,6 +91,47 @@ export function MomentDetail({ moment, review }: { moment: Moment; review: Revie
           </li>
         ))}
       </ul>
+      {damage.length > 0 && (
+        <div className={styles.damage}>
+          <h4 className={styles.heading}>Damage</h4>
+          <div className={styles.rows}>
+            {damage.map((d) => {
+              const p = byId.get(d.participant_id);
+              if (!p) return null;
+              return (
+                <div
+                  key={d.participant_id}
+                  className={`${styles.row} ${p.is_me ? styles.me : ""}`}
+                  data-testid="damage-row"
+                >
+                  {champ(d.participant_id)}
+                  <span className={styles.track}>
+                    <span
+                      className={`${styles.bar} ${p.team === "ally" ? styles.ally : styles.enemy}`}
+                      style={{ width: `${(d.dealt / maxDealt) * 100}%` }}
+                    />
+                  </span>
+                  <span className={`${styles.dealt} num`}>{d.dealt.toLocaleString("en-US")}</span>
+                </div>
+              );
+            })}
+          </div>
+          <p className={styles.totals}>
+            Your team <span className="num">{teamDealt("ally").toLocaleString("en-US")}</span>
+            {" vs "}
+            enemy <span className="num">{teamDealt("enemy").toLocaleString("en-US")}</span>
+          </p>
+        </div>
+      )}
+      {goldSwing !== 0 && (
+        <p className={styles.gold}>
+          Kill gold:{" "}
+          <span className="num">
+            {goldSwing > 0 ? "+" : "−"}
+            {Math.abs(goldSwing)}
+          </span>
+        </p>
+      )}
     </div>
   );
 }

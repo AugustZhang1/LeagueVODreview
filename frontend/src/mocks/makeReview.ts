@@ -1,6 +1,7 @@
 import type {
   Building,
   CurvePoint,
+  FightDamage,
   GameEvent,
   GradeCounts,
   Moment,
@@ -586,8 +587,33 @@ export function makeReview(matchId = "NA1_5300000001", participantId = 4): Revie
   const involvesMe = (evs: GameEvent[], spec: Spec) =>
     !!spec.me || evs.some((e) => [e.killer, e.victim, ...(e.assists ?? [])].includes(me.id));
 
+  // Made-up fight damage: each kill's killer and assists hit the victim, victims hit back a little.
+  const fightOf = (evs: GameEvent[]): { damage: FightDamage[]; gold: number } => {
+    const tally = new Map<number, FightDamage>();
+    const add = (id: number, dealt: number, taken: number) => {
+      const d = tally.get(id) ?? { participant_id: id, dealt: 0, taken: 0 };
+      d.dealt += dealt;
+      d.taken += taken;
+      tally.set(id, d);
+    };
+    let gold = 0;
+    for (const e of evs.filter((x) => x.kind === "kill")) {
+      const helpers = [e.killer!, ...(e.assists ?? [])];
+      helpers.forEach((id, j) => {
+        const amount = 900 + ((id * 137 + j * 311) % 700);
+        add(id, amount, 0);
+        add(e.victim!, 0, amount);
+      });
+      add(e.victim!, 250 + ((e.victim! * 97) % 300), 0);
+      add(e.killer!, 0, 250 + ((e.victim! * 97) % 300));
+      gold += e.team === "ally" ? 300 : -300;
+    }
+    return { damage: [...tally.values()].sort((a, b) => b.dealt - a.dealt), gold };
+  };
+
   const moments: Moment[] = SPECS.map((spec, i) => {
     const s = spans[i];
+    const fight = fightOf(specEvents[i]);
     const before = pAt(s.start);
     const after = pAt(s.end);
     const delta = after - before;
@@ -603,6 +629,8 @@ export function makeReview(matchId = "NA1_5300000001", participantId = 4): Revie
       zone: spec.zone,
       involves_me: involvesMe(specEvents[i], spec),
       events: specEvents[i],
+      damage: fight.damage,
+      kill_gold: fight.gold,
     };
   });
 
