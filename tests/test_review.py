@@ -1,0 +1,225 @@
+import math
+import time
+
+import pytest
+from conftest import SYNTHETIC_IDS
+
+from lolreview import schemas
+from lolreview.config import load_config
+from lolreview.model import PlaceholderModel
+from lolreview.review import Remake, UnsupportedQueue, build_review
+
+GOOD = SYNTHETIC_IDS[:3]
+MODEL = PlaceholderModel()
+CFG = load_config()["review"]
+
+
+def champions(match):
+    return {
+        p["championId"]: (p["championName"], p["championName"].title())
+        for p in match["info"]["participants"]
+    }
+
+
+def review_for(match, timeline, pid, **kw):
+    return build_review(match, timeline, pid, "GOLD", MODEL, champions(match), "26.19.1", **kw)
+
+
+def all_reviews(load_game):
+    for mid in GOOD:
+        match, timeline = load_game(mid)
+        for p in match["info"]["participants"]:
+            yield mid, match, timeline, p["participantId"]
+
+
+def expected_event_count(timeline):
+    n = 0
+    for f in timeline["info"]["frames"]:
+        for e in f["events"]:
+            if e["type"] in ("CHAMPION_KILL", "BUILDING_KILL", "TURRET_PLATE_DESTROYED"):
+                n += 1
+            elif e["type"] == "ELITE_MONSTER_KILL":
+                n += e["monsterType"] in (
+                    "DRAGON", "HORDE", "RIFTHERALD", "BARON_NASHOR", "ATAKHAN"
+                )  # fmt: skip
+    return n
+
+
+def test_rejects_unsupported(load_game):
+    match, timeline = load_game(SYNTHETIC_IDS[0])
+    match["info"]["queueId"] = 450
+    with pytest.raises(UnsupportedQueue):
+        review_for(match, timeline, 1)
+    assert issubclass(UnsupportedQueue, ValueError)
+    match, timeline = load_game(SYNTHETIC_IDS[3])
+    with pytest.raises(Remake):
+        review_for(match, timeline, 1)
+
+
+def test_every_game_and_side(load_game):
+    for mid, match, timeline, pid in all_reviews(load_game):
+        r = review_for(match, timeline, pid)
+        r = schemas.Review.model_validate(r.model_dump(by_alias=True))
+        me = next(p for p in match["info"]["participants"] if p["participantId"] == pid)
+        won = me["win"]
+
+        ts = [c.t for c in r.curve]
+        assert ts == sorted(ts) and len(set(ts)) == len(ts)
+        assert r.curve[-1].p == (1.0 if won else 0.0)
+        assert all(0 <= c.p <= 1 for c in r.curve)
+        assert r.match.result == ("win" if won else "loss")
+        assert r.match.my_side == ("blue" if me["teamId"] == 100 else "red")
+
+        events = [e for m in r.moments for e in m.events]
+        assert len(events) == expected_event_count(timeline), mid
+        for m in r.moments:
+            assert m.events and m.t_start == m.events[0].t and m.t_end == m.events[-1].t
+            assert m.delta == pytest.approx(m.p_after - m.p_before, abs=2e-4)
+            assert m.zone and m.title and "·" not in m.title
+            if m.delta >= CFG["great"]:
+                assert m.grade == "!!"
+            elif m.delta >= CFG["good"]:
+                assert m.grade == "!"
+            elif m.delta <= CFG["blunder"]:
+                assert m.grade == "??"
+            elif m.delta <= CFG["mistake"]:
+                assert m.grade == "?"
+            else:
+                assert m.grade is None
+        for a, b in zip(r.moments, r.moments[1:], strict=False):
+            assert b.t_start - a.t_end > CFG["group_window_s"]
+
+        assert len(r.snapshots) == math.ceil(match["info"]["gameDuration"] / 15) + 1
+        assert [s.t for s in r.snapshots] == [15.0 * i for i in range(len(r.snapshots))]
+        assert len(r.players) == 10
+        assert [p.team for p in r.players] == ["ally"] * 5 + ["enemy"] * 5
+        assert [p.participant_id for p in r.players][
+            r.players.index(next(p for p in r.players if p.is_me))
+        ] == pid
+        assert sum(p.is_me for p in r.players) == 1
+
+        last = {p.participant_id: p for p in r.snapshots[-1].players}
+        for p in match["info"]["participants"]:
+            s = last[p["participantId"]]
+            assert (s.k, s.d, s.a) == (p["kills"], p["deaths"], p["assists"]), (
+                mid,
+                p["participantId"],
+            )
+            held = sorted(p[f"item{i}"] for i in range(6) if p[f"item{i}"])
+            assert sorted(i for i in s.items if i) == held, (mid, p["participantId"])
+            assert s.trinket == (p["item6"] or None)
+
+        counts = {g: 0 for g in ("!!", "!", "?", "??")}
+        for m in r.moments:
+            if m.grade:
+                counts[m.grade] += 1
+        assert r.summary.team.model_dump(by_alias=True) == counts
+        assert r.summary.biggest_id == max(r.moments, key=lambda m: abs(m.delta)).id
+
+
+def test_red_side_flip(load_game):
+    match, timeline = load_game(SYNTHETIC_IDS[0])
+    blue = review_for(match, timeline, 4)
+    red = review_for(match, timeline, 9)
+    assert blue.match.my_side == "blue" and red.match.my_side == "red"
+    for a, b in zip(blue.curve[:-1], red.curve[:-1], strict=True):
+        assert a.t == b.t and a.p + b.p == pytest.approx(1, abs=2e-4)
+    assert [m.t_start for m in blue.moments] == [m.t_start for m in red.moments]
+    for a, b in zip(blue.moments, red.moments, strict=True):
+        assert a.delta == pytest.approx(-b.delta, abs=2e-4)
+        assert [e.team for e in a.events] == [
+            "enemy" if e.team == "ally" else "ally" for e in b.events
+        ]
+    sa, sb = blue.snapshots[-1], red.snapshots[-1]
+    assert sa.teams.ally == sb.teams.enemy and sa.teams.enemy == sb.teams.ally
+    assert {b.id: b.team for b in blue.buildings}["blue_nexus_1"] == "ally"
+    assert {b.id: b.team for b in red.buildings}["blue_nexus_1"] == "enemy"
+    assert len(blue.buildings) == 28
+    assert red.match.result == "loss" and blue.match.result == "win"
+    assert {p.participant_id for p in blue.players if p.team == "ally"} == {1, 2, 3, 4, 5}
+    assert {p.participant_id for p in red.players if p.team == "ally"} == {6, 7, 8, 9, 10}
+
+
+def test_match_block(load_game):
+    match, timeline = load_game(SYNTHETIC_IDS[1])
+    r = review_for(match, timeline, 9, tier_note="Median of the other players")
+    m = r.match
+    assert m.match_id == "NA1_9000000002" and m.platform == "NA1" and m.patch == "26.19"
+    assert m.surrender is True and m.tier_used == "GOLD"
+    assert m.tier_note == "Median of the other players"
+    assert (m.model.kind, m.model.version, m.patch_in_training) == ("stub", "stub", True)
+    assert m.ddragon_version == "26.19.1" and m.started_at.endswith("+00:00")
+    me = next(p for p in r.players if p.is_me)
+    assert me.riot_id == "Me#NA1" and me.role == "BOTTOM" and me.team == "ally"
+
+
+def test_champion_mapping_and_fallback(load_game):
+    match, timeline = load_game(SYNTHETIC_IDS[2])
+    r = review_for(match, timeline, 1)
+    wukong = [p for p in match["info"]["participants"] if p["championName"] == "MonkeyKing"]
+    champs = champions(match)
+    champs[wukong[0]["championId"]] = ("MonkeyKing", "Wukong")
+    r = build_review(match, timeline, 1, "GOLD", MODEL, champs, "26.19.1")
+    p = next(p for p in r.players if p.participant_id == wukong[0]["participantId"])
+    assert (p.champion, p.champion_name) == ("MonkeyKing", "Wukong")
+    r = build_review(match, timeline, 1, "GOLD", MODEL, {}, "26.19.1")
+    p = next(p for p in r.players if p.participant_id == wukong[0]["participantId"])
+    assert (p.champion, p.champion_name) == ("MonkeyKing", "MonkeyKing")
+
+
+def test_trained_model_patch_flag(load_game):
+    class Trained(PlaceholderModel):
+        kind = "trained"
+        version = "abcd1234"
+        patches = ["26.18"]
+
+    match, timeline = load_game(SYNTHETIC_IDS[0])
+    r = build_review(match, timeline, 4, "GOLD", Trained(), champions(match), "26.19.1")
+    assert r.match.patch_in_training is False and r.match.model.kind == "trained"
+    Trained.patches = ["26.19", "26.18"]
+    r = build_review(match, timeline, 4, "GOLD", Trained(), champions(match), "26.19.1")
+    assert r.match.patch_in_training is True
+
+
+def test_moment_content(load_game):
+    match, timeline = load_game(SYNTHETIC_IDS[0])
+    r = review_for(match, timeline, 4)
+    titles = [m.title for m in r.moments]
+    assert any("Dragon (1st)" in t for t in titles)
+    assert any(t == "Took Baron" for t in titles)
+    mine = [m for m in r.moments if m.involves_me]
+    for m in mine:
+        assert any(e.killer == 4 or e.victim == 4 or 4 in (e.assists or []) for e in m.events)
+    assert r.summary.me.model_dump(by_alias=True) == {
+        g: sum(1 for m in mine if m.grade == g) for g in ("!!", "!", "?", "??")
+    }
+    kinds = {e.kind for m in r.moments for e in m.events}
+    assert {"kill", "dragon", "baron", "tower", "inhibitor", "plate", "grubs"} <= kinds
+
+
+def test_third_game_kinds(load_game):
+    match, timeline = load_game(SYNTHETIC_IDS[2])
+    r = review_for(match, timeline, 1)
+    kinds = {e.kind for m in r.moments for e in m.events}
+    assert {"elder", "atakhan"} <= kinds
+    last = r.snapshots[-1]
+    assert last.teams.ally.towers + last.teams.enemy.towers > 0
+
+
+def test_snapshot_fields(load_game):
+    match, timeline = load_game(SYNTHETIC_IDS[0])
+    r = review_for(match, timeline, 4)
+    assert r.snapshots[0].players[0].respawn_in_s == 0
+    assert any(p.respawn_in_s > 0 for s in r.snapshots for p in s.players)
+    assert any(s.recent_kills for s in r.snapshots)
+    assert all(k.age_s < CFG["recent_kill_s"] for s in r.snapshots for k in s.recent_kills)
+    assert any(s.teams.ally.buff or s.teams.enemy.buff for s in r.snapshots)
+    assert r.snapshots[-1].buildings_down == sorted(r.snapshots[-1].buildings_down)
+
+
+def test_fast(load_game):
+    match, timeline = load_game(SYNTHETIC_IDS[2])
+    review_for(match, timeline, 1)
+    start = time.perf_counter()
+    review_for(match, timeline, 1)
+    assert time.perf_counter() - start < 1.0
