@@ -28,3 +28,28 @@ Keep every key out of the repo and out of chat.
 ## After Step 1
 
 - [ ] Tell Claude it's done. Next up: Steps 2–4 (Riot client, checking real data, feature extraction).
+
+## Later steps that need you
+
+Claude does the rest (see `Plan.md` for every step, `UI.md` for the app).
+
+### Laptop setup (before Step 13)
+- [ ] Install Python 3.12 and Node.js 20 or newer (LTS).
+- [ ] Put a `.env` with the Riot key in the repo folder on the laptop too. Until the personal key arrives, a new dev key goes in **both** places (laptop and VM).
+
+### Step 7: the VM
+- [ ] Run the `gcloud compute instances create …` command Claude gives you (it runs in your Google account), then the setup script over SSH.
+
+### Steps 9–10: training
+- [ ] Run `upload.py` over SSH when Claude asks.
+- [ ] On kaggle.com, open the notebook → **Save & Run All**. When it's done, download `model.txt` and `metrics.json` from the Output tab into `models/` on the laptop.
+
+### Step 15: check the reviews
+- [ ] Review 5 of your own games. Write down anything that looks wrong (the time and what you expected).
+
+### Step 16: replay button
+- [ ] In the League install's `Config/game.cfg`, add `EnableReplayApi=1` under `[General]`.
+
+### Stages 2–5
+- [ ] Steps 20, 23 and 25: check the windows, best plays and camp estimates against your replays.
+- [ ] Stage 5 (optional): play replays of your games so their minimaps can be captured.
