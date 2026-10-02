@@ -86,7 +86,7 @@ export const handlers = [
 
   http.get("/api/model", async () => {
     await delay(300);
-    if (mode === "empty") return errorResponse("no_model", "No trained model yet.", 404);
+    if (mode === "empty") return errorResponse("model_missing", "No trained model yet.", 404);
     return HttpResponse.json(modelJson as ModelMetrics);
   }),
 ];
