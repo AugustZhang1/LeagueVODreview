@@ -98,18 +98,22 @@ class TrainedModel(WinModel):
                 f"{path} was trained on features {names}, but features.py has {FEATURE_COLUMNS}; "
                 "retrain the model or restore the matching features.py"
             )
-        self.version = hashlib.sha256(path.read_bytes()).hexdigest()[:8]
         self.signature = _signature(models_dir)
-        self.iso: tuple[np.ndarray, np.ndarray] | None = None
-        iso = models_dir / "isotonic.json"
-        if iso.exists():
-            d = json.loads(iso.read_text(encoding="utf-8"))
-            self.iso = (np.asarray(d["x"], dtype=float), np.asarray(d["y"], dtype=float))
         metrics = models_dir / "metrics.json"
         if metrics.exists():
             self.metrics = json.loads(metrics.read_text(encoding="utf-8"))
             self.trained_at = self.metrics.get("trained_at")
             self.patches = self.metrics.get("patches")
+        calibrated = self.metrics.get("isotonic", True) if metrics.exists() else True
+        digest = hashlib.sha256(path.read_bytes())
+        self.iso: tuple[np.ndarray, np.ndarray] | None = None
+        iso = models_dir / "isotonic.json"
+        if calibrated and iso.exists():
+            raw = iso.read_bytes()
+            digest.update(raw)
+            d = json.loads(raw)
+            self.iso = (np.asarray(d["x"], dtype=float), np.asarray(d["y"], dtype=float))
+        self.version = digest.hexdigest()[:8]
 
     @staticmethod
     def _encode(row: dict) -> list[float]:
