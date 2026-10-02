@@ -11,7 +11,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
 from lolreview import replay, riot
-from lolreview.cache import Cache
+from lolreview.cache import Cache, default_path
 from lolreview.config import ROOT, load_config, read_env
 from lolreview.constants import (
     PLATFORM_TO_CLUSTER,
@@ -135,7 +135,9 @@ def _rank_from_entry(entry: dict | None) -> Rank | None:
 class _Context:
     def __init__(self, demo: bool, cache: Cache | None, client, ddragon: DataDragon | None):
         self.demo = demo
-        self.cache = cache or Cache()
+        # Demo games never share a cache with real ones.
+        demo_cache = default_path().with_name("cache-demo.db")
+        self.cache = cache or (Cache(demo_cache) if demo else Cache())
         if demo:
             from lolreview import demo as demo_mod
 
