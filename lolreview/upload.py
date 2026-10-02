@@ -118,9 +118,11 @@ def run_upload(
     token = (read_env(env_file) if env_file else read_env()).get("KAGGLE_API_TOKEN", "")
     if not token:
         raise UploadError("KAGGLE_API_TOKEN is missing from .env")
-    if shutil.which("kaggle") is None:
+    # Run as .venv/bin/python -m lolreview.upload, the venv's kaggle isn't on PATH yet
+    path = os.pathsep.join([str(Path(sys.executable).parent), os.environ.get("PATH", "")])
+    if shutil.which("kaggle", path=path) is None:
         raise UploadError("kaggle CLI not found. Install it with: pip install -e '.[vm]'")
-    env = {**os.environ, "KAGGLE_API_TOKEN": token}
+    env = {**os.environ, "KAGGLE_API_TOKEN": token, "PATH": path}
 
     up = build_upload_dir(data_dir, patches, dataset_id)
     exists = _kaggle(["datasets", "status", dataset_id], env).returncode == 0
