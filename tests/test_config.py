@@ -6,7 +6,7 @@ from lolreview.constants import PLATFORM_TO_CLUSTER, TIER_INDEX, TIERS
 
 def test_default_config_loads():
     cfg = config.load_config()
-    assert cfg["crawl"]["platforms"] == ["na1", "euw1", "kr"]
+    assert cfg["crawl"]["platforms"] == ["na1", "euw1", "kr", "vn2"]
     assert cfg["crawl"]["queue"] == 420
     assert cfg["rate_limit"]["short_count"] == 18
     assert cfg["review"]["step_s"] == 15
