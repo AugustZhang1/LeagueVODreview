@@ -1,8 +1,12 @@
 import json
+import os
 import sys
 from pathlib import Path
 
 import pytest
+
+# One OpenMP thread for LightGBM: parallel test runs otherwise oversubscribe the CPUs and crawl.
+os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 FIXTURES = Path(__file__).parent / "fixtures"
 SYNTHETIC = FIXTURES / "synthetic"
