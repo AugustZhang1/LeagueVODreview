@@ -1,0 +1,26 @@
+.footer {
+  flex: none;
+  margin-top: var(--space-7);
+  border-top: 1px solid var(--border);
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-5);
+}
+
+.legal {
+  max-width: 76ch;
+}
+
+.model {
+  flex: none;
+  text-align: right;
+}

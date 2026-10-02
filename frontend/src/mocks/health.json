@@ -1,0 +1,9 @@
+{
+  "riot_key": "ok",
+  "model": {
+    "kind": "trained",
+    "version": "2026-10-01",
+    "trained_at": "2026-10-01T09:30:00Z",
+    "patches": ["26.18", "26.19"]
+  }
+}

@@ -1,0 +1,39 @@
+.bar {
+  height: var(--topbar-h);
+  flex: none;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: var(--page-max);
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 var(--space-5);
+}
+
+.wordmark {
+  font-family: var(--font-num);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.nav {
+  display: flex;
+  gap: var(--space-5);
+}
+
+.link {
+  color: var(--text-2);
+}
+
+.active {
+  color: var(--text);
+}
+
+.link:hover {
+  color: var(--text);
+}

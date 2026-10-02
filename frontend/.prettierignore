@@ -1,0 +1,7 @@
+dist
+node_modules
+package-lock.json
+openapi.json
+src/api/types.ts
+public/mockServiceWorker.js
+screenshots

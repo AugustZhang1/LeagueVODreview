@@ -1,0 +1,141 @@
+.page {
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  margin-bottom: var(--space-5);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--border);
+}
+
+.label {
+  color: var(--text-3);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.samples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.gap {
+  width: var(--space-4);
+}
+
+.muted {
+  color: var(--text-3);
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-3) var(--space-5);
+  width: 100%;
+}
+
+.swatch {
+  font-variant-ligatures: none;
+  display: grid;
+  grid-template-columns: 32px 120px 1fr;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.chip {
+  width: 32px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.type {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 480px;
+  max-width: 100%;
+}
+
+.inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.errors {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.errorItem {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  width: 420px;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.listRow {
+  display: grid;
+  grid-template-columns: 28px 48px 1fr 48px;
+  align-items: center;
+  gap: var(--space-3);
+  height: 40px;
+}
+
+.listRow:hover {
+  background: var(--surface-2);
+}
+
+.slot {
+  display: flex;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 2px var(--space-5) 2px 0;
+}
+
+.table td:last-child {
+  text-align: right;
+  color: var(--text);
+}
+
+.table td:first-child {
+  color: var(--text-3);
+}

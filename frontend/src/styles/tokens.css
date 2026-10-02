@@ -1,0 +1,33 @@
+:root {
+  --bg: #0e1217;
+  --surface: #151a21;
+  --surface-2: #1a1f27;
+  --border: #2a313b;
+  --text: #e8e6e1;
+  --text-2: #a3a7ad;
+  --text-3: #858a92;
+  --ally: #3987e5;
+  --enemy: #e66767;
+  --you: #d4b26a;
+  --ally-tint: #3987e529;
+  --enemy-tint: #e6676729;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+
+  --font-text: "Barlow", system-ui, sans-serif;
+  --font-num: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
+
+  --page-max: 1280px;
+  --topbar-h: 56px;
+
+  color-scheme: dark;
+}
