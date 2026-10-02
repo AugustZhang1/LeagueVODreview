@@ -1,0 +1,134 @@
+.panel {
+  overflow: hidden;
+}
+
+.team + .team {
+  margin-top: var(--space-3);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.teamName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.ally {
+  background: var(--ally);
+}
+
+.enemy {
+  background: var(--enemy);
+}
+
+.pair {
+  white-space: nowrap;
+}
+
+.pairLabel {
+  color: var(--text-3);
+}
+
+.lead {
+  margin-left: auto;
+  color: var(--text);
+}
+
+.table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.row {
+  height: 32px;
+  font-size: 14px;
+}
+
+.row td {
+  padding: 0 0 0 var(--space-2);
+  white-space: nowrap;
+}
+
+.row td:first-child {
+  padding-left: var(--space-2);
+  box-shadow: inset 3px 0 0 transparent;
+}
+
+.me td:first-child {
+  box-shadow: inset 3px 0 0 var(--you);
+}
+
+.dead {
+  opacity: 0.5;
+}
+
+.champ {
+  width: 34px;
+  line-height: 0;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.num {
+  text-align: right;
+  font-size: 14px;
+}
+
+.row td:nth-child(3) {
+  width: 46px;
+}
+
+.kda {
+  width: 62px;
+}
+
+.row td:nth-child(5) {
+  width: 36px;
+}
+
+.gold {
+  width: 44px;
+}
+
+.items {
+  width: 162px;
+  line-height: 0;
+}
+
+.items > * {
+  margin-right: 2px;
+}
+
+.items > *:nth-child(6) {
+  margin-right: 8px;
+}
+
+.items > *:last-child {
+  margin-right: 0;
+}
+
+.deadText {
+  font-size: 12px;
+  color: var(--text-2);
+}
