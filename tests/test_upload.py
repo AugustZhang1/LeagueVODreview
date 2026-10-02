@@ -34,7 +34,7 @@ def env_file(tmp_path, monkeypatch):
     p = tmp_path / ".env"
     p.write_text(f"KAGGLE_API_TOKEN={TOKEN}\n", encoding="utf-8")
     monkeypatch.setattr(upload, "read_env", lambda path=None: {"KAGGLE_API_TOKEN": TOKEN})
-    monkeypatch.setattr(upload.shutil, "which", lambda name: "/usr/bin/kaggle")
+    monkeypatch.setattr(upload.shutil, "which", lambda name, path=None: "/usr/bin/kaggle")
     return p
 
 
@@ -97,7 +97,7 @@ def test_missing_token(data_dir, monkeypatch):
 
 def test_missing_cli(data_dir, monkeypatch):
     monkeypatch.setattr(upload, "read_env", lambda path=None: {"KAGGLE_API_TOKEN": TOKEN})
-    monkeypatch.setattr(upload.shutil, "which", lambda name: None)
+    monkeypatch.setattr(upload.shutil, "which", lambda name, path=None: None)
     with pytest.raises(upload.UploadError, match="kaggle CLI"):
         upload.run_upload(data_dir, "me/x")
 
