@@ -1,0 +1,114 @@
+import importlib.util
+import json
+import math
+import sys
+from pathlib import Path
+
+import lightgbm as lgb
+import numpy as np
+import pandas as pd
+import pytest
+
+from lolreview import features
+from lolreview.model import FeatureMismatch, PlaceholderModel, load_model, models_changed
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _load(name: str):
+    spec = importlib.util.spec_from_file_location(name, ROOT / "training" / f"{name}.py")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+train = _load("train")
+synth = _load("make_synthetic_dataset")
+
+
+def test_train_matches_features():
+    assert train.FEATURE_COLUMNS == features.FEATURE_COLUMNS
+    assert train.CATEGORICAL == features.CATEGORICAL_COLUMNS
+    assert train.MONOTONE == features.MONOTONE
+    assert train.SOUL_TYPES == features.SOUL_TYPES
+
+
+def _row(**kw):
+    row = {c: 0 for c in features.FEATURE_COLUMNS}
+    row.update(tier=3, minute=15.0, soul_type="none")
+    row.update(kw)
+    return row
+
+
+def test_placeholder_monotone_and_bounded():
+    m = load_model(Path("does-not-exist"))
+    assert isinstance(m, PlaceholderModel)
+    assert (m.kind, m.version, m.metrics, m.patches) == ("stub", "stub", None, None)
+    gold = [-20000, -10000, -5000, -1000, 0, 1000, 5000, 10000, 20000]
+    ps = m.predict([_row(gold_diff=g) for g in gold])
+    assert ps == sorted(ps)
+    assert all(0 < p < 1 for p in ps)
+    assert math.isclose(m.predict([_row()])[0], 0.5)
+    for col in ("kill_diff", "tower_diff", "inhibs_down_diff", "baron_active", "soul_diff"):
+        lo, hi = m.predict([_row(**{col: -1}), _row(**{col: 1})])
+        assert lo < 0.5 < hi
+
+
+def test_placeholder_swings_over_a_game():
+    m = PlaceholderModel()
+    late_lead = m.predict([_row(gold_diff=15000, kill_diff=15, tower_diff=8, inhibs_down_diff=2)])
+    assert late_lead[0] > 0.97
+
+
+@pytest.fixture(scope="module")
+def trained(tmp_path_factory):
+    base = tmp_path_factory.mktemp("model")
+    data, out = base / "data", base / "out"
+    synth.make_dataset(data, games=300, seed=5)
+    train.main(["--data", str(data), "--out", str(out), "--patches", "26.18,26.19", "--isotonic"])
+    return data, out
+
+
+def test_trained_round_trip(trained):
+    data, out = trained
+    model = load_model(out)
+    assert model.kind == "trained"
+    assert len(model.version) == 8 and model.version != "stub"
+    assert model.patches == ["26.18", "26.19"]
+    assert model.trained_at and model.metrics["features"] == features.FEATURE_COLUMNS
+
+    df = pd.concat([pd.read_parquet(p) for p in sorted(data.rglob("*.parquet"))])
+    df = df[df["patch"].astype(str).isin(["26.18", "26.19"])].sample(40, random_state=1)
+    rows = [{c: (str(r[c]) if c == "soul_type" else r[c]) for c in features.FEATURE_COLUMNS}
+            for r in df.to_dict("records")]  # fmt: skip
+    frame = df[features.FEATURE_COLUMNS].copy()
+    frame["soul_type"] = pd.Categorical(frame["soul_type"].astype(str), categories=train.SOUL_TYPES)
+    booster = lgb.Booster(model_file=str(out / "model.txt"))
+    expected = booster.predict(frame)
+    iso = json.loads((out / "isotonic.json").read_text())
+    expected = np.interp(expected, iso["x"], iso["y"])
+    np.testing.assert_allclose(model.predict(rows), expected, atol=1e-9)
+    assert model.predict([]) == []
+
+
+def test_feature_mismatch_raises(trained, tmp_path):
+    _, out = trained
+    text = (out / "model.txt").read_text()
+    assert "Column_0" not in text and "gold_diff" in text
+    (tmp_path / "model.txt").write_text(text.replace("gold_diff", "gold_dif2", 1))
+    with pytest.raises(FeatureMismatch, match="trained on features"):
+        load_model(tmp_path)
+
+
+def test_models_changed(trained, tmp_path):
+    _, out = trained
+    for name in ("model.txt", "metrics.json"):
+        (tmp_path / name).write_bytes((out / name).read_bytes())
+    model = load_model(tmp_path)
+    assert not models_changed(tmp_path, model)
+    (tmp_path / "isotonic.json").write_text('{"x": [0, 1], "y": [0, 1]}')
+    assert models_changed(tmp_path, model)
+    stub = load_model(tmp_path / "nothing")
+    assert not models_changed(tmp_path / "nothing", stub)
+    assert models_changed(tmp_path, stub)
