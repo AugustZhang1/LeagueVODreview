@@ -78,11 +78,18 @@ export function ReviewHeader({ review, participantId, onJump }: Props) {
         size={48}
       />
       <div className={styles.body}>
-        <h1 className={styles.title}>
-          <span className={win ? styles.win : styles.loss}>{win ? "Victory" : "Defeat"}</span> as{" "}
-          {me.champion_name}
-          {surrender}
-        </h1>
+        <div className={styles.titleRow}>
+          <h1 className={styles.title}>
+            <span className={win ? styles.win : styles.loss}>{win ? "Victory" : "Defeat"}</span> as{" "}
+            {me.champion_name}
+            {surrender}
+          </h1>
+          {notes.map((n) => (
+            <p key={n} className={styles.note}>
+              {n}
+            </p>
+          ))}
+        </div>
         <div className={styles.facts}>
           <Facts label="Role" value={ROLE_NAMES[me.role]} />
           <Facts label="Length" value={formatTime(match.duration_s)} />
@@ -92,8 +99,6 @@ export function ReviewHeader({ review, participantId, onJump }: Props) {
             value={formatRelative(match.started_at)}
             title={formatFullDate(match.started_at)}
           />
-        </div>
-        <div className={styles.facts}>
           <Grades label="You" counts={summary.me} />
           <Grades label="Team" counts={summary.team} />
           {biggest && (
@@ -113,13 +118,6 @@ export function ReviewHeader({ review, participantId, onJump }: Props) {
             </span>
           )}
         </div>
-        {notes.length > 0 && (
-          <div className={styles.notes}>
-            {notes.map((n) => (
-              <p key={n}>{n}</p>
-            ))}
-          </div>
-        )}
       </div>
       <Link to={gamesHref} className={styles.back}>
         <ChevronLeft size={16} aria-hidden="true" />
