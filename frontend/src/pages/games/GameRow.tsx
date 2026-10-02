@@ -26,7 +26,7 @@ export function GameRow({ game }: { game: GameSummary }) {
     <>
       <ChampIcon version={ddragonVersion(game.patch)} champion={game.champion} size={32} />
       <span className={`${styles.result} ${tone}`}>{RESULT_LABEL[game.result]}</span>
-      <span className={styles.role}>{remake ? "" : ROLE_LABEL[game.role]}</span>
+      <span className={styles.role}>{remake || !game.role ? "" : ROLE_LABEL[game.role]}</span>
       <span className={`${styles.num} num`}>{formatKda(game.k, game.d, game.a)}</span>
       <span className={`${styles.num} num`}>{game.cs} CS</span>
       <span className={`${styles.num} num`}>{formatTime(game.duration_s)}</span>

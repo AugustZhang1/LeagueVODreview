@@ -2,8 +2,8 @@ import { ChevronLeft, ChevronRight, MonitorPlay, Pause, Play } from "lucide-reac
 import type { CSSProperties } from "react";
 import type { CurvePoint } from "../../api/models";
 import { Tooltip } from "../../components/Tooltip";
-import { formatTime, formatWinChance } from "../../lib/format";
-import { winAt } from "./curve";
+import { formatTime } from "../../lib/format";
+import { winLabel } from "./curve";
 import { PLOT_LEFT, PLOT_RIGHT } from "./layout";
 import styles from "./Scrubber.module.css";
 
@@ -70,7 +70,7 @@ export function Scrubber({
         step={1}
         value={t}
         aria-label="Game time"
-        aria-valuetext={`${formatTime(t)}, win chance ${formatWinChance(winAt(curve, t), t >= duration)}`}
+        aria-valuetext={`${formatTime(t)}, win chance ${winLabel(curve, t, duration)}`}
         onChange={(e) => onSeek(e.currentTarget.valueAsNumber)}
       />
       <div className={styles.end}>

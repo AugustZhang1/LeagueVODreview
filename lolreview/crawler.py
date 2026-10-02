@@ -215,6 +215,11 @@ class PlatformCrawler:
             st.add_error(f"{self.platform}: {match_id}: {e}", self.clock())
             st.set_status([match_id], "failed")
             return
+        except Exception as e:  # one malformed match must not stall the platform
+            log.exception("%s: %s: could not process match", self.platform, match_id)
+            st.add_error(f"{self.platform}: {match_id}: {type(e).__name__}: {e}", self.clock())
+            st.set_status([match_id], "failed")
+            return
         if not rows:
             st.set_status([match_id], "skipped")
             return

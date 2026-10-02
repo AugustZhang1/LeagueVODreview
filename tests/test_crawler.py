@@ -273,3 +273,44 @@ def test_main_fake_run(tmp_path):
     )  # fmt: skip
     assert code == 0
     assert batch_files(tmp_path)
+
+
+class BrokenTimelineClient(FakeRiotClient):
+    bad_id = None
+
+    def timeline(self, cluster, match_id):
+        timeline = super().timeline(cluster, match_id)
+        if self.bad_id is None and not self._is_remake(match_id):
+            type(self).bad_id = match_id
+        if match_id == self.bad_id:
+            del timeline["info"]
+        return timeline
+
+    def _is_remake(self, match_id):
+        return self.match(self.cluster_name, match_id)["info"]["gameDuration"] < 300
+
+    cluster_name = "europe"
+
+
+def test_malformed_match_is_failed_and_not_retried(tmp_path):
+    BrokenTimelineClient.bad_id = None
+    client = BrokenTimelineClient("na1", apex_size=12)
+    c = make_crawler(tmp_path, client)
+    c._run_pass()
+    c.flush()
+    bad = BrokenTimelineClient.bad_id
+    assert bad is not None
+    st = State(state_path(tmp_path, "na1"))
+    counts = st.match_counts()
+    assert counts["failed"] == 1 and counts["done"] >= 20
+    assert "pending" not in counts
+    assert bad in st.match_ids_with_status("failed")
+    assert any(bad in msg for _, msg in st.recent_errors())
+    st.close()
+
+    seen = []
+    orig = client.match
+    client.match = lambda cluster, mid: (seen.append(mid), orig(cluster, mid))[1]
+    c2 = make_crawler(tmp_path, client)
+    c2._run_pass()
+    assert bad not in seen
