@@ -39,6 +39,11 @@ export function secondsPastSnapshot(t: number, snapshot: Snapshot): number {
   return Math.max(0, t - snapshot.t);
 }
 
+/** Respawn seconds still to go at time `t`, counting down from the snapshot's value. */
+export function respawnAt(state: PlayerState, t: number, snapshot: Snapshot): number {
+  return Math.max(0, state.respawn_in_s - secondsPastSnapshot(t, snapshot));
+}
+
 export function buildingMarks(
   buildings: Building[],
   buildingsDown: string[],
@@ -77,7 +82,8 @@ export function championMarks(
   for (const player of players) {
     const state = states.get(player.participant_id);
     if (!state) continue;
-    const dead = state.respawn_in_s > 0;
+    const left = respawnAt(state, t, snapshot);
+    const dead = left > 0;
     marks.push({
       player,
       state,
@@ -85,7 +91,7 @@ export function championMarks(
       team: player.team,
       isYou: player.is_me,
       dead,
-      respawn: dead ? Math.ceil(state.respawn_in_s) : 0,
+      respawn: dead ? Math.ceil(left) : 0,
       opacity: dead ? DEAD_OPACITY : positionOpacity(state.pos_age_s + extra),
     });
   }

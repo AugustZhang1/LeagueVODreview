@@ -31,16 +31,14 @@ const list = (v: unknown): Obj[] => (Array.isArray(v) ? v.filter(isObj) : []);
 const bucketStart = (label: string) => Number.parseInt(label, 10);
 
 function minuteLabel(row: Obj): string | null {
-  if (typeof row.bucket === "string") return row.bucket.replace("-", "–");
-  const m = num(row.minute);
-  return m === null ? null : String(m);
+  return typeof row.bucket === "string" ? row.bucket.replace("-", "–") : null;
 }
 
 function minuteRows(lgb: Obj, base: Obj): MinuteRow[] {
   const baseByLabel = new Map<string, number>();
   for (const r of list(base.by_minute)) {
     const label = minuteLabel(r);
-    const acc = num(r.accuracy) ?? num(isObj(r.lightgbm) ? r.lightgbm.accuracy : null);
+    const acc = num(r.accuracy);
     if (label && acc !== null) baseByLabel.set(label, acc);
   }
   const rows: MinuteRow[] = [];
@@ -55,33 +53,19 @@ function minuteRows(lgb: Obj, base: Obj): MinuteRow[] {
   return rows;
 }
 
-/**
- * Reads `metrics.json` as `training/train.py` writes it (`models.lightgbm` / `models.baseline`,
- * `feature_importance`), and also the flatter shape the mock API uses.
- */
+/** Reads `metrics.json` as `training/train.py` writes it. */
 export function readMetrics(raw: ModelMetrics): ModelView {
   const m = raw as Obj;
   const models = isObj(m.models) ? m.models : {};
-  const lgb = isObj(models.lightgbm) ? models.lightgbm : m;
+  const lgb = isObj(models.lightgbm) ? models.lightgbm : {};
   const base = isObj(models.baseline) ? models.baseline : {};
-  const summary = isObj(m.summary) ? m.summary : {};
 
-  // Mock shape: both models inside each by_minute row.
-  const flatMinutes = list(m.by_minute).flatMap((r) => {
-    const l = isObj(r.lightgbm) ? num(r.lightgbm.accuracy) : null;
-    const b = isObj(r.baseline) ? num(r.baseline.accuracy) : null;
-    const label = minuteLabel(r);
-    return label && l !== null && b !== null ? [{ label, lightgbm: l, baseline: b }] : [];
-  });
-  const minutes = isObj(models.lightgbm) ? minuteRows(lgb, base) : flatMinutes;
-
+  const minutes = minuteRows(lgb, base);
   const at10 = list(lgb.by_minute).find((r) => {
     const label = minuteLabel(r);
     return label !== null && bucketStart(label) === 10;
   });
-  const flatAt10 = flatMinutes.find((r) => bucketStart(r.label) === 10)?.lightgbm ?? null;
-  const accuracyAt10 =
-    (isObj(models.lightgbm) ? num(at10?.accuracy) : flatAt10) ?? num(summary.accuracy_at_10);
+  const accuracyAt10 = num(at10?.accuracy);
 
   const lgbOverall = isObj(lgb.overall) ? lgb.overall : {};
   const baseOverall = isObj(base.overall) ? base.overall : {};
@@ -109,7 +93,7 @@ export function readMetrics(raw: ModelMetrics): ModelView {
       : [];
   });
 
-  const importance = list(m.feature_importance ?? m.importance).flatMap((r) => {
+  const importance = list(m.feature_importance).flatMap((r) => {
     const gain = num(r.gain);
     return typeof r.feature === "string" && gain !== null ? [{ feature: r.feature, gain }] : [];
   });
@@ -124,8 +108,8 @@ export function readMetrics(raw: ModelMetrics): ModelView {
     games: num(m.games),
     patches: Array.isArray(m.patches) ? m.patches.filter((p) => typeof p === "string") : [],
     accuracyAt10,
-    logLoss: num(lgbOverall.log_loss) ?? num(summary.log_loss),
-    baselineLogLoss: num(baseOverall.log_loss) ?? num(summary.baseline_log_loss),
+    logLoss: num(lgbOverall.log_loss),
+    baselineLogLoss: num(baseOverall.log_loss),
     minutes,
     calibration,
     nearest70,

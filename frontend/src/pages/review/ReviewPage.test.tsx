@@ -1,12 +1,23 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeReview } from "../../mocks/makeReview";
 import { ReviewPage } from "./ReviewPage";
 
-const counter = vi.hoisted(() => ({ chart: 0 }));
+const counter = vi.hoisted(() => ({ chart: 0, board: 0 }));
+
+vi.mock("./board/boardModel", async (orig) => {
+  const mod = await orig<typeof import("./board/boardModel")>();
+  return {
+    ...mod,
+    buildScoreboard: (...args: Parameters<typeof mod.buildScoreboard>) => {
+      counter.board += 1;
+      return mod.buildScoreboard(...args);
+    },
+  };
+});
 
 vi.mock("recharts", async (orig) => {
   const mod = await orig<typeof import("recharts")>();
@@ -46,6 +57,8 @@ const urlT = () => new URLSearchParams(window.location.search).get("t");
 describe("review page", () => {
   beforeEach(() => {
     counter.chart = 0;
+    counter.board = 0;
+    vi.unstubAllGlobals();
   });
   afterEach(() => vi.useRealTimers());
 
@@ -144,6 +157,24 @@ describe("review page", () => {
     expect(counter.chart).toBe(before);
   });
 
+  it("does not rebuild the scoreboard while t stays inside one snapshot", () => {
+    // a snapshot where nobody is dead, and the same for the next one
+    const idx = review.snapshots.findIndex(
+      (sn, i) =>
+        [sn, review.snapshots[i + 1]].every((x) => x?.players.every((p) => p.respawn_in_s === 0)) &&
+        i > 4,
+    );
+    expect(idx).toBeGreaterThan(0);
+    const base = idx * 15;
+    setup(`?p=4&t=${base}`);
+    const before = counter.board;
+    for (let t = base + 1; t < base + 15; t++)
+      fireEvent.change(slider(), { target: { value: String(t) } });
+    expect(counter.board).toBe(before);
+    fireEvent.change(slider(), { target: { value: String(base + 15) } });
+    expect(counter.board).toBe(before + 1);
+  });
+
   it("opens a moment's detail and seeks to its end when its row is clicked", async () => {
     const user = userEvent.setup();
     setup();
@@ -179,5 +210,51 @@ describe("review page", () => {
       </QueryClientProvider>,
     );
     expect(screen.getByText("Building review…")).toBeInTheDocument();
+  });
+
+  describe("Open replay", () => {
+    const stubFetch = (available: boolean, reason: string | null) => {
+      const calls: { url: string; body?: string }[] = [];
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string, init?: RequestInit) => {
+          calls.push({ url, body: init?.body as string | undefined });
+          const body = url.includes("/api/replay/status") ? { available, reason } : { ok: true };
+          return new Response(JSON.stringify(body), { status: 200 });
+        }),
+      );
+      return calls;
+    };
+    const button = () => screen.getByRole("button", { name: "Open in replay" });
+
+    it("is disabled and does nothing while no replay is open", async () => {
+      const calls = stubFetch(false, "Replays only exist for the current patch");
+      const user = userEvent.setup();
+      setup("?p=4&t=300");
+      await waitFor(() => expect(calls.length).toBeGreaterThan(0));
+      expect(button()).toHaveAttribute("aria-disabled", "true");
+      await user.hover(button());
+      expect(await screen.findByRole("tooltip")).toHaveTextContent(
+        "Replays only exist for the current patch",
+      );
+      await user.click(button());
+      await user.keyboard("o");
+      expect(calls.some((c) => c.url.includes("/api/replay/seek"))).toBe(false);
+    });
+
+    it("seeks the replay to t from the button and from the O key", async () => {
+      const calls = stubFetch(true, null);
+      const user = userEvent.setup();
+      setup("?p=4&t=300");
+      await waitFor(() => expect(button()).toHaveAttribute("aria-disabled", "false"));
+      await user.click(button());
+      await user.keyboard("o");
+      await waitFor(() =>
+        expect(calls.filter((c) => c.url.endsWith("/api/replay/seek"))).toHaveLength(2),
+      );
+      for (const c of calls.filter((c) => c.url.endsWith("/api/replay/seek"))) {
+        expect(JSON.parse(c.body!)).toEqual({ match_id: review.match.match_id, t: 300 });
+      }
+    });
   });
 });

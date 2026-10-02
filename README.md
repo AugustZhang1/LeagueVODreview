@@ -23,24 +23,36 @@ uv pip install -p .venv -e ".[dev]"
 
 Regenerate the synthetic games with `.venv/bin/python tests/fixtures/make_synthetic.py` and the API schema with `.venv/bin/python scripts/export_openapi.py`.
 
-## Review app
+## Running the app
 
-`python -m lolreview.app [--port 8000]` serves the API and the built UI (`frontend/dist`) at
-`http://127.0.0.1:8000`; build the UI once with `cd frontend && npm ci && npm run build`. It needs a
-Riot key after `RIOT_API_KEY=` in `.env`. Everything fetched is cached in `cache.db`.
+1. Build the UI once: `cd frontend && npm ci && npm run build`.
+2. From the repo root: `python -m lolreview.app [--port 8000]` serves the API and the built UI at
+   `http://127.0.0.1:8000`. It needs a Riot key after `RIOT_API_KEY=` in `.env`; everything fetched
+   is cached in `cache.db`.
+3. Open the page, enter your Riot ID and pick the game to review. Keys on the review page: ← → step
+   through moments, Shift + ← → move 15 s, Home / End, Space plays, `O` opens the replay.
 
 Demo mode (`--demo` or `LOLREVIEW_DEMO=1`) needs no key and no network: it serves the synthetic
-games for `Me#NA1` on `na1`.
+games for `Me#NA1` on `na1`, so search for `Me#NA1` to try the app.
+
+**Open replay** jumps the League client's replay to 5 s before the selected time. Set
+`EnableReplayApi=1` under `[General]` in the client's `game.cfg`, open the game's replay, and the
+button on the review page turns on. Replays only exist for the current patch.
 
 ## Frontend
 
 ```
 cd frontend
 npm ci
-npm run dev:mock    # UI on mock data, no backend; add ?mock=key_expired, rate_limited, unavailable or empty
+npm run dev:mock    # UI on mock data, no backend; add ?mock=key_expired, rate_limited, unavailable,
+                    # unsupported_queue, server_error, empty or replay_open
 npm run dev         # UI on :5173, proxies /api to the backend on :8000
 npm run lint && npm run typecheck && npm run test && npm run build
+npm run e2e         # Playwright: the mocks, plus the demo backend when .venv and dist/ exist
 npm run gen:api     # regenerate src/api/types.ts from openapi.json
 ```
+
+`npm run e2e` needs a Chromium: CI installs one with `npx playwright install chromium`; the config
+also finds one under `PLAYWRIGHT_BROWSERS_PATH`. Set `E2E_DEMO=0` to skip the demo-backend run.
 
 In a dev build, `/dev/components` shows every shared component on the real tokens.

@@ -8,7 +8,7 @@
     "dev:mock": "vite --mode mock",
     "build": "tsc -b && vite build",
     "test": "vitest run",
-    "e2e": "echo \"no e2e tests yet\"",
+    "e2e": "playwright test",
     "lint": "eslint . && prettier --check .",
     "typecheck": "tsc -b --noEmit",
     "gen:api": "openapi-typescript openapi.json -o src/api/types.ts"
@@ -25,7 +25,9 @@
     "recharts": "^3.10.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",

@@ -1,6 +1,13 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { ApiError, apiGet } from "./client";
-import type { Health, ModelMetrics, PlayerGames, Review } from "./models";
+import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
+import { ApiError, apiGet, apiPost } from "./client";
+import type {
+  Health,
+  ModelMetrics,
+  PlayerGames,
+  ReplaySeekResult,
+  ReplayStatus,
+  Review,
+} from "./models";
 
 const PAGE_SIZE = 10;
 
@@ -60,5 +67,24 @@ export function useModel() {
     queryKey: ["model"],
     queryFn: ({ signal }) => apiGet<ModelMetrics>("/api/model", signal),
     ...retryOptions,
+  });
+}
+
+/** Whether this game's replay is open in the League client; checked every 5 s while visible. */
+export function useReplayStatus(matchId: string) {
+  return useQuery({
+    queryKey: ["replay", matchId],
+    queryFn: ({ signal }) =>
+      apiGet<ReplayStatus>(`/api/replay/status?match_id=${encodeURIComponent(matchId)}`, signal),
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
+    retry: false,
+  });
+}
+
+export function useReplaySeek(matchId: string) {
+  return useMutation({
+    mutationFn: (t: number) =>
+      apiPost<ReplaySeekResult>("/api/replay/seek", { match_id: matchId, t }),
   });
 }

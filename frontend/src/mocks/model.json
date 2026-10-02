@@ -1,324 +1,414 @@
 {
-  "trained_at": "2026-10-01T09:30:00Z",
-  "games": 412000,
-  "rows": 9180000,
+  "trained_at": "2026-10-02T05:19:34+00:00",
+  "games": 1998,
+  "rows": 84834,
   "patches": ["26.18", "26.19"],
-  "features_version": "1",
+  "features_version": 1,
   "features": [
+    "tier",
+    "minute",
     "gold_diff",
-    "level_diff_avg",
     "kill_diff",
-    "towers_diff",
-    "dragon_diff",
-    "game_time",
-    "baron_buff_ally",
-    "inhibitors_down_diff",
-    "jungle_cs_diff",
-    "alive_diff",
-    "item_gold_diff_mid",
-    "grubs_diff",
-    "heralds_diff",
-    "soul_ally",
+    "tower_diff",
+    "level_diff",
     "cs_diff",
-    "elder_buff"
+    "grub_diff",
+    "herald_diff",
+    "atakhan_diff",
+    "inhibs_down_diff",
+    "baron_active",
+    "elder_active",
+    "blue_dragons",
+    "red_dragons",
+    "soul_diff",
+    "soul_type"
   ],
-  "by_minute": [
-    {
-      "minute": 5,
-      "lightgbm": {
-        "accuracy": 0.58,
-        "log_loss": 0.588,
-        "brier": 0.213
+  "split": {
+    "train": 1398,
+    "validation": 200,
+    "test": 400
+  },
+  "models": {
+    "lightgbm": {
+      "overall": {
+        "accuracy": 0.8987386537781445,
+        "log_loss": 0.24222513588176245,
+        "brier": 0.07409257916493936
       },
-      "baseline": {
-        "accuracy": 0.515,
-        "log_loss": 0.661,
-        "brier": 0.238
-      }
+      "by_minute": [
+        {
+          "bucket": "0-5",
+          "accuracy": 0.8974177573399363,
+          "log_loss": 0.24531327208587436,
+          "brier": 0.0749578476583401,
+          "rows": 2827
+        },
+        {
+          "bucket": "5-10",
+          "accuracy": 0.8971428571428571,
+          "log_loss": 0.24753507598710447,
+          "brier": 0.07563785427690779,
+          "rows": 2800
+        },
+        {
+          "bucket": "10-15",
+          "accuracy": 0.9008849557522124,
+          "log_loss": 0.23573222236524224,
+          "brier": 0.07182413788964494,
+          "rows": 2825
+        },
+        {
+          "bucket": "15-20",
+          "accuracy": 0.9015985790408526,
+          "log_loss": 0.23989315399693767,
+          "brier": 0.07262326820280486,
+          "rows": 2815
+        },
+        {
+          "bucket": "20-25",
+          "accuracy": 0.9027721976697469,
+          "log_loss": 0.22297179463174716,
+          "brier": 0.07010189217443936,
+          "rows": 2489
+        },
+        {
+          "bucket": "25-30",
+          "accuracy": 0.896570796460177,
+          "log_loss": 0.23048102192881795,
+          "brier": 0.07273260705337624,
+          "rows": 1808
+        },
+        {
+          "bucket": "30-35",
+          "accuracy": 0.8930635838150289,
+          "log_loss": 0.2773215942349661,
+          "brier": 0.08279541209339165,
+          "rows": 1038
+        },
+        {
+          "bucket": "35-40",
+          "accuracy": 0.8818681318681318,
+          "log_loss": 0.33572463306186,
+          "brier": 0.0936796163464973,
+          "rows": 364
+        }
+      ],
+      "by_tier": [
+        {
+          "tier": "Silver",
+          "tier_index": 2,
+          "games": 55,
+          "accuracy": 0.9403052064631957,
+          "log_loss": 0.14067900466398064
+        },
+        {
+          "tier": "Gold",
+          "tier_index": 3,
+          "games": 53,
+          "accuracy": 0.9228637413394919,
+          "log_loss": 0.2168383352514176
+        },
+        {
+          "tier": "Platinum",
+          "tier_index": 4,
+          "games": 41,
+          "accuracy": 0.8923076923076924,
+          "log_loss": 0.32036097863286395
+        },
+        {
+          "tier": "Emerald",
+          "tier_index": 5,
+          "games": 43,
+          "accuracy": 0.9438856537850715,
+          "log_loss": 0.1538268764101292
+        },
+        {
+          "tier": "Diamond",
+          "tier_index": 6,
+          "games": 51,
+          "accuracy": 0.8319746376811594,
+          "log_loss": 0.411574664594234
+        },
+        {
+          "tier": "Master",
+          "tier_index": 7,
+          "games": 49,
+          "accuracy": 0.8340486409155937,
+          "log_loss": 0.3317159414586869
+        },
+        {
+          "tier": "Grandmaster",
+          "tier_index": 8,
+          "games": 56,
+          "accuracy": 0.9263114071606994,
+          "log_loss": 0.16668483830534897
+        },
+        {
+          "tier": "Challenger",
+          "tier_index": 9,
+          "games": 52,
+          "accuracy": 0.8975340136054422,
+          "log_loss": 0.21717521559089817
+        }
+      ]
     },
-    {
-      "minute": 10,
-      "lightgbm": {
-        "accuracy": 0.622,
-        "log_loss": 0.52,
-        "brier": 0.188
+    "baseline": {
+      "overall": {
+        "accuracy": 0.9002711304962867,
+        "log_loss": 0.2377398954105738,
+        "brier": 0.07299769054553275
       },
-      "baseline": {
-        "accuracy": 0.528,
-        "log_loss": 0.639,
-        "brier": 0.229
-      }
-    },
-    {
-      "minute": 15,
-      "lightgbm": {
-        "accuracy": 0.651,
-        "log_loss": 0.476,
-        "brier": 0.172
-      },
-      "baseline": {
-        "accuracy": 0.537,
-        "log_loss": 0.622,
-        "brier": 0.222
-      }
-    },
-    {
-      "minute": 20,
-      "lightgbm": {
-        "accuracy": 0.672,
-        "log_loss": 0.447,
-        "brier": 0.161
-      },
-      "baseline": {
-        "accuracy": 0.544,
-        "log_loss": 0.61,
-        "brier": 0.216
-      }
-    },
-    {
-      "minute": 25,
-      "lightgbm": {
-        "accuracy": 0.686,
-        "log_loss": 0.427,
-        "brier": 0.154
-      },
-      "baseline": {
-        "accuracy": 0.55,
-        "log_loss": 0.6,
-        "brier": 0.212
-      }
-    },
-    {
-      "minute": 30,
-      "lightgbm": {
-        "accuracy": 0.697,
-        "log_loss": 0.415,
-        "brier": 0.149
-      },
-      "baseline": {
-        "accuracy": 0.554,
-        "log_loss": 0.593,
-        "brier": 0.209
-      }
-    },
-    {
-      "minute": 35,
-      "lightgbm": {
-        "accuracy": 0.704,
-        "log_loss": 0.406,
-        "brier": 0.146
-      },
-      "baseline": {
-        "accuracy": 0.558,
-        "log_loss": 0.587,
-        "brier": 0.207
-      }
-    },
-    {
-      "minute": 40,
-      "lightgbm": {
-        "accuracy": 0.709,
-        "log_loss": 0.401,
-        "brier": 0.144
-      },
-      "baseline": {
-        "accuracy": 0.561,
-        "log_loss": 0.583,
-        "brier": 0.205
-      }
+      "by_minute": [
+        {
+          "bucket": "0-5",
+          "accuracy": 0.8935267067562788,
+          "log_loss": 0.2653255875576077,
+          "brier": 0.08027862299529391,
+          "rows": 2827
+        },
+        {
+          "bucket": "5-10",
+          "accuracy": 0.8985714285714286,
+          "log_loss": 0.24404429084293017,
+          "brier": 0.07497386727655414,
+          "rows": 2800
+        },
+        {
+          "bucket": "10-15",
+          "accuracy": 0.9037168141592921,
+          "log_loss": 0.225120665553663,
+          "brier": 0.06927292236473065,
+          "rows": 2825
+        },
+        {
+          "bucket": "15-20",
+          "accuracy": 0.9047957371225577,
+          "log_loss": 0.22821246937504652,
+          "brier": 0.06959035774801245,
+          "rows": 2815
+        },
+        {
+          "bucket": "20-25",
+          "accuracy": 0.905182804339092,
+          "log_loss": 0.22053506964362737,
+          "brier": 0.069113764774932,
+          "rows": 2489
+        },
+        {
+          "bucket": "25-30",
+          "accuracy": 0.8976769911504425,
+          "log_loss": 0.23231555608301047,
+          "brier": 0.07298247695561307,
+          "rows": 1808
+        },
+        {
+          "bucket": "30-35",
+          "accuracy": 0.896917148362235,
+          "log_loss": 0.23707348812796433,
+          "brier": 0.07247159998139117,
+          "rows": 1038
+        },
+        {
+          "bucket": "35-40",
+          "accuracy": 0.8928571428571429,
+          "log_loss": 0.2931072506936288,
+          "brier": 0.08464137316264757,
+          "rows": 364
+        }
+      ],
+      "by_tier": [
+        {
+          "tier": "Silver",
+          "tier_index": 2,
+          "games": 55,
+          "accuracy": 0.9358168761220825,
+          "log_loss": 0.15052396047967082
+        },
+        {
+          "tier": "Gold",
+          "tier_index": 3,
+          "games": 53,
+          "accuracy": 0.9140877598152425,
+          "log_loss": 0.23206226904306196
+        },
+        {
+          "tier": "Platinum",
+          "tier_index": 4,
+          "games": 41,
+          "accuracy": 0.8929230769230769,
+          "log_loss": 0.3037886986094745
+        },
+        {
+          "tier": "Emerald",
+          "tier_index": 5,
+          "games": 43,
+          "accuracy": 0.9523557437797776,
+          "log_loss": 0.15103818622362358
+        },
+        {
+          "tier": "Diamond",
+          "tier_index": 6,
+          "games": 51,
+          "accuracy": 0.8374094202898551,
+          "log_loss": 0.37447203063774903
+        },
+        {
+          "tier": "Master",
+          "tier_index": 7,
+          "games": 49,
+          "accuracy": 0.8359561278016213,
+          "log_loss": 0.3337171308078414
+        },
+        {
+          "tier": "Grandmaster",
+          "tier_index": 8,
+          "games": 56,
+          "accuracy": 0.9300582847626978,
+          "log_loss": 0.15678550725322488
+        },
+        {
+          "tier": "Challenger",
+          "tier_index": 9,
+          "games": 52,
+          "accuracy": 0.9030612244897959,
+          "log_loss": 0.21832791016904707
+        }
+      ]
     }
-  ],
+  },
   "calibration": [
     {
-      "bin_low": 0.0,
-      "bin_high": 0.1,
-      "predicted": 0.05,
-      "actual": 0.05,
-      "count": 47008
+      "bin": 0,
+      "predicted": 0.02315736902184947,
+      "actual": 0.018712916476494753,
+      "count": 6573
     },
     {
-      "bin_low": 0.1,
-      "bin_high": 0.2,
-      "predicted": 0.15,
-      "actual": 0.189,
-      "count": 55922
+      "bin": 1,
+      "predicted": 0.14468857235446253,
+      "actual": 0.15813117699910154,
+      "count": 1113
     },
     {
-      "bin_low": 0.2,
-      "bin_high": 0.3,
-      "predicted": 0.25,
-      "actual": 0.271,
-      "count": 63414
+      "bin": 2,
+      "predicted": 0.24444585126102852,
+      "actual": 0.2515527950310559,
+      "count": 644
     },
     {
-      "bin_low": 0.3,
-      "bin_high": 0.4,
-      "predicted": 0.35,
-      "actual": 0.322,
-      "count": 68814
+      "bin": 3,
+      "predicted": 0.3485278114510126,
+      "actual": 0.2853717026378897,
+      "count": 417
     },
     {
-      "bin_low": 0.4,
-      "bin_high": 0.5,
-      "predicted": 0.45,
-      "actual": 0.415,
-      "count": 71640
+      "bin": 4,
+      "predicted": 0.45023766609697574,
+      "actual": 0.43672456575682383,
+      "count": 403
     },
     {
-      "bin_low": 0.5,
-      "bin_high": 0.6,
-      "predicted": 0.55,
-      "actual": 0.559,
-      "count": 71640
+      "bin": 5,
+      "predicted": 0.5506332092518583,
+      "actual": 0.5,
+      "count": 440
     },
     {
-      "bin_low": 0.6,
-      "bin_high": 0.7,
-      "predicted": 0.65,
-      "actual": 0.69,
-      "count": 68814
+      "bin": 6,
+      "predicted": 0.6519156636813926,
+      "actual": 0.6129666011787819,
+      "count": 509
     },
     {
-      "bin_low": 0.7,
-      "bin_high": 0.8,
-      "predicted": 0.75,
-      "actual": 0.763,
-      "count": 63414
+      "bin": 7,
+      "predicted": 0.7503141491264859,
+      "actual": 0.7180385288966725,
+      "count": 571
     },
     {
-      "bin_low": 0.8,
-      "bin_high": 0.9,
-      "predicted": 0.85,
-      "actual": 0.817,
-      "count": 55922
+      "bin": 8,
+      "predicted": 0.8549491940715201,
+      "actual": 0.8296382730455076,
+      "count": 857
     },
     {
-      "bin_low": 0.9,
-      "bin_high": 1.0,
-      "predicted": 0.95,
-      "actual": 0.92,
-      "count": 47008
+      "bin": 9,
+      "predicted": 0.9792252751365091,
+      "actual": 0.9562419562419563,
+      "count": 5439
     }
   ],
-  "by_tier": [
-    {
-      "tier": "CHALLENGER",
-      "games": 3100,
-      "accuracy": 0.742,
-      "log_loss": 0.498
-    },
-    {
-      "tier": "GRANDMASTER",
-      "games": 5200,
-      "accuracy": 0.738,
-      "log_loss": 0.503
-    },
-    {
-      "tier": "MASTER",
-      "games": 9800,
-      "accuracy": 0.731,
-      "log_loss": 0.509
-    },
-    {
-      "tier": "DIAMOND",
-      "games": 61000,
-      "accuracy": 0.724,
-      "log_loss": 0.514
-    },
-    {
-      "tier": "EMERALD",
-      "games": 94000,
-      "accuracy": 0.718,
-      "log_loss": 0.519
-    },
-    {
-      "tier": "PLATINUM",
-      "games": 102000,
-      "accuracy": 0.712,
-      "log_loss": 0.524
-    },
-    {
-      "tier": "GOLD",
-      "games": 86000,
-      "accuracy": 0.708,
-      "log_loss": 0.527
-    },
-    {
-      "tier": "SILVER",
-      "games": 50900,
-      "accuracy": 0.703,
-      "log_loss": 0.531
-    }
-  ],
-  "importance": [
+  "max_calibration_gap_pts": 6.315610881312289,
+  "feature_importance": [
     {
       "feature": "gold_diff",
-      "gain": 0.31
+      "gain": 543814.8715236783
     },
     {
-      "feature": "level_diff_avg",
-      "gain": 0.12
+      "feature": "tier",
+      "gain": 13297.33117800951
     },
     {
-      "feature": "kill_diff",
-      "gain": 0.09
+      "feature": "soul_type",
+      "gain": 12790.093666374683
     },
     {
-      "feature": "towers_diff",
-      "gain": 0.08
-    },
-    {
-      "feature": "dragon_diff",
-      "gain": 0.06
-    },
-    {
-      "feature": "game_time",
-      "gain": 0.055
-    },
-    {
-      "feature": "baron_buff_ally",
-      "gain": 0.04
-    },
-    {
-      "feature": "inhibitors_down_diff",
-      "gain": 0.035
-    },
-    {
-      "feature": "jungle_cs_diff",
-      "gain": 0.03
-    },
-    {
-      "feature": "alive_diff",
-      "gain": 0.028
-    },
-    {
-      "feature": "item_gold_diff_mid",
-      "gain": 0.022
-    },
-    {
-      "feature": "grubs_diff",
-      "gain": 0.02
-    },
-    {
-      "feature": "heralds_diff",
-      "gain": 0.015
-    },
-    {
-      "feature": "soul_ally",
-      "gain": 0.012
+      "feature": "minute",
+      "gain": 12756.161154866219
     },
     {
       "feature": "cs_diff",
-      "gain": 0.011
+      "gain": 7156.573040187359
     },
     {
-      "feature": "elder_buff",
-      "gain": 0.006
+      "feature": "blue_dragons",
+      "gain": 7002.20771536231
+    },
+    {
+      "feature": "kill_diff",
+      "gain": 5629.208213806152
+    },
+    {
+      "feature": "level_diff",
+      "gain": 4892.412416994572
+    },
+    {
+      "feature": "tower_diff",
+      "gain": 1538.3352960273623
+    },
+    {
+      "feature": "red_dragons",
+      "gain": 846.0663894414902
+    },
+    {
+      "feature": "soul_diff",
+      "gain": 541.147192299366
+    },
+    {
+      "feature": "grub_diff",
+      "gain": 251.1007004380226
+    },
+    {
+      "feature": "atakhan_diff",
+      "gain": 113.51872634887695
+    },
+    {
+      "feature": "baron_active",
+      "gain": 32.53666973114014
+    },
+    {
+      "feature": "inhibs_down_diff",
+      "gain": 19.293160438537598
+    },
+    {
+      "feature": "herald_diff",
+      "gain": 11.069940090179443
+    },
+    {
+      "feature": "elder_active",
+      "gain": 7.985430002212524
     }
   ],
-  "summary": {
-    "accuracy_at_10": 0.72,
-    "log_loss": 0.512,
-    "baseline_log_loss": 0.548
-  }
+  "isotonic": false,
+  "weighting": "none"
 }

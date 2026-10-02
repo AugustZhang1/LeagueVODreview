@@ -1,21 +1,27 @@
 .scrubber {
-  display: flex;
+  display: grid;
   align-items: center;
-  gap: var(--space-3);
-  height: 36px;
+  height: 32px;
 }
 
 .controls {
   display: flex;
-  gap: var(--space-1);
+  gap: 2px;
+}
+
+.end {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: var(--space-3);
 }
 
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 28px;
   padding: 0;
   border: 0;
   border-radius: var(--radius-sm);
@@ -28,17 +34,37 @@
   color: var(--text);
 }
 
+.button[aria-disabled="true"] {
+  color: var(--text-3);
+  cursor: default;
+}
+
+.button[aria-disabled="true"]:hover {
+  background: transparent;
+  color: var(--text-3);
+}
+
 .time {
-  min-width: 5ch;
-  text-align: right;
   font-size: 16px;
 }
 
+/* The thumb's centre runs 7px in from each end, so the input is 14px wider than the plot
+   area and the track is drawn only between those centres. */
 .range {
-  flex: 1;
+  --at: calc(7px + (100% - 14px) * var(--played));
+  --track: linear-gradient(
+    to right,
+    transparent 7px,
+    var(--text-2) 7px,
+    var(--text-2) var(--at),
+    var(--border) var(--at),
+    var(--border) calc(100% - 7px),
+    transparent calc(100% - 7px)
+  );
+  width: calc(100% + 14px);
   min-width: 0;
   height: 24px;
-  margin: 0;
+  margin: 0 -7px;
   background: transparent;
   appearance: none;
   cursor: pointer;
@@ -46,20 +72,12 @@
 
 .range::-webkit-slider-runnable-track {
   height: 4px;
-  border-radius: 2px;
-  background: linear-gradient(to right, var(--text-2) var(--played), var(--border) var(--played));
+  background: var(--track);
 }
 
 .range::-moz-range-track {
   height: 4px;
-  border-radius: 2px;
-  background: var(--border);
-}
-
-.range::-moz-range-progress {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--text-2);
+  background: var(--track);
 }
 
 .range::-webkit-slider-thumb {

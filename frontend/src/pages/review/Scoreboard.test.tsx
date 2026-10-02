@@ -18,7 +18,9 @@ const review = makeReview();
 
 describe("Scoreboard", () => {
   it("renders both teams and marks your row", () => {
-    const { container } = render(<Scoreboard review={review} snapshot={review.snapshots[88]} />);
+    const { container } = render(
+      <Scoreboard review={review} snapshot={review.snapshots[88]} t={1320} />,
+    );
     expect(screen.getByText("Ally")).toBeInTheDocument();
     expect(screen.getByText("Enemy")).toBeInTheDocument();
     expect(container.querySelectorAll("tr")).toHaveLength(10);
@@ -33,7 +35,7 @@ describe("Scoreboard", () => {
         <>
           <button onClick={() => setTick(tick + 1)}>tick {tick}</button>
           <button onClick={() => setIdx(idx + 1)}>next</button>
-          <Scoreboard review={review} snapshot={review.snapshots[idx]} />
+          <Scoreboard review={review} snapshot={review.snapshots[idx]} t={idx * 15} />
         </>
       );
     }

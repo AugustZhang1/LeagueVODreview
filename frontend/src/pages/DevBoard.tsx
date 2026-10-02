@@ -28,7 +28,7 @@ export default function DevBoard() {
         <div>
           <Minimap review={review} snapshot={snapshot} t={t} />
         </div>
-        <Scoreboard review={review} snapshot={snapshot} />
+        <Scoreboard review={review} snapshot={snapshot} t={t} />
       </div>
     </div>
   );

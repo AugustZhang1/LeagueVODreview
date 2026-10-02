@@ -1,22 +1,38 @@
 import { delay, http, HttpResponse } from "msw";
-import type { Health, ModelMetrics, PlayerGames, Review } from "../api/models";
+import type { Health, ModelMetrics, PlayerGames, ReplayStatus, Review } from "../api/models";
 import healthJson from "./health.json";
 import modelJson from "./model.json";
 import playerJson from "./player.json";
-import { makeReview } from "./makeReview";
+import reviewFixture from "./review.fixture.json";
 
 /**
- * `?mock=key_expired | rate_limited | unavailable | empty` on the page URL picks a state to
+ * `?mock=` with one of the `MODES` below on the page URL picks a state to
  * look at. It is read once per page load, so later in-app navigation keeps it.
  */
-export type MockMode = "key_expired" | "rate_limited" | "unavailable" | "empty" | null;
+export type MockMode =
+  | "key_expired"
+  | "rate_limited"
+  | "unavailable"
+  | "unsupported_queue"
+  | "server_error"
+  | "empty"
+  | "replay_open"
+  | null;
+
+const MODES: MockMode[] = [
+  "key_expired",
+  "rate_limited",
+  "unavailable",
+  "unsupported_queue",
+  "server_error",
+  "empty",
+  "replay_open",
+];
 
 function readMode(): MockMode {
   if (typeof location === "undefined") return null;
   const v = new URLSearchParams(location.search).get("mock");
-  return v === "key_expired" || v === "rate_limited" || v === "unavailable" || v === "empty"
-    ? v
-    : null;
+  return MODES.find((m) => m === v) ?? null;
 }
 
 const mode = readMode();
@@ -36,6 +52,8 @@ function failure() {
       return errorResponse("rate_limited", "Rate limit reached.", 429, 8);
     case "unavailable":
       return errorResponse("riot_unavailable", "Riot's API isn't responding.", 502);
+    case "server_error":
+      return errorResponse("internal_error", "Something broke.", 500);
     default:
       return null;
   }
@@ -43,7 +61,8 @@ function failure() {
 
 const health = healthJson as Health;
 const player = playerJson as PlayerGames;
-const reviews = new Map<string, Review>();
+const fixture = reviewFixture as unknown as Review;
+const replayReason = "Open this game's replay in the League client";
 
 export const handlers = [
   http.get("/api/health", async () => {
@@ -73,16 +92,27 @@ export const handlers = [
     });
   }),
 
-  http.get("/api/review/:matchId", async ({ params, request }) => {
+  http.get("/api/review/:matchId", async ({ params }) => {
     await delay(600);
     const bad = failure();
     if (bad) return bad;
+    if (mode === "unsupported_queue") {
+      return errorResponse("unsupported_queue", "Only ranked solo/duo games.", 400);
+    }
     if (mode === "empty") return errorResponse("match_not_found", "Match not found.", 404);
-    const p = Number(new URL(request.url).searchParams.get("p") ?? 4);
-    const key = `${params.matchId}:${p}`;
-    if (!reviews.has(key)) reviews.set(key, makeReview(String(params.matchId), p));
-    return HttpResponse.json(reviews.get(key));
+    return HttpResponse.json({
+      ...fixture,
+      match: { ...fixture.match, match_id: String(params.matchId) },
+    });
   }),
+
+  http.get("/api/replay/status", async () => {
+    const status: ReplayStatus = { available: false, reason: replayReason };
+    if (mode === "replay_open") return HttpResponse.json({ available: true, reason: null });
+    return HttpResponse.json(status);
+  }),
+
+  http.post("/api/replay/seek", () => HttpResponse.json({ ok: true })),
 
   http.get("/api/model", async () => {
     await delay(300);
