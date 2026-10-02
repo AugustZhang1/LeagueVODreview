@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import math
+import shutil
 import sys
 from pathlib import Path
 
@@ -166,3 +167,31 @@ def test_version_changes_with_isotonic_file(trained, tmp_path):
     before = load_model(tmp_path).version
     (tmp_path / "isotonic.json").write_text('{"x": [0, 1], "y": [0.1, 0.9]}')
     assert load_model(tmp_path).version != before
+
+
+def test_rank_models_trained_saved_and_used(tmp_path, monkeypatch):
+    data, out = tmp_path / "data", tmp_path / "out"
+    synth.make_dataset(data, games=600, seed=8)
+    (out / "tiers" / "OLD").mkdir(parents=True)  # from an earlier run: must not survive
+    monkeypatch.setattr(train, "MIN_TIER_GAMES", 30)
+    m = train.main(["--data", str(data), "--out", str(out), "--patches", "26.18,26.19"])
+    assert not (out / "tiers" / "OLD").exists()
+    ranks = {r["tier"]: r for r in m["tier_models"]}
+    saved = [t for t, r in ranks.items() if r["saved"]]
+    assert ranks and all("overall_log_loss" in r for r in ranks.values() if r["train_games"] >= 30)
+    assert sorted(p.name for p in (out / "tiers").glob("*")) == sorted(saved)
+    assert "## Rank models" in (out / "report.md").read_text()
+
+    overall_only = load_model(out)
+    # a copy of the overall model as one rank's model: rows of that rank must get its answers
+    shutil.rmtree(out / "tiers", ignore_errors=True)
+    (out / "tiers" / "GOLD").mkdir(parents=True)
+    (out / "tiers" / "GOLD" / "metrics.json").write_text('{"isotonic": false}')
+    shutil.copy(out / "model.txt", out / "tiers" / "GOLD" / "model.txt")
+    model = load_model(out)
+    assert models_changed(out, overall_only) and model.version != overall_only.version
+    gold = model.by_tier[features.TIER_INDEX["GOLD"]]
+    gold._predict = lambda rows: [0.123] * len(rows)
+    rows = [_row(tier=features.TIER_INDEX["GOLD"]), _row(tier=features.TIER_INDEX["DIAMOND"])]
+    p = model.predict(rows)
+    assert p[0] == 0.123 and p[1] == overall_only.predict(rows[1:])[0]

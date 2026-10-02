@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
+from lolreview.constants import PRO_TIER_INDEX, TIER_INDEX
 from lolreview.features import FEATURE_COLUMNS, SOUL_TYPES
 
 MODEL_FILES = ("model.txt", "isotonic.json", "metrics.json")
@@ -25,6 +26,8 @@ def _signature(models_dir: Path) -> tuple:
             out.append((name, (models_dir / name).stat().st_mtime_ns))
         except OSError:
             out.append((name, None))
+    for f in sorted((models_dir / "tiers").glob("*/*")):  # rank models
+        out.append((f.relative_to(models_dir).as_posix(), f.stat().st_mtime_ns))
     return tuple(out)
 
 
@@ -113,6 +116,14 @@ class TrainedModel(WinModel):
             digest.update(raw)
             d = json.loads(raw)
             self.iso = (np.asarray(d["x"], dtype=float), np.asarray(d["y"], dtype=float))
+        # Rank models from train.py, each saved only where it beat this one on that rank's games
+        self.by_tier: dict[int, TrainedModel] = {}
+        for f in sorted((models_dir / "tiers").glob("*/model.txt")):
+            name = f.parent.name
+            index = PRO_TIER_INDEX if name == "PRO" else TIER_INDEX.get(name)
+            if index is not None:
+                self.by_tier[index] = TrainedModel(f.parent)
+                digest.update(f"{name}:{self.by_tier[index].version}".encode())
         self.version = digest.hexdigest()[:8]
 
     @staticmethod
@@ -126,6 +137,18 @@ class TrainedModel(WinModel):
         return out
 
     def predict(self, rows: list[dict]) -> list[float]:
+        """Each row goes to its rank's model if there is one, else to this overall model."""
+        out = [0.0] * len(rows)
+        groups: dict[int, list[int]] = {}
+        for i, r in enumerate(rows):
+            groups.setdefault(int(r["tier"]), []).append(i)
+        for tier, idx in groups.items():
+            model = self.by_tier.get(tier, self)
+            for i, p in zip(idx, model._predict([rows[i] for i in idx]), strict=True):
+                out[i] = p
+        return out
+
+    def _predict(self, rows: list[dict]) -> list[float]:
         if not rows:
             return []
         x = np.array([self._encode(r) for r in rows], dtype=float)

@@ -6,6 +6,11 @@ It reads the crawler's Parquet folder (`<platform>/<patch>/v<N>/part-*.parquet`)
 writes `model.txt`, `metrics.json`, `calibration.png`, `accuracy_by_minute.png` and `report.md`
 (plus `isotonic.json` with `--isotonic`).
 
+It also trains one model per rank that has at least 1,000 training games and saves it to
+`tiers/<RANK>/` only if it beats the overall model on that rank's test games; the report's "Rank
+models" table shows the comparison for every rank. Copy the whole output, `tiers/` included, into
+`models/`: the app reviews a game with its rank's model when there is one, else the overall model.
+
 ## On Kaggle, through the API
 
 `kernel-metadata.json` makes this folder a private Kaggle script (`augustzhang1/lol-winprob-train`)

@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -53,6 +54,7 @@ TIER_NAMES = [
 MINUTE_EDGES = [0, 5, 10, 15, 20, 25, 30, 35, 40, np.inf]
 MINUTE_LABELS = ["0-5", "5-10", "10-15", "15-20", "20-25", "25-30", "30-35", "35-40", "40+"]
 CALIBRATION_MIN_COUNT = 20  # bins with fewer rows are listed but ignored for the max gap
+MIN_TIER_GAMES = 1000  # training games a rank needs before it gets its own model
 
 
 def log(msg: str) -> None:
@@ -255,6 +257,43 @@ def plot_accuracy_by_minute(models: dict, path: Path) -> None:
     plt.close(fig)
 
 
+def fit_tier_models(train, val, test, p_test: np.ndarray, args, out: Path) -> list[dict]:
+    """One model per rank with enough games. A rank's model is saved to tiers/<RANK>/ only when
+    it beats the overall model on that rank's test games, so the app can always prefer it."""
+    tiers_dir = out / "tiers"
+    shutil.rmtree(tiers_dir, ignore_errors=True)  # never leave rank models from an earlier run
+    results = []
+    for t in sorted(set(train["tier"].astype(int))):
+        name = (TIER_NAMES[t] if 0 <= t < len(TIER_NAMES) else str(t)).upper()
+        tr, va, te = (d[d["tier"] == t] for d in (train, val, test))
+        n = int(tr["match_id"].nunique())
+        row = {"tier": name, "train_games": n, "saved": False}
+        if n < MIN_TIER_GAMES or va.empty or te.empty:
+            results.append(row)
+            continue
+        log(f"== {name}: own model on {n} games")
+        booster = fit_lightgbm(tr, va, args.weight, args.seed)
+        p_own = booster.predict(te[FEATURE_COLUMNS], num_iteration=booster.best_iteration)
+        y = te["blue_won"]
+        own = scores(y.to_numpy(), p_own)
+        overall = scores(y.to_numpy(), p_test[(test["tier"] == t).to_numpy()])
+        row.update(log_loss=own["log_loss"], overall_log_loss=overall["log_loss"],
+                   accuracy=own["accuracy"], overall_accuracy=overall["accuracy"])  # fmt: skip
+        if own["log_loss"] < overall["log_loss"]:
+            d = tiers_dir / name
+            d.mkdir(parents=True)
+            booster.save_model(str(d / "model.txt"), num_iteration=booster.best_iteration)
+            info = {"trained_at": datetime.now(UTC).isoformat(timespec="seconds"), "tier": name,
+                    "games": n, "patches": sorted(tr["patch"].unique()), "isotonic": False,
+                    "test": own}  # fmt: skip
+            (d / "metrics.json").write_text(json.dumps(info, indent=2))
+            row["saved"] = True
+        log(f"{name}: log loss {own['log_loss']:.4f} own vs {overall['log_loss']:.4f} overall"
+            f" -> {'saved' if row['saved'] else 'overall is better'}")  # fmt: skip
+        results.append(row)
+    return results
+
+
 def md_table(headers: list[str], rows: list[list]) -> str:
     def fmt(v):
         return f"{v:.4f}" if isinstance(v, float) else str(v)
@@ -288,6 +327,12 @@ def write_report(m: dict, val_ll: float, path: Path) -> None:
                 md_table(["tier", "games", "accuracy", "log loss"],
                          [[r["tier"], r["games"], r["accuracy"], r["log_loss"]]
                           for r in mm["by_tier"]])]  # fmt: skip
+    out += ["", f"## Rank models (own model needs {MIN_TIER_GAMES} training games; saved if it"
+            " beats the overall model on that rank's test games)", "",
+            md_table(["rank", "train games", "own log loss", "overall log loss", "saved"],
+                     [[r["tier"], r["train_games"], r.get("log_loss", "-"),
+                       r.get("overall_log_loss", "-"), "yes" if r["saved"] else "no"]
+                      for r in m["tier_models"]])]  # fmt: skip
     out += ["", "## Calibration (LightGBM)", "",
             md_table(["bin", "predicted", "actual", "count"],
                      [[r["bin"], r["predicted"], r["actual"], r["count"]]
@@ -373,6 +418,8 @@ def main(argv: list[str] | None = None) -> dict:
     calibration, gap = calibration_table(test["blue_won"].to_numpy(), p_test)
     log(f"max calibration gap: {gap:.2f} points")
 
+    tier_models = fit_tier_models(train, val, test, p_test, args, out)
+
     gains = booster.feature_importance(importance_type="gain")
     importance = sorted(
         ({"feature": f, "gain": float(g)} for f, g in zip(FEATURE_COLUMNS, gains, strict=True)),
@@ -394,6 +441,7 @@ def main(argv: list[str] | None = None) -> dict:
         "feature_importance": importance,
         "isotonic": bool(args.isotonic),
         "weighting": args.weight,
+        "tier_models": tier_models,
     }
     (out / "metrics.json").write_text(json.dumps(metrics, indent=2))
     plot_calibration(calibration, out / "calibration.png")
