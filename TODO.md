@@ -6,7 +6,7 @@ Keep every key out of the repo and out of chat.
 
 ### Riot
 - [x] **Do now:** register a **personal API key**: "Register Product" → Personal API Key. Description: private research project, post-game win-probability analysis of my own games, no public users. Approval takes a while, so start it early.
-- [x] Dev key in `.env` (used for Step 3 on 2026-10-02). It expires 24 h after it's generated: regenerate it at https://developer.riotgames.com whenever something needs Riot data, until the personal key arrives.
+- [x] Personal API key approved and in `.env` on the laptop and the VM (2026-10-02). It doesn't expire.
 
 ### Google Cloud
 - [x] Create an account at https://cloud.google.com (card required). You're on the free trial: $300 for 90 days.
@@ -15,7 +15,7 @@ Keep every key out of the repo and out of chat.
 - [x] ☰ menu → Compute Engine → VM instances → click **Enable** (turns on the Compute Engine API). This is the only API to turn on. No API key or credentials are needed from Google Cloud.
 - [x] Install the gcloud CLI (installed: Google Cloud SDK 587.0.0).
 - [x] `gcloud init`: logged in; project `web-crawler-510403`, zone `us-central1-a`.
-- [ ] Don't create the VM yet; that's Step 7.
+- [x] VM `lol-crawler` created in Step 7.
 - [ ] Skip the **Gemini API key**: it's for Google's Gemini AI and this project doesn't use it.
 - [x] Trial end date: **2026-12-30** (90 days from 2026-10-01). Before then, decide whether to upgrade to a paid account, which is needed to keep the VM running after the trial.
 
@@ -55,10 +55,10 @@ Claude does the rest (see `Plan.md` for every step, `UI.md` for the app).
 
 ### Laptop setup (before Step 13)
 - [x] Install Python 3.12 and Node.js 20 or newer (LTS): uv supplies Python 3.12; Node is 24.
-- [ ] Put a `.env` with the Riot key in the repo folder on the laptop too. Until the personal key arrives, a new dev key goes in **both** places (laptop and VM).
+- [x] `.env` with the personal key on the laptop and the VM.
 
 ### Step 7: the VM
-- [ ] Run the `gcloud compute instances create …` command Claude gives you (it runs in your Google account), then the setup script over SSH.
+- [x] Done 2026-10-02: `lol-crawler` (e2-micro, us-central1-a) runs the crawler as a service and survives reboots. It clones the repo with a read-only deploy key. See the progress page with `gcloud compute ssh lol-crawler --zone us-central1-a -- -L 8080:localhost:8080`, then <http://localhost:8080>.
 
 ### Steps 9–10: training
 - [ ] Run `upload.py` over SSH when Claude asks.
