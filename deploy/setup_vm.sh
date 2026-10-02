@@ -56,7 +56,7 @@ if [ ! -f "$REPO_DIR/.env" ] && [ -f "$HOME/.env" ]; then
 fi
 if [ ! -f "$REPO_DIR/.env" ]; then
     echo "Missing $REPO_DIR/.env. From your laptop run:"
-    echo "  gcloud compute scp .env lol-crawler:~/.env --zone us-central1-a"
+    echo "  gcloud compute scp .env lol-crawler:. --zone us-central1-a"
     echo "then run this script again."
     exit 1
 fi

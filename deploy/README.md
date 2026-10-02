@@ -20,7 +20,7 @@ firewall rules are added, so only SSH (port 22) is reachable.
 ## 2. Copy the files and run the script
 
 ```
-gcloud compute scp deploy/setup_vm.sh .env lol-crawler:~ --zone us-central1-a
+gcloud compute scp deploy/setup_vm.sh .env lol-crawler:. --zone us-central1-a
 gcloud compute ssh lol-crawler --zone us-central1-a --command "bash setup_vm.sh"
 ```
 
