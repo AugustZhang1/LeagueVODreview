@@ -91,6 +91,8 @@ def _collect_events(
         elif kind == "ELITE_MONSTER_KILL":
             mt = e["monsterType"]
             team = e.get("killerTeamId") or team_of.get(killer) or BLUE
+            if team not in (BLUE, RED):
+                continue  # killerTeamId 300: the monster despawned (Herald before Baron spawns)
             detail = None
             if mt == "DRAGON":
                 sub = e.get("monsterSubType")
@@ -162,7 +164,7 @@ def _snapshot(t_ms: int, state: GameState, order: list[int], my_team: int) -> sc
             schemas.PlayerState(
                 participant_id=pid, x=p.x, y=p.y, pos_age_s=max(0, t_ms - p.pos_t_ms) / 1000,
                 level=p.level, k=p.k, d=p.d, a=p.a, cs=p.cs, gold=int(p.gold),
-                items=list(p.items), trinket=p.trinket,
+                items=list(p.items), trinket=p.trinket, quest_item=p.quest_item,
                 respawn_in_s=max(0, p.dead_until_ms - t_ms) / 1000,
             )
         )  # fmt: skip

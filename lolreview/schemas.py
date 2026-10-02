@@ -145,6 +145,7 @@ class PlayerState(BaseModel):
     gold: int
     items: list[int | None]
     trinket: int | None
+    quest_item: int | None = None  # boots in the Bot Lane quest's extra slot
     respawn_in_s: float
 
 

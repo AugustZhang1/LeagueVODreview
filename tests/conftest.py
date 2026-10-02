@@ -10,12 +10,16 @@ os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 FIXTURES = Path(__file__).parent / "fixtures"
 SYNTHETIC = FIXTURES / "synthetic"
+REAL = FIXTURES / "real"
 sys.path.insert(0, str(FIXTURES))
 
 SYNTHETIC_IDS = [f"NA1_900000000{i}" for i in range(1, 5)]
+# Real ranked solo games saved by scripts/fetch_samples.py in Step 3.
+REAL_IDS = sorted(f.name.removesuffix(".match.json") for f in REAL.glob("*.match.json"))
 
 
-def _load(match_id: str, folder: Path = SYNTHETIC) -> tuple[dict, dict]:
+def _load(match_id: str, folder: Path | None = None) -> tuple[dict, dict]:
+    folder = folder or (REAL if match_id in REAL_IDS else SYNTHETIC)
     match = json.loads((folder / f"{match_id}.match.json").read_text(encoding="utf-8"))
     timeline = json.loads((folder / f"{match_id}.timeline.json").read_text(encoding="utf-8"))
     return match, timeline
@@ -23,7 +27,7 @@ def _load(match_id: str, folder: Path = SYNTHETIC) -> tuple[dict, dict]:
 
 @pytest.fixture(scope="session")
 def load_game():
-    """load_game(match_id) -> (match, timeline) from the synthetic folder."""
+    """load_game(match_id) -> (match, timeline) from the synthetic or real folder."""
     return _load
 
 

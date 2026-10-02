@@ -2,11 +2,12 @@ import copy
 from collections import Counter
 
 import pytest
+from conftest import REAL_IDS
 
 from lolreview import features as F
 from lolreview.constants import BLUE, RED
 
-GAME_IDS = [f"NA1_900000000{i}" for i in range(1, 4)]
+GAME_IDS = [f"NA1_900000000{i}" for i in range(1, 4)] + REAL_IDS
 OBJ_KEYS = {"tower": "towers", "baron": "barons", "horde": "grubs", "riftHerald": "heralds"}
 
 
@@ -42,7 +43,7 @@ def test_final_objectives_match_teams(game):
         for key, attr in OBJ_KEYS.items():
             assert getattr(ts, attr) == obj[key]["kills"], (team["teamId"], key)
         assert len(ts.dragons) + ts.elders == obj["dragon"]["kills"]
-        assert ts.atakhans == obj["atakhan"]["kills"]
+        assert ts.atakhans == obj.get("atakhan", {}).get("kills", 0)
 
 
 def test_team_gold_at_minute_frames(game):
@@ -89,18 +90,20 @@ def test_final_kda_and_items(game):
         assert ps.level == p["champLevel"]
 
 
-def test_nobody_acts_while_dead(game):
+def test_nobody_kills_while_dead(game):
+    # Real games have kills up to ~3 s after the killer died (damage over time) and assists up to
+    # ~18 s after (the assist window), so only killers are checked, from 5 s after their death.
     match, timeline = game
     walker = F._Walker(match, F.load_config())
+    died: dict[int, int] = {}
     for f in timeline["info"]["frames"]:
         for e in f["events"]:
-            actors = []
+            a, t = e.get("killerId"), e["timestamp"]
+            if e["type"] in ("CHAMPION_KILL", "ELITE_MONSTER_KILL", "BUILDING_KILL") and a:
+                if t - died.get(a, -(10**9)) > 5000:
+                    assert walker.players[a].dead_until_ms <= t, (a, t)
             if e["type"] == "CHAMPION_KILL":
-                actors = [e["killerId"], *e.get("assistingParticipantIds", [])]
-            elif e["type"] in ("ELITE_MONSTER_KILL", "BUILDING_KILL"):
-                actors = [e["killerId"], *e.get("assistingParticipantIds", [])]
-            for a in filter(None, actors):
-                assert walker.players[a].dead_until_ms <= e["timestamp"], (a, e["timestamp"])
+                died[e["victimId"]] = t
             walker.apply_event(e)
         walker.apply_frame(f)
 

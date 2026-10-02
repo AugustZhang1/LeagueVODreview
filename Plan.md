@@ -145,6 +145,13 @@ Rows 4–5 and 6 overlap: the UI gets built while the VM pilot crawls.
 
 **Done when:** field names are confirmed, the fixtures are saved, and `config.toml` has the timers.
 
+**Done (2026-10-02, patch 16.19).** `tests/fixtures/real/REPORT.md` covers 20 games; the timers and item rules were checked on 100 more. Findings:
+- Atakhan and Feats of Strength were removed in 26.1. Herald is in the events, spawns once at 15:00 and leaves at 19:45 (a "kill" with `killerTeamId` 300). Grubs: one camp of 3 at 8:00 that doesn't respawn.
+- `DRAGON_SOUL_GIVEN` with `teamId` 0 reveals the soul type after the 2nd dragon; with 100/200 it is the soul.
+- `BUILDING_KILL.teamId` is the team that lost the building. Some `ITEM_PURCHASED` events have `participantId` 0 (the supports' World Atlas).
+- **Role quests** (new in 2026): each player's quest item is destroyed once, at 9-14 min, when the quest is done; the match has `roleBoundItem`. Top raises the level cap to 20 (19-20 seen in 33 of 1000 players). Mid upgrades boots to tier 3 and bot moves boots to an extra slot, both with no item event, as do the support item's upgrades. `features.py` handles these; the end items match Riot's for 95% of players (the rest: rune items like Shattered Armguard, role swaps).
+- The death timers in the wiki are longer at levels 1-9 than the old guesses (10 s at level 1, not 6).
+
 ## Step 4 — Feature extraction (`features.py`)
 
 `extract_rows(match, timeline, tier)` → rows. The match data has no rank, so `tier` is passed in: the crawler passes the tier of the player the game was found through; a review passes the reviewed player's tier.
@@ -164,7 +171,7 @@ Rows 4–5 and 6 overlap: the UI gets built while the VM pilot crawls.
   - `blue_dragons`, `red_dragons`: elemental dragon counts
   - `soul_diff`: +1 if blue has soul, −1 if red, 0 if nobody
   - `soul_type`: the 3rd dragon's type, `none` before that; categorical
-  - `herald_diff`, `atakhan_diff` (blue − red): only if Step 3 finds them in the events
+  - `herald_diff`, `quest_diff` (blue − red): heralds taken, role quests done. Step 3 found no Atakhan, so no `atakhan_diff`
 - **Extra columns:** `match_id, platform, patch, duration_s, t, blue_won`.
 - `FEATURES_VERSION = 1`. Later stages bump it (see Stage 2).
 - Small dtypes (`float32`, `int16`, `dictionary`) to keep files small.
@@ -277,7 +284,7 @@ A Kaggle notebook attached to the dataset, run with **Save & Run All** on the Ka
    - binary objective, learning rate 0.05, 31 leaves,
    - early stopping on validation log loss,
    - `soul_type` as a categorical feature,
-   - **monotone constraints:** +1 on `gold_diff, kill_diff, tower_diff, inhibs_down_diff, baron_active, elder_active, grub_diff, soul_diff, level_diff, cs_diff, blue_dragons` (and `herald_diff`, `atakhan_diff` if they exist), −1 on `red_dragons`; none on `tier`, `minute`, `soul_type`. Taking an objective can then never lower your win %, which keeps the review graph sensible.
+   - **monotone constraints:** +1 on `gold_diff, kill_diff, tower_diff, inhibs_down_diff, baron_active, elder_active, grub_diff, soul_diff, level_diff, cs_diff, blue_dragons` `herald_diff`, `quest_diff`, −1 on `red_dragons`; none on `tier`, `minute`, `soul_type`. Taking an objective can then never lower your win %, which keeps the review graph sensible.
    - **Try on the pilot:** weighting each row by 1 / (rows in its game), so long games and busy fights don't count extra. Keep it if validation log loss is better.
 5. **Evaluate on the test set, for both models:**
    - accuracy, log loss and Brier score per minute bucket (0–5, 5–10, …, 40+), overall, and per tier,
@@ -410,7 +417,7 @@ All built only from past events, so the no-future-leak test still applies.
 - `alive_diff`: alive blue − alive red.
 - Seconds until respawn per team and role, 0 if alive: `blue_top_dead_s` … `red_sup_dead_s` (10 columns), from the Step 13 formula.
 - Each jungler's last known position and how long ago: `blue_jg_x`, `blue_jg_y`, `blue_jg_seen_s` (and red). Sources: minute positions, kills they were part of (the kill's position), and elite monsters they took.
-- Objectives: for dragon, grubs, herald, baron (and atakhan if it exists): `*_up` (0/1) and `*_spawn_in_s`, from the `config.toml` timers (Step 3) and kill events. Elder takes the dragon's place after a soul.
+- Objectives: for dragon, grubs, herald, baron: `*_up` (0/1) and `*_spawn_in_s`, from the `config.toml` timers (Step 3) and kill events. Elder takes the dragon's place after a soul.
 - Vision: `wards_placed_diff_3m`, `wards_killed_diff_3m` (last 3 minutes).
 - Positions (at minute frames, carried forward with their age): `in_enemy_jungle_diff` (players in the other team's jungle) and `grouped_diff` (largest group within 2,000 units).
 - Monotone: +1 on `alive_diff` and `red_*_dead_s`, −1 on `blue_*_dead_s`; none on the rest.
@@ -561,6 +568,6 @@ Each one works on its own:
 ## Open questions
 
 Each is answered by a step, not up front:
-- Are Herald, Atakhan and Feats of Strength in 2026 timelines? (Step 3)
+- ~~Are Herald, Atakhan and Feats of Strength in 2026 timelines? (Step 3)~~ Herald yes; the other two were removed in 26.1.
 - Equal weight per game or per row? (Step 10, on the pilot)
 - Do the default grade thresholds (5% and 10%) feel right on your games? (Step 15)

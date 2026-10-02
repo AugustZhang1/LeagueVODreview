@@ -43,7 +43,9 @@ def make_game(rng: np.random.Generator, game_id: int, platform: str, patch: str)
     cs = np.round(drift * 25 + rng.normal(0, 8, len(t)))
     grub = np.round(np.clip(drift * 0.6 + rng.normal(0, 0.8, len(t)), -3, 3))
     herald = np.clip(np.round(drift * 0.3 + rng.normal(0, 0.5, len(t))), -1, 1)
-    atakhan = np.clip(np.round(drift * 0.2 + rng.normal(0, 0.4, len(t))), -1, 1)
+    quests = np.where(
+        frac > 0.3, np.clip(np.round(drift * 1.0 + rng.normal(0, 0.8, len(t))), -5, 5), 0
+    )
     inhibs = np.where(frac > 0.6, np.clip(np.round(drift * 0.8), -3, 3), 0)
     baron = np.where(
         frac > 0.6, np.clip(np.round(drift * 0.7 + rng.normal(0, 0.5, len(t))), -1, 1), 0
@@ -85,7 +87,7 @@ def make_game(rng: np.random.Generator, game_id: int, platform: str, patch: str)
         "cs_diff": cs.astype(np.float32),
         "grub_diff": grub.astype(np.int16),
         "herald_diff": herald.astype(np.int16),
-        "atakhan_diff": atakhan.astype(np.int16),
+        "quest_diff": quests.astype(np.int16),
         "inhibs_down_diff": inhibs.astype(np.int16),
         "baron_active": baron.astype(np.int16),
         "elder_active": elder.astype(np.int16),

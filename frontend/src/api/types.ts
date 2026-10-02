@@ -341,6 +341,8 @@ export interface components {
             participant_id: number;
             /** Pos Age S */
             pos_age_s: number;
+            /** Quest Item */
+            quest_item?: number | null;
             /** Respawn In S */
             respawn_in_s: number;
             /** Trinket */

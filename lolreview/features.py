@@ -11,12 +11,24 @@ from dataclasses import dataclass, field, replace
 from lolreview.config import load_config
 from lolreview.constants import (
     BLUE,
+    BOOTS,
+    BOT_QUEST,
+    CONTROL_WARD,
     DRAGON_TYPES,
     ELDER,
+    ELIXIRS,
+    FOOTWEAR,
+    FOOTWEAR_RUNE,
+    MID_BOOTS,
+    MID_QUEST,
     PRO_TIER_INDEX,
+    QUEST_DONE_ITEMS,
     QUEUE_RANKED_SOLO,
     RED,
     REMAKE_MAX_S,
+    SILENT_UPGRADES,
+    SUPPORT_FINAL,
+    SUPPORT_UPGRADES,
     TIER_INDEX,
 )
 
@@ -32,7 +44,7 @@ FEATURE_COLUMNS = [
     "cs_diff",
     "grub_diff",
     "herald_diff",
-    "atakhan_diff",
+    "quest_diff",
     "inhibs_down_diff",
     "baron_active",
     "elder_active",
@@ -62,7 +74,7 @@ MONOTONE.update(
             "cs_diff",
             "blue_dragons",
             "herald_diff",
-            "atakhan_diff",
+            "quest_diff",
         )
     }
 )
@@ -90,6 +102,8 @@ class PlayerState:
     gold: float = 0.0
     items: list[int | None] = field(default_factory=lambda: [None] * 6)
     trinket: int | None = None
+    quest_item: int | None = None  # boots in the slot the Bot Lane quest adds
+    quest: int | None = None  # the item whose ITEM_DESTROYED marked the role quest done
     dead_until_ms: int = 0
 
 
@@ -107,6 +121,7 @@ class TeamState:
     barons: int = 0
     atakhans: int = 0
     elders: int = 0
+    quests: int = 0
     buff: tuple[str, int] | None = None
     level_sum: int = 0
     cs_sum: int = 0
@@ -176,10 +191,19 @@ class _Walker:
         self.elder_ms = int(timers["elder_buff_s"] * 1000)
         self.recent_ms = int(cfg["review"]["recent_kill_s"] * 1000)
         self.players: dict[int, PlayerState] = {}
+        self.support_final: dict[int, int] = {}  # what Bounty of Worlds became, from the end items
+        self.footwear: dict[int, int] = {}  # Magical Footwear: player -> when the boots arrive (ms)
         for p in match["info"]["participants"]:
             pid = p["participantId"]
             role = p.get("teamPosition") or p.get("individualPosition") or ""
-            self.players[pid] = PlayerState(pid, p["teamId"], role)
+            # Real games don't always log the starting Stealth Ward
+            self.players[pid] = PlayerState(pid, p["teamId"], role, trinket=3340)
+            final = [p.get(f"item{i}") for i in range(7)] + [p.get("roleBoundItem")]
+            self.support_final[pid] = next((i for i in final if i in SUPPORT_FINAL), 3867)
+            styles = p.get("perks", {}).get("styles", [])
+            for sel in (s for st in styles for s in st["selections"]):
+                if sel["perk"] == FOOTWEAR_RUNE:
+                    self.footwear[pid] = sel.get("var1", 12) * 60_000  # var1: arrival minute
         self.teams = {BLUE: TeamState(), RED: TeamState()}
         self.towers_down: set[str] = set()
         self.inhib_until: dict[str, int] = {}
@@ -208,18 +232,54 @@ class _Walker:
     def _add_item(self, p: PlayerState, item: int) -> None:
         if item in TRINKETS:
             p.trinket = item
+            return
+        if item in ELIXIRS or (item == CONTROL_WARD and p.role == "UTILITY"):
+            return  # drunk at once / kept in the support quest slot, which isn't shown
+        if p.quest == MID_QUEST:
+            item = MID_BOOTS.get(item, item)
+        if item in BOOTS and p.quest == BOT_QUEST:
+            p.quest_item = item
         elif None in p.items:
             p.items[p.items.index(None)] = item
 
-    def _remove_item(self, p: PlayerState, item: int) -> None:
+    def _remove_item(self, p: PlayerState, item: int, becomes: int | None = None) -> bool:
         if item in p.items:
-            p.items[p.items.index(item)] = None
+            p.items[p.items.index(item)] = becomes
         elif p.trinket == item:
             p.trinket = None
+        elif p.quest_item == item:
+            p.quest_item = becomes
+        else:
+            return False
+        return True
+
+    def _destroy_item(self, p: PlayerState, item: int) -> None:
+        if item in TRINKETS:
+            return  # real games log trinkets as destroyed while the player still has them
+        if item in QUEST_DONE_ITEMS and p.quest is None:
+            p.quest = item
+        if item in SUPPORT_UPGRADES or item == 3867:
+            becomes = SUPPORT_UPGRADES.get(item) or self.support_final[p.participant_id]
+            if not self._remove_item(p, item, becomes):
+                self._add_item(p, becomes)  # World Atlas's purchase had participantId 0
+        elif item in MID_BOOTS and p.role == "MIDDLE":
+            self._remove_item(p, item, MID_BOOTS[item])  # destroyed just before the quest item
+        elif p.quest == BOT_QUEST and p.quest_item is None and item in BOOTS and item in p.items:
+            self._remove_item(p, item)  # moved to the Bot Lane quest's slot
+            p.quest_item = item
+        else:
+            self._remove_item(p, item, SILENT_UPGRADES.get(item))
+
+    def _give_footwear(self, t: int) -> None:
+        for pid, at in sorted(self.footwear.items()):
+            if t >= at:
+                del self.footwear[pid]
+                self._add_item(self.players[pid], FOOTWEAR)
 
     def apply_event(self, e: dict) -> None:
         kind = e["type"]
         t = e["timestamp"]
+        self._give_footwear(t)
         if kind == "CHAMPION_KILL":
             self._champion_kill(e, t)
         elif kind == "LEVEL_UP":
@@ -233,9 +293,10 @@ class _Walker:
         elif kind == "TURRET_PLATE_DESTROYED":
             self.teams[RED if e["teamId"] == BLUE else BLUE].plates += 1
         elif kind == "DRAGON_SOUL_GIVEN":
-            self.teams[e["teamId"]].soul = e["name"]
-            if self.map_soul_type == "none":
-                self.map_soul_type = e["name"]
+            # teamId 0 only reveals the soul type after the 2nd dragon; 100 or 200 took the soul
+            if e["teamId"] in self.teams:
+                self.teams[e["teamId"]].soul = e["name"]
+            self.map_soul_type = e["name"]
         elif kind in ("ITEM_PURCHASED", "ITEM_SOLD", "ITEM_DESTROYED", "ITEM_UNDO"):
             p = self.players.get(e["participantId"])
             if p is None:
@@ -247,6 +308,8 @@ class _Walker:
                     self._remove_item(p, e["beforeId"])
                 if e.get("afterId"):
                     self._add_item(p, e["afterId"])
+            elif kind == "ITEM_DESTROYED":
+                self._destroy_item(p, e["itemId"])
             else:
                 self._remove_item(p, e["itemId"])
 
@@ -308,6 +371,7 @@ class _Walker:
             self.teams[RED if e["teamId"] == BLUE else BLUE].towers += 1
 
     def snapshot(self, t: int) -> GameState:
+        self._give_footwear(t)
         players = {pid: replace(p, items=list(p.items)) for pid, p in self.players.items()}
         down = set(self.towers_down)
         inhibs = {BLUE: 0, RED: 0}
@@ -330,6 +394,7 @@ class _Walker:
                 inhibs_down=inhibs[tid],
                 level_sum=sum(p.level for p in mine),
                 cs_sum=sum(p.cs for p in mine),
+                quests=sum(p.quest is not None for p in mine),
                 buff=max(buffs, key=lambda b: b[1]) if buffs else None,
             )
         cutoff = t - self.recent_ms
@@ -391,7 +456,7 @@ def feature_row(state: GameState, tier: str | int) -> dict:
         "cs_diff": b.cs_sum - r.cs_sum,
         "grub_diff": b.grubs - r.grubs,
         "herald_diff": b.heralds - r.heralds,
-        "atakhan_diff": b.atakhans - r.atakhans,
+        "quest_diff": b.quests - r.quests,
         "inhibs_down_diff": r.inhibs_down - b.inhibs_down,
         "baron_active": side(b.baron_buff_end_ms > state.t_ms, r.baron_buff_end_ms > state.t_ms),
         "elder_active": side(b.elder_buff_end_ms > state.t_ms, r.elder_buff_end_ms > state.t_ms),

@@ -60,7 +60,7 @@ def count_games(path: Path) -> int:
 
 
 def build_upload_dir(data_dir: Path, patches: dict[str, list[Path]], dataset_id: str) -> Path:
-    """Symlink the chosen batch files into <data_dir>/.upload, keeping their relative paths."""
+    """Hard-link the chosen batch files into <data_dir>/.upload, keeping their relative paths."""
     up = data_dir / UPLOAD_DIRNAME
     if up.exists():
         shutil.rmtree(up)
@@ -69,7 +69,7 @@ def build_upload_dir(data_dir: Path, patches: dict[str, list[Path]], dataset_id:
         for f in files:
             dest = up / f.relative_to(data_dir)
             dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.symlink_to(f.resolve())
+            dest.hardlink_to(f)
     (up / "dataset-metadata.json").write_text(
         json.dumps(
             {

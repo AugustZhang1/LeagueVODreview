@@ -271,15 +271,15 @@ class PlatformCrawler:
         known = self.state.batch_files()
         for tmp in sorted(self.platform_dir.rglob("part-*.parquet.tmp")):
             final = tmp.with_suffix("")
-            if str(final.relative_to(self.data_dir)) in known and not final.exists():
+            if final.relative_to(self.data_dir).as_posix() in known and not final.exists():
                 os.replace(tmp, final)  # crash between the commit and the rename
                 log.info("%s: finished rename of %s", self.platform, final.name)
             else:
                 tmp.unlink()  # crash before the commit, or a stale copy
         stray = sorted(
-            str(p.relative_to(self.data_dir))
+            p.relative_to(self.data_dir).as_posix()
             for p in self.platform_dir.rglob("part-*.parquet")
-            if str(p.relative_to(self.data_dir)) not in known
+            if p.relative_to(self.data_dir).as_posix() not in known
         )
         if stray:
             log.warning(
@@ -347,7 +347,7 @@ class PlatformCrawler:
         written.append((tmp, path))
         pq.write_table(table, tmp, compression="zstd")
         return {
-            "file": str(path.relative_to(self.data_dir)),
+            "file": path.relative_to(self.data_dir).as_posix(),
             "patch": patch,
             "version": version,
             "games": len(games),
