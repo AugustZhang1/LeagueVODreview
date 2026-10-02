@@ -21,3 +21,5 @@ export type TeamState = S["TeamState"];
 export type GradeCounts = S["GradeCounts"];
 export type Role = S["Player"]["role"];
 export type Side = S["Player"]["team"];
+export type ReplayStatus = S["ReplayStatus"];
+export type ReplaySeekResult = S["ReplaySeekResult"];

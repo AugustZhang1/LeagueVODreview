@@ -50,3 +50,18 @@ export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> 
   if (!res.ok) throw await parseError(res);
   return (await res.json()) as T;
 }
+
+export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(path, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError("network_error", "Can't reach the app's server.", 0);
+  }
+  if (!res.ok) throw await parseError(res);
+  return (await res.json()) as T;
+}

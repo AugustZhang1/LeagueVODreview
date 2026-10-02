@@ -8,6 +8,7 @@ import type {
   TeamState,
 } from "../../../api/models";
 import { formatGold, formatGoldDelta, formatTime } from "../../../lib/format";
+import { respawnAt } from "./minimapModel";
 
 const ROLE_ORDER: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 const roleRank = (r: Role) => ROLE_ORDER.indexOf(r);
@@ -49,13 +50,13 @@ function formatRespawn(seconds: number): string {
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export function buildRow(player: Player, state: PlayerState): Row {
-  const dead = state.respawn_in_s > 0;
+export function buildRow(player: Player, state: PlayerState, left = state.respawn_in_s): Row {
+  const dead = left > 0;
   return {
     player,
     state,
     dead,
-    deadText: dead ? `dead ${formatRespawn(state.respawn_in_s)}` : null,
+    deadText: dead ? `dead ${formatRespawn(left)}` : null,
     gold: formatGold(state.gold),
     slots: [...state.items.slice(0, 6), state.trinket],
   };
@@ -77,15 +78,18 @@ export function buildHeader(team: Side, ts: TeamState, other: TeamState): TeamHe
   };
 }
 
-/** Ally team first, then enemy, each in role order. */
-export function buildScoreboard(review: Review, snapshot: Snapshot): TeamBlock[] {
+/** Ally team first, then enemy, each in role order. Death timers count down with `t`. */
+export function buildScoreboard(review: Review, snapshot: Snapshot, t = snapshot.t): TeamBlock[] {
   const states = new Map(snapshot.players.map((s) => [s.participant_id, s]));
   const { ally, enemy } = snapshot.teams;
   return (["ally", "enemy"] as const).map((team) => {
     const rows = review.players
       .filter((p) => p.team === team && states.has(p.participant_id))
       .sort((a, b) => roleRank(a.role) - roleRank(b.role))
-      .map((p) => buildRow(p, states.get(p.participant_id)!));
+      .map((p) => {
+        const state = states.get(p.participant_id)!;
+        return buildRow(p, state, respawnAt(state, t, snapshot));
+      });
     return {
       header: buildHeader(team, team === "ally" ? ally : enemy, team === "ally" ? enemy : ally),
       rows,

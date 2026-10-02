@@ -3,6 +3,7 @@ import openapi from "../../openapi.json";
 import { formatTime } from "../lib/format";
 import healthJson from "./health.json";
 import modelJson from "./model.json";
+import reviewFixture from "./review.fixture.json";
 import { makeReview } from "./makeReview";
 import playerJson from "./player.json";
 import { validate } from "./schemaCheck";
@@ -15,6 +16,7 @@ describe("mocks match the API schema", () => {
   it("player", () => expect(check(playerJson, "PlayerGames")).toEqual([]));
   it("model", () => expect(check(modelJson, "ModelMetrics")).toEqual([]));
   it("review", () => expect(check(makeReview(), "Review")).toEqual([]));
+  it("backend-made review fixture", () => expect(check(reviewFixture, "Review")).toEqual([]));
   it("the checker catches mistakes", () => {
     expect(
       check({ riot_key: "nope", model: { kind: "trained", version: "1" } }, "Health"),

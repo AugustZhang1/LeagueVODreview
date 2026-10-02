@@ -70,4 +70,20 @@ describe("rows", () => {
     expect(row.dead).toBe(true);
     expect(row.deadText).toBe("dead 0:12");
   });
+
+  it("counts the timer down between snapshots and never below zero", () => {
+    const state = { ...snap.players[0], respawn_in_s: 10 };
+    const s = { ...snap, players: [state, ...snap.players.slice(1)] };
+    const text = (t: number) => {
+      const [ally, enemy] = buildScoreboard(review, s, t);
+      return [...ally.rows, ...enemy.rows].find(
+        (r) => r.player.participant_id === state.participant_id,
+      )!;
+    };
+    expect(text(s.t).deadText).toBe("dead 0:10");
+    expect(text(s.t + 8).deadText).toBe("dead 0:02");
+    const done = text(s.t + 12);
+    expect(done.dead).toBe(false);
+    expect(done.deadText).toBeNull();
+  });
 });
