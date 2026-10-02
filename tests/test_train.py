@@ -110,3 +110,14 @@ def test_gold_diff_monotone(run):
         if prev is not None:
             assert (pred >= prev - 1e-9).all()
         prev = pred
+
+
+def test_retrain_without_isotonic_removes_old_file(tmp_path):
+    data, out = tmp_path / "data", tmp_path / "out"
+    synth.make_dataset(data, games=300, seed=5)
+    args = ["--data", str(data), "--out", str(out), "--patches", "26.18,26.19"]
+    train.main([*args, "--isotonic"])
+    assert (out / "isotonic.json").exists()
+    metrics = train.main(args)
+    assert not (out / "isotonic.json").exists()
+    assert metrics["isotonic"] is False
