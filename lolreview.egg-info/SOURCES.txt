@@ -1,8 +1,0 @@
-README.md
-pyproject.toml
-lolreview/__init__.py
-lolreview.egg-info/PKG-INFO
-lolreview.egg-info/SOURCES.txt
-lolreview.egg-info/dependency_links.txt
-lolreview.egg-info/requires.txt
-lolreview.egg-info/top_level.txt
