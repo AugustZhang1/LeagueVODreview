@@ -24,9 +24,6 @@ class FakeModel:
         self.metrics = {"auc": 0.8, "patches": ["26.19"]}
         self.changed = False
 
-    def models_changed(self):
-        return self.changed
-
 
 def minimal_review(match_id, p, tier, model, tier_note):
     return Review.model_validate(
@@ -109,6 +106,7 @@ def env(tmp_path, monkeypatch):
 
     monkeypatch.setattr(api, "_load_model", lambda models_dir: model)
     monkeypatch.setattr(api, "_build_review", fake_build)
+    monkeypatch.setattr(api, "_models_changed", lambda models_dir, current: current.changed)
     monkeypatch.setattr(api, "read_env", lambda: {"RIOT_API_KEY": SECRET})
 
     class Env:

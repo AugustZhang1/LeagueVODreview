@@ -83,16 +83,10 @@ def _load_model(models_dir: Path):
     return model.load_model(models_dir)
 
 
-def _models_changed(current) -> bool:
-    fn = getattr(current, "models_changed", None)
-    if fn is None:
-        from lolreview import model
+def _models_changed(models_dir: Path, current) -> bool:
+    from lolreview import model
 
-        fn = model.models_changed
-    try:
-        return bool(fn())
-    except TypeError:
-        return bool(fn(current))
+    return model.models_changed(models_dir, current)
 
 
 def _build_review(
@@ -155,7 +149,7 @@ class _Context:
 
     def model(self):
         with self._model_lock:
-            if self._model is None or _models_changed(self._model):
+            if self._model is None or _models_changed(self.models_dir, self._model):
                 self._model = _load_model(self.models_dir)
             return self._model
 
