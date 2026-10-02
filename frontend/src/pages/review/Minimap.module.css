@@ -1,0 +1,39 @@
+.wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.canvas {
+  display: block;
+}
+
+.tip {
+  position: absolute;
+  z-index: 2;
+  min-width: 150px;
+  padding: 6px var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.champ {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.riotId {
+  color: var(--text-2);
+}
+
+.line {
+  color: var(--text-2);
+  white-space: pre;
+}
