@@ -33,7 +33,8 @@ Regenerate the synthetic games with `.venv/bin/python tests/fixtures/make_synthe
    through moments, Shift + ← → move 15 s, Home / End, Space plays, `O` opens the replay.
 
 Demo mode (`--demo` or `LOLREVIEW_DEMO=1`) needs no key and no network: it serves the synthetic
-games for `Me#NA1` on `na1`, so search for `Me#NA1` to try the app.
+games for `Me#NA1` on `na1`, so search for `Me#NA1` to try the app. It keeps its own cache
+(`cache-demo.db`), so made-up games never mix with real ones.
 
 **Open replay** jumps the League client's replay to 5 s before the selected time. Set
 `EnableReplayApi=1` under `[General]` in the client's `game.cfg`, open the game's replay, and the
