@@ -10,6 +10,10 @@ from lolreview.cache import Cache
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     monkeypatch.setattr(api, "read_env", lambda: {})
+    # No trained model, even when models/ on this machine has one
+    load, changed = api._load_model, api._models_changed
+    monkeypatch.setattr(api, "_load_model", lambda _: load(tmp_path / "models"))
+    monkeypatch.setattr(api, "_models_changed", lambda _, cur: changed(tmp_path / "models", cur))
     app = api.create_app(demo=True, cache=Cache(tmp_path / "c.db"))
     return TestClient(app, raise_server_exceptions=False)
 

@@ -4,10 +4,10 @@ models_dir = "models"
 cache_db = "cache.db"
 
 [crawl]
-platforms = ["na1", "euw1", "kr"]
+platforms = ["na1", "euw1", "kr", "vn2"]  # one per regional cluster: each has its own rate limit
 tiers = ["CHALLENGER", "GRANDMASTER", "MASTER", "DIAMOND", "EMERALD", "PLATINUM", "GOLD", "SILVER"]
 bottom_tier = "SILVER"
-games_per_tier_per_pass = 20000
+games_per_tier_per_pass = 2500  # per platform; small so every tier, Gold included, comes up within a day
 batch_games = 500
 patches_kept = 3
 queue = 420
