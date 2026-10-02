@@ -22,3 +22,16 @@ uv pip install -p .venv -e ".[dev]"
 ```
 
 Regenerate the synthetic games with `.venv/bin/python tests/fixtures/make_synthetic.py` and the API schema with `.venv/bin/python scripts/export_openapi.py`.
+
+## Frontend
+
+```
+cd frontend
+npm ci
+npm run dev:mock    # UI on mock data, no backend; add ?mock=key_expired, rate_limited, unavailable or empty
+npm run dev         # UI on :5173, proxies /api to the backend on :8000
+npm run lint && npm run typecheck && npm run test && npm run build
+npm run gen:api     # regenerate src/api/types.ts from openapi.json
+```
+
+In a dev build, `/dev/components` shows every shared component on the real tokens.

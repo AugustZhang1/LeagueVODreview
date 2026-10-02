@@ -1,0 +1,324 @@
+{
+  "trained_at": "2026-10-01T09:30:00Z",
+  "games": 412000,
+  "rows": 9180000,
+  "patches": ["26.18", "26.19"],
+  "features_version": "1",
+  "features": [
+    "gold_diff",
+    "level_diff_avg",
+    "kill_diff",
+    "towers_diff",
+    "dragon_diff",
+    "game_time",
+    "baron_buff_ally",
+    "inhibitors_down_diff",
+    "jungle_cs_diff",
+    "alive_diff",
+    "item_gold_diff_mid",
+    "grubs_diff",
+    "heralds_diff",
+    "soul_ally",
+    "cs_diff",
+    "elder_buff"
+  ],
+  "by_minute": [
+    {
+      "minute": 5,
+      "lightgbm": {
+        "accuracy": 0.58,
+        "log_loss": 0.588,
+        "brier": 0.213
+      },
+      "baseline": {
+        "accuracy": 0.515,
+        "log_loss": 0.661,
+        "brier": 0.238
+      }
+    },
+    {
+      "minute": 10,
+      "lightgbm": {
+        "accuracy": 0.622,
+        "log_loss": 0.52,
+        "brier": 0.188
+      },
+      "baseline": {
+        "accuracy": 0.528,
+        "log_loss": 0.639,
+        "brier": 0.229
+      }
+    },
+    {
+      "minute": 15,
+      "lightgbm": {
+        "accuracy": 0.651,
+        "log_loss": 0.476,
+        "brier": 0.172
+      },
+      "baseline": {
+        "accuracy": 0.537,
+        "log_loss": 0.622,
+        "brier": 0.222
+      }
+    },
+    {
+      "minute": 20,
+      "lightgbm": {
+        "accuracy": 0.672,
+        "log_loss": 0.447,
+        "brier": 0.161
+      },
+      "baseline": {
+        "accuracy": 0.544,
+        "log_loss": 0.61,
+        "brier": 0.216
+      }
+    },
+    {
+      "minute": 25,
+      "lightgbm": {
+        "accuracy": 0.686,
+        "log_loss": 0.427,
+        "brier": 0.154
+      },
+      "baseline": {
+        "accuracy": 0.55,
+        "log_loss": 0.6,
+        "brier": 0.212
+      }
+    },
+    {
+      "minute": 30,
+      "lightgbm": {
+        "accuracy": 0.697,
+        "log_loss": 0.415,
+        "brier": 0.149
+      },
+      "baseline": {
+        "accuracy": 0.554,
+        "log_loss": 0.593,
+        "brier": 0.209
+      }
+    },
+    {
+      "minute": 35,
+      "lightgbm": {
+        "accuracy": 0.704,
+        "log_loss": 0.406,
+        "brier": 0.146
+      },
+      "baseline": {
+        "accuracy": 0.558,
+        "log_loss": 0.587,
+        "brier": 0.207
+      }
+    },
+    {
+      "minute": 40,
+      "lightgbm": {
+        "accuracy": 0.709,
+        "log_loss": 0.401,
+        "brier": 0.144
+      },
+      "baseline": {
+        "accuracy": 0.561,
+        "log_loss": 0.583,
+        "brier": 0.205
+      }
+    }
+  ],
+  "calibration": [
+    {
+      "bin_low": 0.0,
+      "bin_high": 0.1,
+      "predicted": 0.05,
+      "actual": 0.05,
+      "count": 47008
+    },
+    {
+      "bin_low": 0.1,
+      "bin_high": 0.2,
+      "predicted": 0.15,
+      "actual": 0.189,
+      "count": 55922
+    },
+    {
+      "bin_low": 0.2,
+      "bin_high": 0.3,
+      "predicted": 0.25,
+      "actual": 0.271,
+      "count": 63414
+    },
+    {
+      "bin_low": 0.3,
+      "bin_high": 0.4,
+      "predicted": 0.35,
+      "actual": 0.322,
+      "count": 68814
+    },
+    {
+      "bin_low": 0.4,
+      "bin_high": 0.5,
+      "predicted": 0.45,
+      "actual": 0.415,
+      "count": 71640
+    },
+    {
+      "bin_low": 0.5,
+      "bin_high": 0.6,
+      "predicted": 0.55,
+      "actual": 0.559,
+      "count": 71640
+    },
+    {
+      "bin_low": 0.6,
+      "bin_high": 0.7,
+      "predicted": 0.65,
+      "actual": 0.69,
+      "count": 68814
+    },
+    {
+      "bin_low": 0.7,
+      "bin_high": 0.8,
+      "predicted": 0.75,
+      "actual": 0.763,
+      "count": 63414
+    },
+    {
+      "bin_low": 0.8,
+      "bin_high": 0.9,
+      "predicted": 0.85,
+      "actual": 0.817,
+      "count": 55922
+    },
+    {
+      "bin_low": 0.9,
+      "bin_high": 1.0,
+      "predicted": 0.95,
+      "actual": 0.92,
+      "count": 47008
+    }
+  ],
+  "by_tier": [
+    {
+      "tier": "CHALLENGER",
+      "games": 3100,
+      "accuracy": 0.742,
+      "log_loss": 0.498
+    },
+    {
+      "tier": "GRANDMASTER",
+      "games": 5200,
+      "accuracy": 0.738,
+      "log_loss": 0.503
+    },
+    {
+      "tier": "MASTER",
+      "games": 9800,
+      "accuracy": 0.731,
+      "log_loss": 0.509
+    },
+    {
+      "tier": "DIAMOND",
+      "games": 61000,
+      "accuracy": 0.724,
+      "log_loss": 0.514
+    },
+    {
+      "tier": "EMERALD",
+      "games": 94000,
+      "accuracy": 0.718,
+      "log_loss": 0.519
+    },
+    {
+      "tier": "PLATINUM",
+      "games": 102000,
+      "accuracy": 0.712,
+      "log_loss": 0.524
+    },
+    {
+      "tier": "GOLD",
+      "games": 86000,
+      "accuracy": 0.708,
+      "log_loss": 0.527
+    },
+    {
+      "tier": "SILVER",
+      "games": 50900,
+      "accuracy": 0.703,
+      "log_loss": 0.531
+    }
+  ],
+  "importance": [
+    {
+      "feature": "gold_diff",
+      "gain": 0.31
+    },
+    {
+      "feature": "level_diff_avg",
+      "gain": 0.12
+    },
+    {
+      "feature": "kill_diff",
+      "gain": 0.09
+    },
+    {
+      "feature": "towers_diff",
+      "gain": 0.08
+    },
+    {
+      "feature": "dragon_diff",
+      "gain": 0.06
+    },
+    {
+      "feature": "game_time",
+      "gain": 0.055
+    },
+    {
+      "feature": "baron_buff_ally",
+      "gain": 0.04
+    },
+    {
+      "feature": "inhibitors_down_diff",
+      "gain": 0.035
+    },
+    {
+      "feature": "jungle_cs_diff",
+      "gain": 0.03
+    },
+    {
+      "feature": "alive_diff",
+      "gain": 0.028
+    },
+    {
+      "feature": "item_gold_diff_mid",
+      "gain": 0.022
+    },
+    {
+      "feature": "grubs_diff",
+      "gain": 0.02
+    },
+    {
+      "feature": "heralds_diff",
+      "gain": 0.015
+    },
+    {
+      "feature": "soul_ally",
+      "gain": 0.012
+    },
+    {
+      "feature": "cs_diff",
+      "gain": 0.011
+    },
+    {
+      "feature": "elder_buff",
+      "gain": 0.006
+    }
+  ],
+  "summary": {
+    "accuracy_at_10": 0.72,
+    "log_loss": 0.512,
+    "baseline_log_loss": 0.548
+  }
+}

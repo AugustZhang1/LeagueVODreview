@@ -1,0 +1,16 @@
+.delta {
+  display: inline-block;
+  text-align: right;
+}
+
+.up {
+  color: var(--ally);
+}
+
+.down {
+  color: var(--enemy);
+}
+
+.muted {
+  color: var(--text-3);
+}
