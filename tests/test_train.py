@@ -47,7 +47,8 @@ def test_metrics_keys(run):
                 "models", "calibration", "max_calibration_gap_pts", "feature_importance",
                 "isotonic", "weighting"]:  # fmt: skip
         assert key in m, key
-    assert m["features"] == train.FEATURE_COLUMNS
+    kept = m["champion_columns"]["used"]
+    assert m["features"] == (train.FEATURE_COLUMNS if kept else train.V2_COLUMNS)
     assert m["patches"] == ["26.18", "26.19"]
     assert m["isotonic"] is True and m["weighting"] == "none"
     assert set(m["split"]) == {"train", "validation", "test"}
@@ -115,6 +116,8 @@ def test_every_setting_monotone(tmp_path):
     synth.make_dataset(data, games=300, seed=4)
     df = train.load_data(data, [], 0, None, 42)
     tr, va, _ = train.split_by_match(df, 42)
+    table = train.champion_table(tr)
+    tr, va = (train.add_champion_features(d, table) for d in (tr, va))
     for setting in train.PARAM_GRID:
         assert_monotone(train.fit_lightgbm(tr, va, train.FEATURE_COLUMNS, "none", 42, setting),
                         train.FEATURE_COLUMNS)  # fmt: skip
@@ -148,11 +151,14 @@ def test_version_picked(tmp_path, monkeypatch):
     assert "alive_diff" not in v1.columns
 
 
-def test_version_2_compared_with_version_1(run):
+def test_newest_version_compared_with_older_ones(run):
     _, out, m = run
-    assert m["features_version"] == 2 and m["features"] == train.FEATURE_COLUMNS
+    assert m["features_version"] == 3
+    cc = m["champion_columns"]
+    assert cc["used"] == (cc["val_log_loss_with"] < cc["val_log_loss_without"])
     c = m["feature_set_comparison"]
-    assert set(c["v1"]) == set(c["new"]) == {"accuracy", "log_loss", "brier"}
+    assert set(c["v1"]) == set(c["v2"]) == set(c["new"]) == {"accuracy", "log_loss", "brier"}
+    assert {"v1_log_loss", "v2_log_loss", "log_loss"} <= set(c["by_minute"][0])
     assert [r["bucket"] for r in c["by_minute"]] == [
         r["bucket"] for r in m["models"]["lightgbm"]["by_minute"]
     ]
@@ -160,6 +166,7 @@ def test_version_2_compared_with_version_1(run):
     assert names and set(names) <= {name for name, _ in train.SITUATIONS}
     assert all(r["rows"] > 0 and r["games"] > 0 for r in c["situations"])
     assert {r["feature"] for r in m["feature_effects"]} <= set(train.EFFECT_FEATURES)
+    assert {"champ_wr_diff", "scaling_diff"} <= {r["feature"] for r in m["feature_effects"]}
     assert all(r["size_pts"] >= abs(r["effect_pts"]) for r in m["feature_effects"])
     assert len(m["tuning"]) == len(train.PARAM_GRID)
     kept = [r for r in m["tuning"] if r["kept"]]
@@ -167,12 +174,56 @@ def test_version_2_compared_with_version_1(run):
     assert kept[0]["val_log_loss"] == min(r["val_log_loss"] for r in m["tuning"])
     report = (out / "report.md").read_text()
     for heading in (
-        "## Features version 2 against version 1",
+        "## Features version 3 against older versions",
         "### Situations",
-        "## What positions and vision are worth",
+        "## Champions",
+        "## What the newer features are worth",
         "## LightGBM settings tried",
     ):
         assert heading in report  # fmt: skip
+
+
+def test_champion_table(run):
+    data, out, m = run
+    table = json.loads((out / "champions.json").read_text())
+    assert set(table) <= set(synth.CHAMPIONS) and len(table) > 30
+    assert all(0 < v["win_rate"] < 1 and v["games"] > 0 for v in table.values())
+    ch = m["champions"]
+    assert ch["champions"] == len(table)
+    ups = [r["per_10_min_pts"] for r in ch["scale_up"]]
+    assert ups == sorted(ups, reverse=True)
+
+
+def test_champion_numbers_find_scaling():
+    # Hand-made games: Late wins long games and loses short ones, Early the opposite
+    games = []
+    for i in range(400):
+        long = i % 2 == 0
+        late_blue = i % 4 < 2
+        blue_won = int(long == late_blue)
+        blue, red = ("Late,A", "Early,B") if late_blue else ("Early,A", "Late,B")
+        games.append({"match_id": f"g{i}", "blue_champs": blue, "red_champs": red,
+                      "blue_won": blue_won, "duration_s": 2400 if long else 1200})  # fmt: skip
+    df = pd.DataFrame(games)
+    table = train.champion_table(df)
+    assert table["Late"]["slope"] > 0 > table["Early"]["slope"]
+    assert table["A"]["slope"] == pytest.approx(0, abs=1e-9)
+    assert table["Late"]["win_rate"] == pytest.approx(0.5)
+    f = train.add_champion_features(df, table)
+    late_blue = df["blue_champs"].str.startswith("Late")
+    assert (f.loc[late_blue, "scaling_diff"] > 0).all()
+    assert (f.loc[~late_blue, "scaling_diff"] < 0).all()
+
+
+def test_out_of_fold_champion_numbers(run):
+    data, _, _ = run
+    df = train.load_data(data, [], 0, None, 42)
+    tr, _, _ = train.split_by_match(df, 42)
+    oof = train.add_champion_features_oof(tr)
+    assert oof.index.equals(tr.index)
+    assert oof["champ_wr_diff"].notna().all()
+    one_game = oof.groupby("match_id")["scaling_diff"].nunique()
+    assert (one_game == 1).all()
 
 
 def test_version_1_training(tmp_path):

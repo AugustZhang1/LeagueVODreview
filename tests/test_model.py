@@ -28,10 +28,16 @@ train = _load("train")
 synth = _load("make_synthetic_dataset")
 
 
+MODEL_COLUMNS = features.FEATURE_COLUMNS + features.CHAMPION_FEATURES
+MODEL_FILES = ("model.txt", "metrics.json", "champions.json")
+
+
 def test_train_matches_features():
-    assert train.FEATURE_COLUMNS == features.FEATURE_COLUMNS
+    assert train.FEATURE_COLUMNS == MODEL_COLUMNS
+    assert train.V2_COLUMNS == features.FEATURE_COLUMNS
     assert train.V1_COLUMNS == features.V1_COLUMNS
-    assert train.COLUMNS_BY_VERSION[features.FEATURES_VERSION] == features.FEATURE_COLUMNS
+    assert train.CHAMPION_FEATURES == features.CHAMPION_FEATURES
+    assert train.COLUMNS_BY_VERSION[features.FEATURES_VERSION] == MODEL_COLUMNS
     assert train.CATEGORICAL == features.CATEGORICAL_COLUMNS
     assert train.MONOTONE == features.MONOTONE
     assert train.SOUL_TYPES == features.SOUL_TYPES
@@ -39,7 +45,7 @@ def test_train_matches_features():
 
 def _row(**kw):
     row = {c: 0 for c in features.FEATURE_COLUMNS}
-    row.update(tier=3, minute=15.0, soul_type="none")
+    row.update(tier=3, minute=15.0, soul_type="none", blue_champs="", red_champs="")
     row.update(kw)
     return row
 
@@ -111,20 +117,48 @@ def test_trained_round_trip(trained):
     assert model.kind == "trained"
     assert len(model.version) == 8 and model.version != "stub"
     assert model.patches == ["26.18", "26.19"]
-    assert model.trained_at and model.metrics["features"] == features.FEATURE_COLUMNS
+    assert model.trained_at and model.metrics["features"] == model.columns
+    assert model.columns in (MODEL_COLUMNS, features.FEATURE_COLUMNS)
 
-    df = pd.concat([pd.read_parquet(p) for p in sorted(data.rglob("*.parquet"))])
-    df = df[df["patch"].astype(str).isin(["26.18", "26.19"])].sample(40, random_state=1)
-    rows = [{c: (str(r[c]) if c == "soul_type" else r[c]) for c in features.FEATURE_COLUMNS}
-            for r in df.to_dict("records")]  # fmt: skip
-    frame = df[features.FEATURE_COLUMNS].copy()
-    frame["soul_type"] = pd.Categorical(frame["soul_type"].astype(str), categories=train.SOUL_TYPES)
+    rows, frame = _sample(data, out / "champions.json")
+    frame = frame[model.columns]
     booster = lgb.Booster(model_file=str(out / "model.txt"))
     expected = booster.predict(frame)
     iso = json.loads((out / "isotonic.json").read_text())
     expected = np.interp(expected, iso["x"], iso["y"])
     np.testing.assert_allclose(model.predict(rows), expected, atol=1e-9)
     assert model.predict([]) == []
+
+
+def _sample(data: Path, champions: Path, n: int = 40):
+    """Feature rows as the app builds them, and the same rows with train.py's champion columns."""
+    df = pd.concat([pd.read_parquet(p) for p in sorted(data.rglob("*.parquet"))])
+    df = df[df["patch"].astype(str).isin(["26.18", "26.19"])].sample(n, random_state=1)
+    strings = ("soul_type", "match_id", "blue_champs", "red_champs")
+    df = df.assign(**{c: df[c].astype(str) for c in strings})
+    rows = [{c: r[c] for c in features.FEATURE_COLUMNS + ["blue_champs", "red_champs"]}
+            for r in df.to_dict("records")]  # fmt: skip
+    frame = train.add_champion_features(df, json.loads(champions.read_text()))[MODEL_COLUMNS]
+    frame["soul_type"] = pd.Categorical(frame["soul_type"], categories=train.SOUL_TYPES)
+    return rows, frame
+
+
+def test_app_champion_columns_match_train(trained, tmp_path):
+    # A model on the champion columns: the app (features.champion_features) must give it the
+    # same inputs as train.py (add_champion_features)
+    data, out = trained
+    df = train.load_data(data, ["26.18", "26.19"], 0, None, 42)
+    tr, va, _ = train.split_by_match(df, 42)
+    table = train.champion_table(tr)
+    tr, va = (train.add_champion_features(d, table) for d in (tr, va))
+    booster = train.fit_lightgbm(tr, va, MODEL_COLUMNS, "none", 42, train.PARAM_GRID[0])
+    booster.save_model(str(tmp_path / "model.txt"))
+    (tmp_path / "champions.json").write_text(json.dumps(table))
+    model = load_model(tmp_path)
+    assert model.uses_champions and model.columns == MODEL_COLUMNS
+    rows, frame = _sample(data, tmp_path / "champions.json")
+    assert frame["scaling_diff"].abs().sum() > 0
+    np.testing.assert_allclose(model.predict(rows), booster.predict(frame), atol=1e-9)
 
 
 def test_feature_mismatch_raises(trained, tmp_path):
@@ -134,6 +168,28 @@ def test_feature_mismatch_raises(trained, tmp_path):
     (tmp_path / "model.txt").write_bytes(text.replace(b"gold_diff", b"gold_dif2", 1))
     with pytest.raises(FeatureMismatch, match="trained on features"):
         load_model(tmp_path)
+
+
+def test_champion_model_needs_its_table(trained, tmp_path):
+    data, _ = trained
+    df = train.load_data(data, [], 0, None, 42)
+    tr, va, _ = train.split_by_match(df, 42)
+    table = train.champion_table(tr)
+    tr, va = (train.add_champion_features(d, table) for d in (tr, va))
+    train.fit_lightgbm(tr, va, MODEL_COLUMNS, "none", 42, train.PARAM_GRID[0]).save_model(
+        str(tmp_path / "model.txt")
+    )
+    with pytest.raises(FeatureMismatch, match="champions.json"):
+        load_model(tmp_path)
+
+
+def test_champion_features_from_table():
+    table = {"Belveth": {"win_rate": 0.52, "slope": 0.003},
+             "Ahri": {"win_rate": 0.49, "slope": -0.001}}  # fmt: skip
+    f = features.champion_features("Ahri,Belveth,Unknown", "Ahri", table)
+    assert f["champ_wr_diff"] == pytest.approx(0.02)
+    assert f["scaling_diff"] == pytest.approx(0.003)
+    assert features.champion_features("", "", table) == {"champ_wr_diff": 0, "scaling_diff": 0}
 
 
 def test_version_1_model_reads_version_2_rows(tmp_path, load_game):
@@ -153,12 +209,15 @@ def test_version_1_model_reads_version_2_rows(tmp_path, load_game):
 
 def test_models_changed(trained, tmp_path):
     _, out = trained
-    for name in ("model.txt", "metrics.json"):
+    for name in MODEL_FILES:
         (tmp_path / name).write_bytes((out / name).read_bytes())
     model = load_model(tmp_path)
     assert not models_changed(tmp_path, model)
     (tmp_path / "isotonic.json").write_text('{"x": [0, 1], "y": [0, 1]}')
     assert models_changed(tmp_path, model)
+    model = load_model(tmp_path)
+    (tmp_path / "champions.json").write_text('{"Ahri": {"games": 1, "win_rate": 0.6, "slope": 0}}')
+    assert models_changed(tmp_path, model) and load_model(tmp_path).version != model.version
     stub = load_model(tmp_path / "nothing")
     assert not models_changed(tmp_path / "nothing", stub)
     assert models_changed(tmp_path, stub)
@@ -166,7 +225,7 @@ def test_models_changed(trained, tmp_path):
 
 def test_stray_isotonic_ignored_when_metrics_say_false(trained, tmp_path):
     _, out = trained
-    for name in ("model.txt", "isotonic.json"):
+    for name in ("model.txt", "isotonic.json", "champions.json"):
         (tmp_path / name).write_bytes((out / name).read_bytes())
     metrics = json.loads((out / "metrics.json").read_text())
     (tmp_path / "metrics.json").write_text(json.dumps({**metrics, "isotonic": False}))
@@ -179,7 +238,7 @@ def test_stray_isotonic_ignored_when_metrics_say_false(trained, tmp_path):
 
 def test_version_changes_with_isotonic_file(trained, tmp_path):
     _, out = trained
-    for name in ("model.txt", "isotonic.json", "metrics.json"):
+    for name in (*MODEL_FILES, "isotonic.json"):
         (tmp_path / name).write_bytes((out / name).read_bytes())
     before = load_model(tmp_path).version
     (tmp_path / "isotonic.json").write_text('{"x": [0, 1], "y": [0.1, 0.9]}')

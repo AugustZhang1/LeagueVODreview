@@ -34,7 +34,7 @@ from lolreview.constants import (
     TIER_INDEX,
 )
 
-FEATURES_VERSION = 2
+FEATURES_VERSION = 3
 
 V1_COLUMNS = [
     "tier",
@@ -71,11 +71,17 @@ FEATURE_COLUMNS = V1_COLUMNS + [
     "wards_placed_diff",
     "wards_killed_diff",
 ]
+# Version 3: each team's champions, as sorted comma-joined names (`blue_champs`, `red_champs`).
+# Training turns them into these model columns with a per-champion table (`champions.json`, from
+# the training games only), and the app does the same with that table (`champion_features`).
+CHAMPION_FEATURES = ["champ_wr_diff", "scaling_diff"]
 CATEGORICAL_COLUMNS = ["soul_type"]
 SOUL_TYPES = ["none", "Infernal", "Mountain", "Ocean", "Cloud", "Hextech", "Chemtech"]
-EXTRA_COLUMNS = ["match_id", "platform", "patch", "duration_s", "t", "blue_won"]
+EXTRA_COLUMNS = [
+    "match_id", "platform", "patch", "duration_s", "t", "blue_won", "blue_champs", "red_champs",
+]  # fmt: skip
 
-MONOTONE: dict[str, int] = {c: 0 for c in FEATURE_COLUMNS}
+MONOTONE: dict[str, int] = {c: 0 for c in FEATURE_COLUMNS + CHAMPION_FEATURES}
 MONOTONE.update(
     {
         c: 1
@@ -135,6 +141,7 @@ class PlayerState:
     quest_item: int | None = None  # boots in the slot the Bot Lane quest adds
     quest: int | None = None  # the item whose ITEM_DESTROYED marked the role quest done
     dead_until_ms: int = 0
+    champion: str = ""  # championName, e.g. "Belveth"; "" when unknown
 
 
 @dataclass
@@ -237,7 +244,9 @@ class _Walker:
             pid = p["participantId"]
             role = p.get("teamPosition") or p.get("individualPosition") or ""
             # Real games don't always log the starting Stealth Ward
-            self.players[pid] = PlayerState(pid, p["teamId"], role, trinket=3340)
+            self.players[pid] = PlayerState(
+                pid, p["teamId"], role, trinket=3340, champion=p.get("championName", "")
+            )
             final = [p.get(f"item{i}") for i in range(7)] + [p.get("roleBoundItem")]
             self.support_final[pid] = next((i for i in final if i in SUPPORT_FINAL), 3867)
             styles = p.get("perks", {}).get("styles", [])
@@ -629,7 +638,51 @@ def feature_row(state: GameState, tier: str | int) -> dict:
         "soul_diff": side(b.soul is not None, r.soul is not None),
         "soul_type": state.map_soul_type,
         **map_features(state),
+        "blue_champs": team_champions(state, BLUE),
+        "red_champs": team_champions(state, RED),
     }
+
+
+def team_champions(state: GameState, team: int) -> str:
+    return ",".join(sorted(p.champion for p in state.players.values() if p.team == team))
+
+
+def champion_features(blue_champs: str, red_champs: str, table: dict[str, dict]) -> dict:
+    """`CHAMPION_FEATURES` for one game, blue minus red, from train.py's `champions.json`:
+    the champions' win rates above 50% and how their win rates rise per minute of game length.
+    Champions missing from the table count as 0. train.py computes the same, vectorised."""
+
+    def total(champs: str, key: str, base: float) -> float:
+        return sum(table[c][key] - base for c in champs.split(",") if c in table)
+
+    return {
+        "champ_wr_diff": total(blue_champs, "win_rate", 0.5) - total(red_champs, "win_rate", 0.5),
+        "scaling_diff": total(blue_champs, "slope", 0.0) - total(red_champs, "slope", 0.0),
+    }
+
+
+def champions_from_timeline(timeline: dict) -> dict[int, str]:
+    """participantId -> championName, from kill events' damage lists (the most common name each
+    player gets there). In `victimDamageReceived` an entry's name is its participant's champion;
+    in `victimDamageDealt` it is the victim's, and the participant is whoever was hit. Right for
+    all 170 players of 17 real games checked; a player in no kill at all is left out."""
+    votes: dict[int, dict[str, int]] = {}
+
+    def vote(pid: int, name: str | None) -> None:
+        if 1 <= pid <= 10 and name:
+            names = votes.setdefault(pid, {})
+            names[name] = names.get(name, 0) + 1
+
+    for f in timeline["info"]["frames"]:
+        for e in f["events"]:
+            if e["type"] != "CHAMPION_KILL":
+                continue
+            for d in e.get("victimDamageReceived") or []:
+                if d.get("type") == "OTHER":
+                    vote(d.get("participantId", 0), d.get("name"))
+            for d in e.get("victimDamageDealt") or []:
+                vote(e.get("victimId", 0), d.get("name"))
+    return {pid: max(names, key=lambda n: (names[n], n)) for pid, names in votes.items()}
 
 
 def match_from_timeline(timeline: dict, patch: str) -> dict | None:
@@ -642,6 +695,7 @@ def match_from_timeline(timeline: dict, patch: str) -> dict | None:
         return None
     match_id = timeline["metadata"]["matchId"]
     winner = end.get("winningTeam")
+    champions = champions_from_timeline(timeline)
     return {
         "metadata": {"matchId": match_id},
         "info": {
@@ -653,6 +707,7 @@ def match_from_timeline(timeline: dict, patch: str) -> dict | None:
                 {
                     "participantId": p["participantId"],
                     "teamId": BLUE if p["participantId"] <= 5 else RED,
+                    "championName": champions.get(p["participantId"], ""),
                 }
                 for p in info["participants"]
             ],
@@ -696,7 +751,7 @@ def rows_to_table(rows: list[dict]):
     floats = {"minute", "gold_diff"}
     big = {"t"}
     strings = {"match_id"}
-    dicts = {"platform", "patch"}
+    dicts = {"platform", "patch", "blue_champs", "red_champs"}
     arrays = {}
     for col in FEATURE_COLUMNS + EXTRA_COLUMNS:
         values = [r[col] for r in rows]

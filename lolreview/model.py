@@ -10,9 +10,14 @@ from pathlib import Path
 import numpy as np
 
 from lolreview.constants import PRO_TIER_INDEX, TIER_INDEX
-from lolreview.features import FEATURE_COLUMNS, SOUL_TYPES
+from lolreview.features import (
+    CHAMPION_FEATURES,
+    FEATURE_COLUMNS,
+    SOUL_TYPES,
+    champion_features,
+)
 
-MODEL_FILES = ("model.txt", "isotonic.json", "metrics.json")
+MODEL_FILES = ("model.txt", "isotonic.json", "metrics.json", "champions.json")
 
 
 class FeatureMismatch(ValueError):
@@ -93,14 +98,14 @@ class PlaceholderModel(WinModel):
 class TrainedModel(WinModel):
     kind = "trained"
 
-    def __init__(self, models_dir: Path) -> None:
+    def __init__(self, models_dir: Path, champions: dict | None = None) -> None:
         import lightgbm as lgb
 
         path = models_dir / "model.txt"
         self.booster = lgb.Booster(model_file=str(path))
         # An older features version's model keeps working: it reads only the columns it knows
         self.columns = list(self.booster.feature_name())
-        unknown = [c for c in self.columns if c not in FEATURE_COLUMNS]
+        unknown = [c for c in self.columns if c not in FEATURE_COLUMNS + CHAMPION_FEATURES]
         if unknown:
             raise FeatureMismatch(
                 f"{path} was trained on features {self.columns}, but features.py has no "
@@ -114,6 +119,16 @@ class TrainedModel(WinModel):
             self.patches = self.metrics.get("patches")
         calibrated = self.metrics.get("isotonic", True) if metrics.exists() else True
         digest = hashlib.sha256(path.read_bytes())
+        # Per-champion table for the champion columns; rank models use their parent's
+        table = models_dir / "champions.json"
+        if champions is None and table.exists():
+            raw = table.read_bytes()
+            digest.update(raw)
+            champions = json.loads(raw)
+        self.champions: dict = champions or {}
+        self.uses_champions = any(c in CHAMPION_FEATURES for c in self.columns)
+        if self.uses_champions and not self.champions:
+            raise FeatureMismatch(f"{path} uses champion columns but champions.json is missing")
         self.iso: tuple[np.ndarray, np.ndarray] | None = None
         iso = models_dir / "isotonic.json"
         if calibrated and iso.exists():
@@ -127,11 +142,14 @@ class TrainedModel(WinModel):
             name = f.parent.name
             index = PRO_TIER_INDEX if name == "PRO" else TIER_INDEX.get(name)
             if index is not None:
-                self.by_tier[index] = TrainedModel(f.parent)
+                self.by_tier[index] = TrainedModel(f.parent, self.champions)
                 digest.update(f"{name}:{self.by_tier[index].version}".encode())
         self.version = digest.hexdigest()[:8]
 
     def _encode(self, row: dict) -> list[float]:
+        if self.uses_champions:
+            row = {**row, **champion_features(row["blue_champs"], row["red_champs"],
+                                              self.champions)}  # fmt: skip
         out = []
         for col in self.columns:
             v = row[col]

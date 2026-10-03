@@ -264,7 +264,7 @@ def test_extract_rows_shape(game):
 
 
 def test_monotone_covers_columns():
-    assert list(F.MONOTONE) == F.FEATURE_COLUMNS
+    assert list(F.MONOTONE) == F.FEATURE_COLUMNS + F.CHAMPION_FEATURES
     assert F.MONOTONE["red_dragons"] == -1 and F.MONOTONE["tier"] == 0
 
 
@@ -311,8 +311,10 @@ def test_rows_to_table(game):
     assert schema.field("tier").type == pa.int16()
     assert schema.field("red_dead_s").type == pa.int16()
     assert schema.field("baron_setup_diff").type == pa.int16()
-    for name in ("soul_type", "platform", "patch"):
+    for name in ("soul_type", "platform", "patch", "blue_champs", "red_champs"):
         assert pa.types.is_dictionary(schema.field(name).type)
+    champs = {p["championName"] for p in match["info"]["participants"] if p["teamId"] == BLUE}
+    assert table.column("blue_champs")[0].as_py() == ",".join(sorted(champs))
     assert table.column("soul_type").to_pylist() == [r["soul_type"] for r in rows]
     assert table.column("patch").to_pylist() == [r["patch"] for r in rows]
 
@@ -320,11 +322,30 @@ def test_rows_to_table(game):
 def test_rows_from_timeline_alone(game):
     match, timeline = game
     rebuilt = F.match_from_timeline(timeline, F.patch_of(match))
-    assert F.extract_rows(rebuilt, timeline, "GOLD") == F.extract_rows(match, timeline, "GOLD")
+    # Champions come from kill events, so a player in no kill (Yone in one real game) is unknown
+    found = {p["participantId"]: p["championName"] for p in rebuilt["info"]["participants"]}
+    expected = copy.deepcopy(match)
+    for p in expected["info"]["participants"]:
+        if p["championName"] != found[p["participantId"]]:
+            assert found[p["participantId"]] == "", p
+            p["championName"] = ""
+    assert sum(1 for name in found.values() if name) >= (9 if found else 0)
+    assert F.extract_rows(rebuilt, timeline, "GOLD") == F.extract_rows(expected, timeline, "GOLD")
     no_end = copy.deepcopy(timeline)
     for f in no_end["info"]["frames"]:
         f["events"] = [e for e in f["events"] if e["type"] != "GAME_END"]
     assert F.match_from_timeline(no_end, "26.19") is None
+
+
+def test_champions_from_timeline():
+    # In victimDamageDealt the name is the victim's champion and the participant the one it hit
+    dealt = [{"name": "Jinx", "participantId": 4, "type": "OTHER"}] * 3
+    received = [{"name": "Tristana", "participantId": 4, "type": "OTHER"},
+                {"name": "SRU_OrderMinionMelee", "participantId": 0, "type": "MINION"}]  # fmt: skip
+    kill = {"type": "CHAMPION_KILL", "timestamp": 1, "killerId": 4, "victimId": 9,
+            "victimDamageDealt": dealt, "victimDamageReceived": received}  # fmt: skip
+    timeline = {"info": {"frames": [{"timestamp": 0, "events": [kill]}]}}
+    assert F.champions_from_timeline(timeline) == {4: "Tristana", 9: "Jinx"}
 
 
 def monster(timeline, kind):

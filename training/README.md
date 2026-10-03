@@ -4,12 +4,13 @@
 It reads the crawler's Parquet folder (`<platform>/<patch>/v<N>/part-*.parquet`), splits by
 `match_id` 70/10/20, trains a logistic-regression baseline and a monotone LightGBM model, and
 writes `model.txt`, `metrics.json`, `calibration.png`, `accuracy_by_minute.png` and `report.md`
-(plus `isotonic.json` with `--isotonic`).
+(plus `isotonic.json` with `--isotonic`, and `champions.json` on version 3).
 
 It also trains one model per rank that has at least 1,000 training games and saves it to
 `tiers/<RANK>/` only if it beats the overall model on that rank's test games; the report's "Rank
-models" table shows the comparison for every rank. Copy the whole output, `tiers/` included, into
-`models/`: the app reviews a game with its rank's model when there is one, else the overall model.
+models" table shows the comparison for every rank. Copy the whole output, `tiers/` and
+`champions.json` included, into `models/` (delete `models/tiers/` first): the app reviews a game
+with its rank's model when there is one, else the overall model.
 
 ## Features versions
 
@@ -30,14 +31,31 @@ prints the games per version.
     and killed in the last 3 minutes (traps like Teemo's don't count; the timeline has no ward
     positions, so vision near a pit can't be told apart).
 
-A version 2 run also trains the same LightGBM on version 1's columns, on the same games, and the
-report shows both:
-- **Features version 2 against version 1:** log loss overall, by minute and in situations like
-  "Baron pit up, one team has more players near it" or "a team is split pushing". If version 2
-  isn't lower, the new features don't help yet.
-- **What positions and vision are worth:** for each position or vision feature, how much it moves
-  the win chance on the test rows where it isn't 0, for the team with more of it. It is what the
-  model learned, not proof of cause: teams that are ahead are also the ones that can stand at Baron.
+- **Version 3** adds each team's champions (`blue_champs`, `red_champs`: sorted names, read
+  from the kill events since the crawler only downloads timelines). Training turns them into two
+  columns with a per-champion table built on the training games only, saved as `champions.json`
+  (the app uses it the same way):
+  - `champ_wr_diff`: the sum of the team's champion win rates above 50%, blue minus red.
+  - `scaling_diff`: the sum of how much each champion's win rate rises per minute of game length
+    (a least-squares slope; Bel'Veth or Aurelion Sol should be positive), blue minus red. The
+    model combines it with the minute and the gold, so a lead means less against a team that
+    outscales.
+  - Both are shrunk toward 50% and 0 by games / (games + 600), so a rarely played champion doesn't
+    get extreme numbers from luck. Each training game gets its numbers from the other 4 folds'
+    games (out of fold), so its own result never feeds its own features.
+  - The two columns are kept only if they lower the validation log loss against the same model
+    without them; the report says which.
+
+A version 2 or 3 run also trains the same LightGBM on each older version's columns, on the same
+games, and the report shows them side by side:
+- **Features version N against older versions:** log loss overall, by minute and in situations
+  like "Baron pit up, one team has more players near it" or "a team is split pushing". If the
+  newest version isn't lower, its new features don't help yet.
+- **Champions** (version 3): the champions whose win rate rises and falls most with game length.
+- **What the newer features are worth:** for each position, vision or champion feature, how much
+  it moves the win chance on the test rows where it isn't 0, for the team with more of it. It is
+  what the model learned, not proof of cause: teams that are ahead are also the ones that can
+  stand at Baron.
 
 ## LightGBM settings
 
@@ -45,7 +63,7 @@ Each run tries the settings in `PARAM_GRID` with early stopping and keeps the on
 validation log loss (the first is the original: 31 leaves, 20 rows per leaf). A game's rows share
 one label, so larger leaves keep the model from learning a few games by heart, and the
 "intermediate" monotone method is less strict than "basic" while staying monotone. The rank models
-and the version 1 comparison use the kept setting. The report lists every setting tried;
+and the older-version comparison use the kept setting. The report lists every setting tried;
 `--no-tune` uses only the first.
 
 ## On Kaggle, through the API

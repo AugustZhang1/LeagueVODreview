@@ -172,6 +172,14 @@ def respawn_s(level: int, t_s: float) -> float:
     return BASE_RESPAWN[level - 1] * (1 + min(factor, r["scaling_max"]))
 
 
+def damage(name: str, pid: int) -> dict:
+    """One entry of a kill's victimDamageDealt / victimDamageReceived list."""
+    return {
+        "basic": True, "magicDamage": 0, "name": name, "participantId": pid,
+        "physicalDamage": 150, "spellName": "", "spellSlot": 0, "trueDamage": 0, "type": "OTHER",
+    }  # fmt: skip
+
+
 def clamp(v: float) -> int:
     return int(max(0, min(MAP_MAX, v)))
 
@@ -483,6 +491,10 @@ class Sim:
                 "killerId": killer.pid,
                 "position": pos,
                 "shutdownBounty": shutdown,
+                # Like Riot's: in "Dealt" the name is the victim's champion and the participant
+                # the one hit; in "Received" both are the attacker's
+                "victimDamageDealt": [damage(victim.champ_name, killer.pid)],
+                "victimDamageReceived": [damage(p.champ_name, p.pid) for p in [killer, *assists]],
                 "victimId": victim.pid,
             },
             ts,

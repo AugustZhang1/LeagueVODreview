@@ -38,12 +38,16 @@ V1_COLUMNS = [
     "grub_diff", "herald_diff", "quest_diff", "inhibs_down_diff", "baron_active",
     "elder_active", "blue_dragons", "red_dragons", "soul_diff", "soul_type",
 ]  # fmt: skip
-FEATURE_COLUMNS = V1_COLUMNS + [
+V2_COLUMNS = V1_COLUMNS + [
     "alive_diff", "blue_dead_s", "red_dead_s", "baron_pit_in_s", "dragon_pit_in_s",
     "baron_setup_diff", "dragon_setup_diff", "grouped_diff", "split_diff", "enemy_jungle_diff",
     "wards_placed_diff", "wards_killed_diff",
 ]  # fmt: skip
-COLUMNS_BY_VERSION = {1: V1_COLUMNS, 2: FEATURE_COLUMNS}
+# Version 3 rows add each team's champions (`blue_champs`, `red_champs`); these two columns come
+# from them and a per-champion table built on the training games (see `champion_table`)
+CHAMPION_FEATURES = ["champ_wr_diff", "scaling_diff"]
+FEATURE_COLUMNS = V2_COLUMNS + CHAMPION_FEATURES
+COLUMNS_BY_VERSION = {1: V1_COLUMNS, 2: V2_COLUMNS, 3: FEATURE_COLUMNS}
 CATEGORICAL = ["soul_type"]
 MONOTONE = {
     "tier": 0, "minute": 0, "gold_diff": 1, "kill_diff": 1, "tower_diff": 1, "level_diff": 1,
@@ -52,6 +56,7 @@ MONOTONE = {
     "soul_type": 0, "alive_diff": 1, "blue_dead_s": -1, "red_dead_s": 1, "baron_pit_in_s": 0,
     "dragon_pit_in_s": 0, "baron_setup_diff": 0, "dragon_setup_diff": 0, "grouped_diff": 0,
     "split_diff": 0, "enemy_jungle_diff": 0, "wards_placed_diff": 0, "wards_killed_diff": 0,
+    "champ_wr_diff": 0, "scaling_diff": 0,
 }  # fmt: skip
 SOUL_TYPES = ["none", "Infernal", "Mountain", "Ocean", "Cloud", "Hextech", "Chemtech"]
 
@@ -64,6 +69,9 @@ MINUTE_LABELS = ["0-5", "5-10", "10-15", "15-20", "20-25", "25-30", "30-35", "35
 CALIBRATION_MIN_COUNT = 20  # bins with fewer rows are listed but ignored for the max gap
 MIN_TIER_GAMES = 1000  # training games a rank needs before it gets its own model
 MIN_VERSION_GAMES = 10_000  # games a newer features version needs before it is used by default
+# A champion's win rate and scaling are shrunk toward 50% and 0 by games / (games + this), so a
+# champion with few games doesn't get extreme numbers from luck
+CHAMPION_PRIOR_GAMES = 600
 
 # LightGBM settings, each tried with early stopping; the best validation log loss is kept. The
 # first is the original setting. A game's rows share one label, so a bigger min_data_in_leaf stops
@@ -88,10 +96,10 @@ SITUATIONS = [
     ("A team is split pushing", lambda d: d["split_diff"] != 0),
     ("Someone is dead", lambda d: d["blue_dead_s"] + d["red_dead_s"] > 0),
 ]  # fmt: skip
-# Version 2 position and vision features whose effect on the win chance the report shows
+# Version 2 and 3 features whose effect on the win chance the report shows
 EFFECT_FEATURES = [
     "baron_setup_diff", "dragon_setup_diff", "split_diff", "grouped_diff", "enemy_jungle_diff",
-    "wards_placed_diff", "wards_killed_diff",
+    "wards_placed_diff", "wards_killed_diff", "champ_wr_diff", "scaling_diff",
 ]  # fmt: skip
 
 
@@ -148,12 +156,15 @@ def load_data(
     log(f"using features version {version}")
     df = pd.concat(by_version[version], ignore_index=True)
     df["features_version"] = version
-    for col in COLUMNS_BY_VERSION[version]:
+    for col in (c for c in COLUMNS_BY_VERSION[version] if c not in CHAMPION_FEATURES):
         if col not in df.columns:
             log(f"column {col} missing, filling with 0")
             df[col] = "none" if col == "soul_type" else 0
     df["soul_type"] = pd.Categorical(df["soul_type"].astype(str), categories=SOUL_TYPES)
     df["blue_won"] = df["blue_won"].astype(int)
+    if version >= 3:
+        for col in ("blue_champs", "red_champs"):
+            df[col] = df[col].astype(str)
     if max_rows and len(df) > max_rows:
         rng = np.random.default_rng(seed)
         ids = df["match_id"].unique()
@@ -176,6 +187,61 @@ def split_by_match(df: pd.DataFrame, seed: int):
     sets = [set(groups[i]) for i in (train_idx, val_idx, test)]
     assert not (sets[0] & sets[1] or sets[0] & sets[2] or sets[1] & sets[2]), "match in two splits"
     return df.iloc[train_idx], df.iloc[val_idx], df.iloc[test]
+
+
+def champion_table(df: pd.DataFrame) -> dict[str, dict]:
+    """Per champion, from the games in `df`: games, win rate (shrunk toward 50%) and `slope`, how
+    much its win rate rises per minute of game length (least squares, shrunk toward 0). Bel'Veth or
+    Aurelion Sol should get a positive slope, early-game champions a negative one."""
+    games = df.drop_duplicates("match_id")
+    minutes = games["duration_s"].to_numpy() / 60
+    sides = [
+        pd.DataFrame({"champ": games[col].str.split(","), "won": won, "minutes": minutes})
+        for col, won in (("blue_champs", games["blue_won"].to_numpy()),
+                         ("red_champs", 1 - games["blue_won"].to_numpy()))
+    ]  # fmt: skip
+    d = pd.concat(sides).explode("champ")
+    d = d[d["champ"] != ""]
+    g = d.groupby("champ")
+    n, wins = g.size(), g["won"].sum()
+    dw = d["won"] - d["champ"].map(wins / n)
+    dm = d["minutes"] - d["champ"].map(g["minutes"].mean())
+    var = (dm * dm).groupby(d["champ"]).sum()
+    slope = ((dw * dm).groupby(d["champ"]).sum() / var.where(var > 0)).fillna(0.0)
+    k = CHAMPION_PRIOR_GAMES
+    win_rate = (wins + 0.5 * k) / (n + k)
+    slope = slope * n / (n + k)
+    return {c: {"games": int(n[c]), "win_rate": float(win_rate[c]), "slope": float(slope[c])}
+            for c in sorted(n.index)}  # fmt: skip
+
+
+def add_champion_features(df: pd.DataFrame, table: dict[str, dict]) -> pd.DataFrame:
+    """`CHAMPION_FEATURES` from each team's champions: the sum of their win rates above 50% and of
+    their slopes, blue minus red. Same as `champion_features` in lolreview/features.py."""
+    games = df.drop_duplicates("match_id")
+
+    def total(col: str, value: dict[str, float]) -> np.ndarray:
+        return games[col].map(lambda s: sum(value.get(c, 0.0) for c in s.split(","))).to_numpy()
+
+    out = {}
+    for name, key, base in (("champ_wr_diff", "win_rate", 0.5), ("scaling_diff", "slope", 0.0)):
+        value = {c: v[key] - base for c, v in table.items()}
+        diff = total("blue_champs", value) - total("red_champs", value)
+        out[name] = pd.Series(diff, index=games["match_id"].to_numpy())
+    return df.assign(**{name: df["match_id"].map(v).astype(float) for name, v in out.items()})
+
+
+def add_champion_features_oof(train: pd.DataFrame, folds: int = 5, seed: int = 0) -> pd.DataFrame:
+    """`add_champion_features` for the training games, each fold's games with the table of the
+    other folds: a game's own result never feeds its own champion numbers, so they look as
+    trustworthy in training as they will on new games."""
+    ids = train["match_id"].unique()
+    shuffled = np.random.default_rng(seed).permutation(ids)
+    fold = pd.Series(np.arange(len(ids)) % folds, index=shuffled)
+    k = train["match_id"].map(fold).to_numpy()
+    parts = [add_champion_features(train[k == i], champion_table(train[k != i]))
+             for i in range(folds)]  # fmt: skip
+    return pd.concat(parts).loc[train.index]
 
 
 # ---------------------------------------------------------------- metrics
@@ -301,40 +367,47 @@ def tune_lightgbm(train, val, cols: list[str], grid: list[dict], weight: str, se
 
 
 def compare_feature_sets(train, val, test, p_test: np.ndarray, weight: str, seed: int,
-                         setting: dict) -> dict:  # fmt: skip
-    """Version 1's features with the same games and setting: what the newer features add.
-    `p_test` is the newer model's test prediction, before any isotonic calibration."""
-    log("== the same LightGBM on version 1 features, for comparison")
-    old = fit_lightgbm(train, val, V1_COLUMNS, weight, seed, setting)
-    p_old = predict(old, test, V1_COLUMNS)
+                         setting: dict, version: int) -> dict:  # fmt: skip
+    """Each older version's features with the same games and setting: what the newer features
+    add. `p_test` is the newer model's test prediction, before any isotonic calibration. Keys
+    `v1`, `v2`, ... hold the older versions' results."""
     y = test["blue_won"].to_numpy()
-    minutes = [
-        {"bucket": o["bucket"], "rows": o["rows"], "v1_log_loss": o["log_loss"],
-         "log_loss": n["log_loss"], "v1_accuracy": o["accuracy"], "accuracy": n["accuracy"]}
-        for o, n in zip(by_minute(test, p_old), by_minute(test, p_test), strict=True)
-    ]  # fmt: skip
+    p_old = {}
+    for v in range(1, version):
+        log(f"== the same LightGBM on version {v} features, for comparison")
+        cols = COLUMNS_BY_VERSION[v]
+        p_old[v] = predict(fit_lightgbm(train, val, cols, weight, seed, setting), test, cols)
+    old_minutes = {v: by_minute(test, p) for v, p in p_old.items()}
+    minutes = []
+    for i, n in enumerate(by_minute(test, p_test)):
+        row = {"bucket": n["bucket"], "rows": n["rows"]}
+        for v, mm in old_minutes.items():
+            row.update({f"v{v}_log_loss": mm[i]["log_loss"], f"v{v}_accuracy": mm[i]["accuracy"]})
+        minutes.append({**row, "log_loss": n["log_loss"], "accuracy": n["accuracy"]})
     situations = []
     for name, rule in SITUATIONS:
         mask = rule(test).to_numpy()
         if mask.any():
-            situations.append({
-                "situation": name, "rows": int(mask.sum()),
-                "games": int(test.loc[mask, "match_id"].nunique()),
-                "v1_log_loss": float(log_loss(y[mask], p_old[mask], labels=[0, 1])),
-                "log_loss": float(log_loss(y[mask], p_test[mask], labels=[0, 1])),
-            })  # fmt: skip
-    result = {"v1": scores(y, p_old), "new": scores(y, p_test), "by_minute": minutes,
-              "situations": situations}  # fmt: skip
-    log(f"version 1 features: {result['v1']}")
-    log(f"newer features:     {result['new']}")
+            row = {"situation": name, "rows": int(mask.sum()),
+                   "games": int(test.loc[mask, "match_id"].nunique())}  # fmt: skip
+            for v, p in p_old.items():
+                row[f"v{v}_log_loss"] = float(log_loss(y[mask], p[mask], labels=[0, 1]))
+            row["log_loss"] = float(log_loss(y[mask], p_test[mask], labels=[0, 1]))
+            situations.append(row)
+    result = {**{f"v{v}": scores(y, p) for v, p in p_old.items()}, "new": scores(y, p_test),
+              "by_minute": minutes, "situations": situations}  # fmt: skip
+    for v in p_old:
+        log(f"version {v} features: {result[f'v{v}']}")
+    log(f"version {version} features: {result['new']}")
     return result
 
 
 def feature_effects(booster: lgb.Booster, test: pd.DataFrame, cols: list[str],
                     max_rows: int = 200_000) -> list[dict]:  # fmt: skip
-    """For each position or vision feature, on test rows where it isn't 0: the win chance with its
-    real value minus the win chance with it set to 0, signed so that positive means it helps the
-    team with more of it (more players at the pit, more split pushers, more wards)."""
+    """For each position, vision or champion feature, on test rows where it isn't 0: the win
+    chance with its real value minus the win chance with it set to 0, signed so that positive means
+    it helps the team with more of it (more players at the pit, more split pushers, more wards,
+    champions that scale better)."""
     rows = test if len(test) <= max_rows else test.sample(max_rows, random_state=0)
     out = []
     for f in (f for f in EFFECT_FEATURES if f in cols):
@@ -348,8 +421,23 @@ def feature_effects(booster: lgb.Booster, test: pd.DataFrame, cols: list[str],
     return out
 
 
+def champion_summary(table: dict[str, dict] | None, n: int = 10) -> dict | None:
+    """The champions whose win rate rises most and falls most with game length, among those with
+    at least `CHAMPION_PRIOR_GAMES` games; the change is in win-rate points per 10 minutes."""
+    if not table:
+        return None
+    rows = sorted(
+        ({"champion": c, "games": v["games"], "win_rate": v["win_rate"],
+          "per_10_min_pts": v["slope"] * 1000} for c, v in table.items()
+         if v["games"] >= CHAMPION_PRIOR_GAMES),
+        key=lambda r: -r["per_10_min_pts"],
+    )  # fmt: skip
+    return {"champions": len(table), "scale_up": rows[:n], "fall_off": rows[::-1][:n]}
+
+
 def fit_isotonic(y: np.ndarray, p: np.ndarray) -> IsotonicRegression:
-    return IsotonicRegression(y_min=0.0, y_max=1.0, out_of_bounds="clip").fit(p, y)
+    # Never exactly 0 or 1: a small validation set can put a whole range of predictions there
+    return IsotonicRegression(y_min=0.001, y_max=0.999, out_of_bounds="clip").fit(p, y)
 
 
 def apply_isotonic(x: list[float], y: list[float], p: np.ndarray) -> np.ndarray:
@@ -446,6 +534,9 @@ def write_report(m: dict, val_ll: float, path: Path) -> None:
         f"{', '.join(m['patches'])}, features version {m['features_version']}.",
         f"Split (games): {m['split']}. Weighting: {m['weighting']}. Isotonic: {m['isotonic']}.",
         f"LightGBM validation log loss: {val_ll:.4f}.",
+        *([f"Champion columns {'kept' if cc['used'] else 'dropped'}: validation log loss"
+           f" {cc['val_log_loss_with']:.4f} with them, {cc['val_log_loss_without']:.4f} without."]
+          if (cc := m.get("champion_columns")) else []),
         "",
         "## Overall (test set)",
         "",
@@ -478,26 +569,46 @@ def write_report(m: dict, val_ll: float, path: Path) -> None:
                      [[r["feature"], r["gain"]] for r in m["feature_importance"]])]  # fmt: skip
     c = m.get("feature_set_comparison")
     if c:
-        out += ["", f"## Features version {m['features_version']} against version 1", "",
-                "Same games, split and LightGBM setting, both without isotonic calibration. Lower"
+        n = m["features_version"]
+        olds = list(range(1, n))
+        lls = [f"v{v} log loss" for v in olds]
+        out += ["", f"## Features version {n} against older versions", "",
+                "Same games, split and LightGBM setting, all without isotonic calibration. Lower"
                 " log loss is better.", "",
                 md_table(["features", "accuracy", "log loss", "brier"],
-                         [["version 1", *c["v1"].values()],
-                          [f"version {m['features_version']}", *c["new"].values()]]),
+                         [*[[f"version {v}", *c[f"v{v}"].values()] for v in olds],
+                          [f"version {n}", *c["new"].values()]]),
                 "", "### By minute", "",
-                md_table(["minute", "v1 log loss", "log loss", "rows"],
-                         [[r["bucket"], r["v1_log_loss"], r["log_loss"], r["rows"]]
-                          for r in c["by_minute"]]),
+                md_table(["minute", *lls, f"v{n} log loss", "rows"],
+                         [[r["bucket"], *[r[f"v{v}_log_loss"] for v in olds], r["log_loss"],
+                           r["rows"]] for r in c["by_minute"]]),
                 "", "### Situations", "",
-                md_table(["situation", "rows", "games", "v1 log loss", "log loss"],
-                         [[r["situation"], r["rows"], r["games"], r["v1_log_loss"], r["log_loss"]]
+                md_table(["situation", "rows", "games", *lls, f"v{n} log loss"],
+                         [[r["situation"], r["rows"], r["games"],
+                           *[r[f"v{v}_log_loss"] for v in olds], r["log_loss"]]
                           for r in c["situations"]])]  # fmt: skip
+    ch = m.get("champions")
+    if ch:
+        heads = ["champion", "games", "win rate", "per 10 min of game (pts)"]
+
+        def champ_rows(rows: list[dict]) -> list[list]:
+            return [[r["champion"], r["games"], f"{r['win_rate']:.3f}",
+                     f"{r['per_10_min_pts']:+.2f}"] for r in rows]  # fmt: skip
+
+        out += ["", "## Champions", "",
+                f"{ch['champions']} champions in the training games. Win rate, and how much it"
+                " changes per 10 minutes of game length, both shrunk toward 50% and 0 by games /"
+                f" (games + {CHAMPION_PRIOR_GAMES}). Only champions with at least"
+                f" {CHAMPION_PRIOR_GAMES} games are listed.", "",
+                "### Scale up most", "", md_table(heads, champ_rows(ch["scale_up"])), "",
+                "### Fall off most", "", md_table(heads, champ_rows(ch["fall_off"]))]  # fmt: skip
     if m.get("feature_effects"):
-        out += ["", "## What positions and vision are worth", "",
+        out += ["", "## What the newer features are worth", "",
                 "Test rows where the feature isn't 0: the LightGBM win chance with the real value"
                 " minus the win chance with it set to 0, for the team with more of it (more"
-                " players near the pit, more split pushers, a bigger group, more wards). It shows"
-                " what the model learned, not what causes wins.", "",
+                " players near the pit, more split pushers, a bigger group, more wards, champions"
+                " that win more or scale better). It shows what the model learned, not what"
+                " causes wins.", "",
                 md_table(["feature", "rows", "average change (pts)", "average size (pts)"],
                          [[r["feature"], r["rows"], f"{r['effect_pts']:+.2f}",
                            f"{r['size_pts']:.2f}"] for r in m["feature_effects"]])]  # fmt: skip
@@ -556,6 +667,16 @@ def main(argv: list[str] | None = None) -> dict:
     split = {k: int(d["match_id"].nunique()) for k, d in
              (("train", train), ("validation", val), ("test", test))}  # fmt: skip
     log(f"games per split: {split}")
+    champions_path = out / "champions.json"
+    champions_path.unlink(missing_ok=True)  # never leave a table from an earlier run
+    champions = None
+    if version >= 3:
+        log("== champion win rates and scaling, from the training games")
+        champions = champion_table(train)  # for validation, test and the app
+        champions_path.write_text(json.dumps(champions, indent=1))
+        train = add_champion_features_oof(train)
+        val, test = (add_champion_features(d, champions) for d in (val, test))
+        log(f"{len(champions)} champions")
 
     log("== baseline: logistic regression")
     baseline = fit_baseline(train, cols)
@@ -565,6 +686,21 @@ def main(argv: list[str] | None = None) -> dict:
 
     grid = PARAM_GRID[:1] if args.no_tune else PARAM_GRID
     booster, setting, tuning = tune_lightgbm(train, val, cols, grid, args.weight, args.seed)
+    full, full_cols = booster, cols  # the newest version's columns, for the comparison
+    champion_columns = None
+    if version >= 3:
+        # The champion columns stay only if they help on validation; noisy champion numbers (few
+        # games per champion) can make the model worse
+        plain_cols = COLUMNS_BY_VERSION[2]
+        plain = fit_lightgbm(train, val, plain_cols, args.weight, args.seed, setting)
+        with_ll = float(log_loss(val["blue_won"], predict(booster, val, cols), labels=[0, 1]))
+        plain_ll = float(log_loss(val["blue_won"], predict(plain, val, plain_cols), labels=[0, 1]))
+        champion_columns = {"used": with_ll < plain_ll, "val_log_loss_with": with_ll,
+                            "val_log_loss_without": plain_ll}  # fmt: skip
+        log(f"validation log loss with champion columns {with_ll:.4f}, without {plain_ll:.4f}"
+            f" -> {'kept' if champion_columns['used'] else 'dropped'}")  # fmt: skip
+        if not champion_columns["used"]:
+            booster, cols = plain, plain_cols
     p_val = predict(booster, val, cols)
     p_test = predict(booster, test, cols)
     p_test_raw = p_test
@@ -593,9 +729,10 @@ def main(argv: list[str] | None = None) -> dict:
 
     comparison, effects = None, []
     if version > 1:
-        comparison = compare_feature_sets(train, val, test, p_test_raw, args.weight, args.seed,
-                                          setting)  # fmt: skip
-        effects = feature_effects(booster, test, cols)
+        p_full = p_test_raw if full is booster else predict(full, test, full_cols)
+        comparison = compare_feature_sets(train, val, test, p_full, args.weight, args.seed,
+                                          setting, version)  # fmt: skip
+        effects = feature_effects(full, test, full_cols)
         for r in effects:
             log(
                 f"{r['feature']}: {r['effect_pts']:+.2f} pts, size {r['size_pts']:.2f}, "
@@ -624,9 +761,11 @@ def main(argv: list[str] | None = None) -> dict:
         "isotonic": bool(args.isotonic),
         "weighting": args.weight,
         "setting": setting,
+        "champion_columns": champion_columns,
         "tuning": tuning,
         "feature_set_comparison": comparison,
         "feature_effects": effects,
+        "champions": champion_summary(champions),
         "tier_models": tier_models,
     }
     (out / "metrics.json").write_text(json.dumps(metrics, indent=2))

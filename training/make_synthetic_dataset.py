@@ -1,11 +1,12 @@
 """Write a fake Parquet dataset in the crawler's layout, for testing training end to end.
 
     python training/make_synthetic_dataset.py --out data_synth [--games 3000] [--seed 7]
-                                              [--version 2]
+                                              [--version 3]
 
 Layout: <out>/<platform>/<patch>/v<version>/part-00001.parquet. The label depends on the features
 (a logistic of gold, kills, towers and objectives plus noise), so a model can learn it. Version 2's
-columns (setups at the pits, split pushing, wards) also lean toward the stronger team.
+columns (setups at the pits, split pushing, wards) also lean toward the stronger team. Version 3
+adds each team's champions from a pool where some win more and some scale with game length.
 """
 
 from __future__ import annotations
@@ -20,10 +21,14 @@ import pyarrow.parquet as pq
 SOUL_TYPES = ["none", "Infernal", "Mountain", "Ocean", "Cloud", "Hextech", "Chemtech"]
 PLATFORMS = ["NA1", "EUW1", "KR"]
 PATCHES = ["26.17", "26.18", "26.19"]
+CHAMPIONS = [f"Champ{i:02d}" for i in range(40)]
+# Per champion: a fixed edge (log-odds) and how much that edge grows per 10 minutes past 30:00
+CHAMP_EDGE = np.random.default_rng(99).normal(0, 0.5, len(CHAMPIONS))
+CHAMP_SCALING = np.random.default_rng(98).normal(0, 0.5, len(CHAMPIONS))
 
 
 def make_game(
-    rng: np.random.Generator, game_id: int, platform: str, patch: str, version: int = 2
+    rng: np.random.Generator, game_id: int, platform: str, patch: str, version: int = 3
 ) -> dict:
     tier = int(rng.integers(2, 10))
     duration = int(rng.integers(20, 40)) * 60 + int(rng.integers(0, 60))
@@ -73,7 +78,14 @@ def make_game(
         + 0.5 * soul
         + 0.6 * skill
     )
-    blue_won = bool(rng.random() < 1 / (1 + np.exp(-logit[-1] * 1.3)))
+    final = logit[-1] * 1.3
+    if version >= 3:
+        picks = rng.choice(len(CHAMPIONS), 10, replace=False)
+        blue, red = picks[:5], picks[5:]
+        late = (duration / 60 - 30) / 10
+        final += CHAMP_EDGE[blue].sum() - CHAMP_EDGE[red].sum()
+        final += late * (CHAMP_SCALING[blue].sum() - CHAMP_SCALING[red].sum())
+    blue_won = bool(rng.random() < 1 / (1 + np.exp(-final)))
     n_rows = len(t)
     game = {
         "match_id": np.full(n_rows, f"{platform}_{game_id}"),
@@ -102,6 +114,9 @@ def make_game(
     }
     if version >= 2:
         game.update(version_2_columns(rng, minute, drift, skill))
+    if version >= 3:
+        for col, ids in (("blue_champs", blue), ("red_champs", red)):
+            game[col] = np.full(n_rows, ",".join(sorted(CHAMPIONS[i] for i in ids)))
     return game
 
 
@@ -139,7 +154,7 @@ def version_2_columns(
 
 
 def make_dataset(
-    out: Path, games: int = 3000, seed: int = 7, games_per_file: int = 500, version: int = 2
+    out: Path, games: int = 3000, seed: int = 7, games_per_file: int = 500, version: int = 3
 ) -> int:
     """Write the dataset and return the number of rows."""
     rng = np.random.default_rng(seed)
@@ -165,7 +180,7 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--games", type=int, default=3000)
     p.add_argument("--seed", type=int, default=7)
-    p.add_argument("--version", type=int, default=2, choices=[1, 2])
+    p.add_argument("--version", type=int, default=3, choices=[1, 2, 3])
     args = p.parse_args(argv)
     rows = make_dataset(args.out, args.games, args.seed, version=args.version)
     print(f"wrote {args.games} games, {rows} rows (features version {args.version}) to {args.out}")
