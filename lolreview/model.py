@@ -68,6 +68,9 @@ class PlaceholderModel(WinModel):
         "quest_diff": 0.06,
         "blue_dragons": 0.15,
         "red_dragons": -0.15,
+        "alive_diff": 0.05,
+        "blue_dead_s": -0.001,
+        "red_dead_s": 0.001,
     }
 
     def __init__(self, signature: tuple = ()) -> None:
@@ -95,11 +98,13 @@ class TrainedModel(WinModel):
 
         path = models_dir / "model.txt"
         self.booster = lgb.Booster(model_file=str(path))
-        names = list(self.booster.feature_name())
-        if names != FEATURE_COLUMNS:
+        # An older features version's model keeps working: it reads only the columns it knows
+        self.columns = list(self.booster.feature_name())
+        unknown = [c for c in self.columns if c not in FEATURE_COLUMNS]
+        if unknown:
             raise FeatureMismatch(
-                f"{path} was trained on features {names}, but features.py has {FEATURE_COLUMNS}; "
-                "retrain the model or restore the matching features.py"
+                f"{path} was trained on features {self.columns}, but features.py has no "
+                f"{unknown}; retrain the model or restore the matching features.py"
             )
         self.signature = _signature(models_dir)
         metrics = models_dir / "metrics.json"
@@ -126,10 +131,9 @@ class TrainedModel(WinModel):
                 digest.update(f"{name}:{self.by_tier[index].version}".encode())
         self.version = digest.hexdigest()[:8]
 
-    @staticmethod
-    def _encode(row: dict) -> list[float]:
+    def _encode(self, row: dict) -> list[float]:
         out = []
-        for col in FEATURE_COLUMNS:
+        for col in self.columns:
             v = row[col]
             if col == "soul_type":
                 v = SOUL_TYPES.index(v) if v in SOUL_TYPES else -1

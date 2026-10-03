@@ -88,10 +88,12 @@ def _square(cx: float, cy: float, r: float) -> list[tuple[float, float]]:
 
 
 _CENTER = (_M / 2, _M / 2)
+BARON_PIT = (5007, 10471)  # Void Grubs and Rift Herald spawn here too
+DRAGON_PIT = (9866, 4414)
 # (name, polygon). The first polygon containing a point wins, so order matters.
 ZONES: list[tuple[str, list[tuple[float, float]]]] = [
-    ("dragon pit", _square(9866, 4414, 700)),
-    ("baron pit", _square(5007, 10471, 700)),
+    ("dragon pit", _square(*DRAGON_PIT, 700)),
+    ("baron pit", _square(*BARON_PIT, 700)),
     ("blue base", _BLUE_BASE),
     ("red base", _mirror(_BLUE_BASE)),
     ("top lane", _TOP_LANE),
@@ -115,6 +117,11 @@ def _inside(x: float, y: float, poly: list[tuple[float, float]]) -> bool:
             hit = not hit
         j = i
     return hit
+
+
+def side_of(x: float, y: float) -> str:
+    """Which team's half of the map a point is on: the river runs from top left to bottom right."""
+    return "blue" if x + y < _M else "red"
 
 
 def zone_of(x: float, y: float, my_team: str | None = None) -> str:

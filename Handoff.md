@@ -1,4 +1,4 @@
-# Handoff (2026-10-02)
+# Handoff (2026-10-03)
 
 ## Where things stand
 
@@ -12,6 +12,11 @@
   - After `datasets version`, wait a few minutes before `kernels push`: a run started right away read the previous dataset version.
   - Training builds a model per rank and keeps one only if it beats the overall model on that rank.
   - Retraining isn't automatic yet.
+- **Features version 2** (Step 17, branch `claude/gallant-johnson-aatony`, not on the VM yet; 399 Python tests pass) adds who is dead and for how long, the Baron and Dragon pit timers, players setting up near a pit before its monster is up, split pushers, grouping, enemy-jungle presence and recent wards. Details in `training/README.md` and under Step 17 in `Plan.md`.
+  - Old rows can't be rebuilt (raw timelines aren't kept), so only games crawled after the deploy have them. They go to `v2` folders next to the `v1` ones.
+  - Training uses version 2 once it has 10,000 games, and its report then compares it with version 1's features on the same games, overall and around Baron setups, Dragon setups and split pushes.
+  - Training now also tries 4 LightGBM settings and keeps the best on validation, so a run takes a few times longer.
+  - The current model keeps working in the app: it reads only the columns it was trained on.
 - Free GCP trial ends **2026-12-30**. After that the VM's IP costs about $3.65/month on a paid account.
 
 ## Commands (PowerShell, from the repo folder)
@@ -45,9 +50,12 @@ gcloud compute ssh lol-crawler --zone us-central1-a --command "cd LeagueVODrevie
 
 ## Next
 
-1. Retrain once the crawler has reached lower tiers (Diamond and below), so lower ranks get their own models.
-2. Optional: automate retraining (weekly upload + Kaggle run from the VM, and the app fetching the newest model).
-3. You: review a few of your own games and note anything that looks wrong (Step 15).
+1. Merge `claude/gallant-johnson-aatony` into `main`, then deploy it to the VM (command above) so new games get version 2 features.
+2. After 3-4 hours (about 35,000 version 2 games, as many as the current model has, at about 10,000 games/hour across the four regions), retrain. In `out\report.md`, read "Features version 2 against version 1" and "What positions and vision are worth": they answer whether setups before Baron and Dragon and split pushing change the prediction. Copy the model in if version 2 has the lower log loss in that table. Don't compare it with the current model's numbers: those are on other games, mostly Challenger.
+3. With the version 2 model, check the grades on a few games: a kill now also counts the dead player's respawn time, so fight swings may get bigger and the 5% / 10% thresholds may need a change.
+4. Retrain once the crawler has reached lower tiers (Diamond and below), so lower ranks get their own models.
+5. Optional: automate retraining (weekly upload + Kaggle run from the VM, and the app fetching the newest model).
+6. You: review a few of your own games and note anything that looks wrong (Step 15).
 
 ## Gotchas
 

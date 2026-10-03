@@ -30,6 +30,8 @@ synth = _load("make_synthetic_dataset")
 
 def test_train_matches_features():
     assert train.FEATURE_COLUMNS == features.FEATURE_COLUMNS
+    assert train.V1_COLUMNS == features.V1_COLUMNS
+    assert train.COLUMNS_BY_VERSION[features.FEATURES_VERSION] == features.FEATURE_COLUMNS
     assert train.CATEGORICAL == features.CATEGORICAL_COLUMNS
     assert train.MONOTONE == features.MONOTONE
     assert train.SOUL_TYPES == features.SOUL_TYPES
@@ -132,6 +134,21 @@ def test_feature_mismatch_raises(trained, tmp_path):
     (tmp_path / "model.txt").write_bytes(text.replace(b"gold_diff", b"gold_dif2", 1))
     with pytest.raises(FeatureMismatch, match="trained on features"):
         load_model(tmp_path)
+
+
+def test_version_1_model_reads_version_2_rows(tmp_path, load_game):
+    # The app keeps working with an older model until one is trained on the new features
+    data, out = tmp_path / "data", tmp_path / "out"
+    synth.make_dataset(data, games=300, seed=5, version=1)
+    train.main(["--data", str(data), "--out", str(out), "--no-tune"])
+    model = load_model(out)
+    assert model.columns == features.V1_COLUMNS
+    match, timeline = load_game("NA1_5652762926")
+    rows = features.extract_rows(match, timeline, "GOLD")
+    frame = pd.DataFrame(rows)[features.V1_COLUMNS]
+    frame["soul_type"] = pd.Categorical(frame["soul_type"], categories=train.SOUL_TYPES)
+    booster = lgb.Booster(model_file=str(out / "model.txt"))
+    np.testing.assert_allclose(model.predict(rows), booster.predict(frame), atol=1e-9)
 
 
 def test_models_changed(trained, tmp_path):

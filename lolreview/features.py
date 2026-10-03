@@ -6,8 +6,10 @@ state every 15 s), so the same code builds the features in all three places.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field, replace
 
+from lolreview import map_data
 from lolreview.config import load_config
 from lolreview.constants import (
     BLUE,
@@ -32,9 +34,9 @@ from lolreview.constants import (
     TIER_INDEX,
 )
 
-FEATURES_VERSION = 1
+FEATURES_VERSION = 2
 
-FEATURE_COLUMNS = [
+V1_COLUMNS = [
     "tier",
     "minute",
     "gold_diff",
@@ -52,6 +54,22 @@ FEATURE_COLUMNS = [
     "red_dragons",
     "soul_diff",
     "soul_type",
+]
+# Version 2: who is alive, when the pits' monsters are up, where players stand (minute frames and
+# events) and recent wards. Any change to these or the constants below needs a new version.
+FEATURE_COLUMNS = V1_COLUMNS + [
+    "alive_diff",
+    "blue_dead_s",
+    "red_dead_s",
+    "baron_pit_in_s",
+    "dragon_pit_in_s",
+    "baron_setup_diff",
+    "dragon_setup_diff",
+    "grouped_diff",
+    "split_diff",
+    "enemy_jungle_diff",
+    "wards_placed_diff",
+    "wards_killed_diff",
 ]
 CATEGORICAL_COLUMNS = ["soul_type"]
 SOUL_TYPES = ["none", "Infernal", "Mountain", "Ocean", "Cloud", "Hextech", "Chemtech"]
@@ -75,10 +93,22 @@ MONOTONE.update(
             "blue_dragons",
             "herald_diff",
             "quest_diff",
+            "alive_diff",
+            "red_dead_s",
         )
     }
 )
 MONOTONE["red_dragons"] = -1
+MONOTONE["blue_dead_s"] = -1
+
+SETUP_S = 90  # a pit counts as contested from this long before its monster is up
+PIT_RADIUS = 3000  # players this close to a pit are setting up for it
+GROUP_RADIUS = 2000  # teammates this close count as one group
+SPLIT_ALONE = 4000  # a split pusher's nearest living teammate is at least this far
+SPLIT_FROM_MIN = 14  # before plates fall, a lone side laner is just laning
+WARD_WINDOW_S = 180
+WARD_TYPES = {"YELLOW_TRINKET", "SIGHT_WARD", "CONTROL_WARD", "BLUE_TRINKET"}  # not traps
+GRUBS_PER_CAMP = 3
 
 TRINKETS = (3340, 3363, 3364, 3330)
 EVENT_ROW_TYPES = ("CHAMPION_KILL", "ELITE_MONSTER_KILL", "BUILDING_KILL", "TURRET_PLATE_DESTROYED")
@@ -127,6 +157,8 @@ class TeamState:
     cs_sum: int = 0
     baron_buff_end_ms: int = 0
     elder_buff_end_ms: int = 0
+    wards_placed: int = 0  # in the last WARD_WINDOW_S
+    wards_killed: int = 0
 
 
 @dataclass
@@ -137,6 +169,8 @@ class GameState:
     buildings_down: set[str]
     recent_kills: list[tuple[int, float, float, int]]
     map_soul_type: str = "none"
+    baron_pit_in_ms: int = 0  # until the Baron pit's next monster (grubs, Herald, Baron) is up
+    dragon_pit_in_ms: int = 0  # until the next dragon or Elder is up
 
 
 def skip_reason(match: dict) -> str | None:
@@ -189,7 +223,13 @@ class _Walker:
         self.inhib_ms = int(timers["inhibitor_respawn_s"] * 1000)
         self.baron_ms = int(timers["baron_buff_s"] * 1000)
         self.elder_ms = int(timers["elder_buff_s"] * 1000)
+        self.timers_ms = {k: int(v * 1000) for k, v in timers.items()}
         self.recent_ms = int(cfg["review"]["recent_kill_s"] * 1000)
+        self.grub_kills = 0
+        self.herald_gone = False
+        self.baron_next_ms = self.timers_ms["baron_first_s"]
+        self.dragon_next_ms = self.timers_ms["dragon_first_s"]
+        self.wards: list[tuple[int, int, bool]] = []  # (t, team, killed)
         self.players: dict[int, PlayerState] = {}
         self.support_final: dict[int, int] = {}  # what Bounty of Worlds became, from the end items
         self.footwear: dict[int, int] = {}  # Magical Footwear: player -> when the boots arrive (ms)
@@ -291,12 +331,18 @@ class _Walker:
         elif kind == "BUILDING_KILL":
             self._building(e, t)
         elif kind == "TURRET_PLATE_DESTROYED":
+            self._seen_at(e, t)
             self.teams[RED if e["teamId"] == BLUE else BLUE].plates += 1
         elif kind == "DRAGON_SOUL_GIVEN":
             # teamId 0 only reveals the soul type after the 2nd dragon; 100 or 200 took the soul
             if e["teamId"] in self.teams:
                 self.teams[e["teamId"]].soul = e["name"]
             self.map_soul_type = e["name"]
+        elif kind in ("WARD_PLACED", "WARD_KILL"):
+            placed = kind == "WARD_PLACED"
+            team = self.team_of(e.get("creatorId" if placed else "killerId", 0))
+            if team is not None and e.get("wardType") in WARD_TYPES:
+                self.wards.append((t, team, not placed))
         elif kind in ("ITEM_PURCHASED", "ITEM_SOLD", "ITEM_DESTROYED", "ITEM_UNDO"):
             p = self.players.get(e["participantId"])
             if p is None:
@@ -334,11 +380,34 @@ class _Walker:
             victim.dead_until_ms = t + int(round(secs * 1000))
         self.recent.append((t, x, y, killer_team))
 
+    def _seen_at(self, e: dict, t: int) -> None:
+        """An objective, building or plate puts its killer and assisters where it was."""
+        pos = e.get("position")
+        if not pos:
+            return
+        for pid in [e.get("killerId"), *e.get("assistingParticipantIds", [])]:
+            p = self.players.get(pid)
+            if p is not None:
+                p.x, p.y, p.pos_t_ms = pos["x"], pos["y"], t
+
     def _monster(self, e: dict, t: int) -> None:
+        self._seen_at(e, t)
+        mt = e["monsterType"]
+        timers = self.timers_ms
+        # The pits' timers: grubs and Herald don't respawn, and despawns come as kills by team 300
+        if mt == "HORDE":
+            self.grub_kills += 1
+        elif mt == "RIFTHERALD":
+            self.herald_gone = True
+        elif mt == "BARON_NASHOR":
+            self.baron_next_ms = t + timers["baron_respawn_s"]
+        elif mt == "DRAGON" and e.get("monsterSubType") == ELDER:
+            self.dragon_next_ms = t + timers["elder_respawn_s"]
+        elif mt == "DRAGON":
+            self.dragon_next_ms = t + timers["dragon_respawn_s"]
         team = self.teams.get(e.get("killerTeamId"))
         if team is None:
             return
-        mt = e["monsterType"]
         if mt == "DRAGON":
             sub = e.get("monsterSubType")
             if sub == ELDER:
@@ -350,8 +419,10 @@ class _Walker:
                 self.map_dragons.append(name)
                 if len(self.map_dragons) == 3:
                     self.map_soul_type = name
-                if len(team.dragons) == 4 and not any(x.soul for x in self.teams.values()):
-                    team.soul = self.map_soul_type
+                if len(team.dragons) == 4:  # the soul: Elder comes next
+                    self.dragon_next_ms = t + timers["elder_first_s"]
+                    if not any(x.soul for x in self.teams.values()):
+                        team.soul = self.map_soul_type
         elif mt == "HORDE":
             team.grubs += 1
         elif mt == "RIFTHERALD":
@@ -363,6 +434,7 @@ class _Walker:
             team.atakhans += 1
 
     def _building(self, e: dict, t: int) -> None:
+        self._seen_at(e, t)
         bid = _building_id(e, self.nexus_seen)
         if e["buildingType"] == "INHIBITOR_BUILDING":
             self.inhib_until[bid] = t + self.inhib_ms
@@ -379,6 +451,7 @@ class _Walker:
             if t < until:
                 down.add(bid)
                 inhibs[BLUE if bid.startswith("blue") else RED] += 1
+        self.wards = [w for w in self.wards if w[0] > t - WARD_WINDOW_S * 1000]
         teams: dict[int, TeamState] = {}
         for tid, ts in self.teams.items():
             mine = [p for p in players.values() if p.team == tid]
@@ -396,11 +469,26 @@ class _Walker:
                 cs_sum=sum(p.cs for p in mine),
                 quests=sum(p.quest is not None for p in mine),
                 buff=max(buffs, key=lambda b: b[1]) if buffs else None,
+                wards_placed=sum(1 for _, team, killed in self.wards if team == tid and not killed),
+                wards_killed=sum(1 for _, team, killed in self.wards if team == tid and killed),
             )
         cutoff = t - self.recent_ms
         recent = [k for k in self.recent if k[0] > cutoff]
         self.recent = recent
-        return GameState(t, teams, players, down, list(recent), self.map_soul_type)
+        return GameState(
+            t, teams, players, down, list(recent), self.map_soul_type,
+            baron_pit_in_ms=max(0, self._baron_pit_next(t) - t),
+            dragon_pit_in_ms=max(0, self.dragon_next_ms - t),
+        )  # fmt: skip
+
+    def _baron_pit_next(self, t: int) -> int:
+        """When the Baron pit's next monster is up: grubs, then Herald, then Baron."""
+        timers = self.timers_ms
+        if self.grub_kills < GRUBS_PER_CAMP and t < timers["grubs_despawn_s"]:
+            return timers["grubs_first_s"]
+        if not self.herald_gone and t < timers["herald_despawn_s"]:
+            return timers["herald_first_s"]
+        return self.baron_next_ms
 
 
 def states_at(match: dict, timeline: dict, times_ms: list[int]) -> list[GameState]:
@@ -440,6 +528,82 @@ def _tier_index(tier: str | int) -> int:
     return PRO_TIER_INDEX if key == "PRO" else TIER_INDEX[key]
 
 
+def _located(state: GameState) -> dict[int, list[tuple[float, float]]]:
+    """Positions of living players, per team. A position from before a player's last death
+    (where they died, or a frame while dead) says nothing about where they are now."""
+    out: dict[int, list[tuple[float, float]]] = {BLUE: [], RED: []}
+    for p in state.players.values():
+        if p.team in out and p.dead_until_ms <= p.pos_t_ms:
+            out[p.team].append((p.x, p.y))
+    return out
+
+
+def _near(points: list[tuple[float, float]], spot: tuple[float, float], radius: float) -> int:
+    return sum(1 for x, y in points if math.hypot(x - spot[0], y - spot[1]) <= radius)
+
+
+def _largest_group(points: list[tuple[float, float]]) -> int:
+    return max((_near(points, p, GROUP_RADIUS) for p in points), default=0)
+
+
+def _split_pushers(points: list[tuple[float, float]], color: str) -> int:
+    """Players alone in a side lane on the enemy's half of the map."""
+    n = 0
+    for i, (x, y) in enumerate(points):
+        if map_data.side_of(x, y) == color:
+            continue
+        if map_data.zone_of(x, y) not in ("top lane", "bot lane"):
+            continue
+        mates = [q for j, q in enumerate(points) if j != i]
+        if all(math.hypot(x - qx, y - qy) >= SPLIT_ALONE for qx, qy in mates):
+            n += 1
+    return n
+
+
+def _in_enemy_jungle(points: list[tuple[float, float]], color: str) -> int:
+    enemy = "red jungle" if color == "blue" else "blue jungle"
+    return sum(1 for x, y in points if map_data.zone_of(x, y).startswith(enemy))
+
+
+def map_features(state: GameState) -> dict:
+    """Version 2 features: who is alive, the pits' timers, where players stand, recent wards."""
+    t = state.t_ms
+    b, r = state.teams[BLUE], state.teams[RED]
+    alive = {BLUE: 0, RED: 0}
+    dead_ms = {BLUE: 0, RED: 0}
+    for p in state.players.values():
+        if p.team in alive:
+            alive[p.team] += p.dead_until_ms <= t
+            dead_ms[p.team] += max(0, p.dead_until_ms - t)
+    at = _located(state)
+    setup = {}
+    for name, spot, wait_ms in (
+        ("baron", map_data.BARON_PIT, state.baron_pit_in_ms),
+        ("dragon", map_data.DRAGON_PIT, state.dragon_pit_in_ms),
+    ):
+        contested = wait_ms <= SETUP_S * 1000
+        setup[name] = (
+            _near(at[BLUE], spot, PIT_RADIUS) - _near(at[RED], spot, PIT_RADIUS) if contested else 0
+        )
+    late = t >= SPLIT_FROM_MIN * 60_000
+    return {
+        "alive_diff": alive[BLUE] - alive[RED],
+        "blue_dead_s": round(dead_ms[BLUE] / 1000),
+        "red_dead_s": round(dead_ms[RED] / 1000),
+        "baron_pit_in_s": round(state.baron_pit_in_ms / 1000),
+        "dragon_pit_in_s": round(state.dragon_pit_in_ms / 1000),
+        "baron_setup_diff": setup["baron"],
+        "dragon_setup_diff": setup["dragon"],
+        "grouped_diff": _largest_group(at[BLUE]) - _largest_group(at[RED]),
+        "split_diff": (
+            _split_pushers(at[BLUE], "blue") - _split_pushers(at[RED], "red") if late else 0
+        ),
+        "enemy_jungle_diff": _in_enemy_jungle(at[BLUE], "blue") - _in_enemy_jungle(at[RED], "red"),
+        "wards_placed_diff": b.wards_placed - r.wards_placed,
+        "wards_killed_diff": b.wards_killed - r.wards_killed,
+    }
+
+
 def feature_row(state: GameState, tier: str | int) -> dict:
     b, r = state.teams[BLUE], state.teams[RED]
 
@@ -464,6 +628,7 @@ def feature_row(state: GameState, tier: str | int) -> dict:
         "red_dragons": len(r.dragons),
         "soul_diff": side(b.soul is not None, r.soul is not None),
         "soul_type": state.map_soul_type,
+        **map_features(state),
     }
 
 

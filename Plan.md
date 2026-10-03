@@ -424,11 +424,21 @@ All built only from past events, so the no-future-leak test still applies.
 
 **Done when:** the Step 4 tests still pass, and nobody dies while still marked dead on the fixtures (a too-long respawn timer would show up here).
 
+**Done (2026-10-03), with changes.** The crawler rebuilds each game's match from its timeline (Step 5), so it has no roles and every feature has to work without them:
+- Dead time is per team (`blue_dead_s`, `red_dead_s`), not per role, and there are no jungler positions.
+- Objectives are two timers: `baron_pit_in_s` (grubs, then Herald, then Baron, which all use the Baron pit) and `dragon_pit_in_s` (dragons, then Elder after a soul).
+- Added for objective pressure and split pushing: `baron_setup_diff` / `dragon_setup_diff` (players within 3,000 units of a pit that is up or less than 90 s away) and `split_diff` (players alone in a side lane on the enemy's half from 14:00).
+- `grouped_diff`, `enemy_jungle_diff` and the ward counts are as planned; ward traps (`UNDEFINED`, half of all placements) don't count.
+- Positions also update when a player takes an objective, building or plate (killer and assisters).
+- The constants are at the top of `features.py`; changing one needs a new `FEATURES_VERSION`. An older model still loads and reads only its own columns, so the app keeps working until the retrain.
+
 ## Step 18 — Retrain and compare
 
 - Same split and seed as the Stage 1 model. The Stage 2 model must beat Stage 1 on test log loss, overall and in the 10–30 minute buckets, where windows matter.
 - Drop features that don't help (importance, then removing one at a time).
 - The Model page shows which features version the model uses.
+
+`train.py` does the comparison on every version 2 run: the same setting on version 1's columns, same games, overall, by minute and in situations (Baron or Dragon setups, split pushes, someone dead), plus how much each position or vision feature moves the win chance. It also picks the best of a few LightGBM settings on validation. See `training/README.md`.
 
 ## Step 19 — Window detection (`windows.py`)
 
