@@ -140,11 +140,58 @@ describe("review page", () => {
     const user = userEvent.setup();
     setup();
     const list = () => document.querySelectorAll("[data-moment]");
-    expect(list()).toHaveLength(review.moments.length);
+    expect(list()).toHaveLength(
+      review.moments.length + review.windows.filter((w) => !w.used).length,
+    );
     await user.click(screen.getByRole("button", { name: "Graded" }));
     expect(list()).toHaveLength(graded.length);
     await user.click(screen.getByRole("button", { name: "Mine" }));
     expect(list()).toHaveLength(review.moments.filter((m) => m.involves_me).length);
+  });
+
+  it("lists missed windows in time order and filters them", async () => {
+    const user = userEvent.setup();
+    setup();
+    const missed = review.windows.filter((w) => !w.used);
+    const rows = () => [...document.querySelectorAll("[data-moment]")];
+    expect(screen.getAllByLabelText("Missed window")).toHaveLength(missed.length);
+    expect(rows()).toHaveLength(review.moments.length + missed.length);
+    const ats = rows().map((r) => {
+      const id = r.getAttribute("data-moment")!;
+      const w = missed.find((x) => x.id === id);
+      return w ? w.t_start : review.moments.find((m) => m.id === id)!.t_end;
+    });
+    expect(ats).toEqual([...ats].sort((a, b) => a - b));
+    await user.click(screen.getByRole("button", { name: "Missed" }));
+    expect(rows()).toHaveLength(missed.length);
+    await user.click(screen.getByRole("button", { name: "Graded" }));
+    expect(screen.queryByLabelText("Missed window")).toBeNull();
+    expect(screen.queryByText(/Baron up/)).toBeNull();
+  });
+
+  it("opens a missed window: seeks to its start and shows what was available", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole("button", { name: /Enemy Lee Sin dead, Dragon up/ }));
+    expect(slider().value).toBe("751");
+    const detail = screen.getByTestId("detail-w1");
+    expect(detail).toHaveTextContent("Lee Sin dead for 0:31, Zed for 0:12");
+    expect(detail).toHaveTextContent("Dragon+7%");
+    expect(detail).toHaveTextContent("Bot outer tower+3%");
+    expect(detail).toHaveTextContent("Your team didn't take an objective or tower in time.");
+    await user.click(screen.getByRole("button", { name: "Missed" }));
+    fireEvent.change(slider(), { target: { value: "900" } });
+    expect(screen.queryByTestId("detail-w1")).toBeNull();
+  });
+
+  it("draws one band per window on the graph, missed ones marked", () => {
+    setup();
+    expect(document.querySelectorAll("[data-testid^=band-]")).toHaveLength(review.windows.length);
+    for (const w of review.windows) {
+      const band = screen.getByTestId(`band-${w.id}`);
+      expect(band.hasAttribute("data-missed")).toBe(!w.used);
+      expect(band.closest("[aria-hidden=true]")).not.toBeNull();
+    }
   });
 
   it("seeks when the graph is clicked", () => {

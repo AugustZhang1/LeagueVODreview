@@ -5,6 +5,7 @@ import type {
   GameEvent,
   GradeCounts,
   Moment,
+  ObjectiveWindow,
   Player,
   PlayerState,
   Review,
@@ -788,6 +789,48 @@ export function makeReview(matchId = "NA1_5300000001", participantId = 4): Revie
     for (const m of list) if (m.grade) c[m.grade]++;
     return c;
   };
+  // two missed windows (one with two options) and one the team used
+  const windows: ObjectiveWindow[] = [
+    {
+      id: "w1",
+      t_start: 751,
+      t_end: 782,
+      title: "Enemy Lee Sin dead, Dragon up",
+      reason: "Lee Sin dead for 0:31, Zed for 0:12",
+      options: [
+        { what: "Dragon", value: 0.07 },
+        { what: "bot outer tower", value: 0.03 },
+      ],
+      value: 0.07,
+      used: false,
+      taken: [],
+    },
+    {
+      id: "w2",
+      t_start: 1210,
+      t_end: 1250,
+      title: "Enemy Wukong and Kai'Sa dead, Baron up",
+      reason: "Wukong dead for 0:40, Kai'Sa for 0:33",
+      options: [{ what: "Baron", value: 0.12 }],
+      value: 0.12,
+      used: true,
+      taken: ["Baron"],
+    },
+    {
+      id: "w3",
+      t_start: 1500,
+      t_end: 1540,
+      title: "Enemy Lee Sin dead, Rift Herald up",
+      reason: "Lee Sin dead for 0:38",
+      options: [
+        { what: "Rift Herald", value: 0.05 },
+        { what: "mid outer tower", value: 0.02 },
+      ],
+      value: 0.05,
+      used: false,
+      taken: [],
+    },
+  ];
   const biggest = moments.reduce((best, m) =>
     Math.abs(m.delta) > Math.abs(best.delta) ? m : best,
   );
@@ -812,6 +855,7 @@ export function makeReview(matchId = "NA1_5300000001", participantId = 4): Revie
     buildings: BUILDINGS,
     curve,
     moments,
+    windows,
     snapshots,
     summary: {
       me: count(moments.filter((m) => m.involves_me)),

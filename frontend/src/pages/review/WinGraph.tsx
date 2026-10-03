@@ -1,6 +1,6 @@
 import { memo, useMemo, useState, type MouseEvent } from "react";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from "recharts";
-import type { Moment, Review } from "../../api/models";
+import type { Moment, ObjectiveWindow, Review } from "../../api/models";
 import { formatTime } from "../../lib/format";
 import { isGoodGrade, isStrongGrade } from "../../lib/grades";
 import { GradeBadge } from "../../components/GradeBadge";
@@ -125,6 +125,7 @@ type Props = {
   review: Review;
   t: number;
   selected: Moment | null;
+  selectedWindow: ObjectiveWindow | null;
   hoveredId: string | null;
   onSeek: (t: number) => void;
 };
@@ -147,7 +148,7 @@ function momentAt(moments: Moment[], at: number, duration: number): Moment | nul
   return best;
 }
 
-export function WinGraph({ review, t, selected, hoveredId, onSeek }: Props) {
+export function WinGraph({ review, t, selected, selectedWindow, hoveredId, onSeek }: Props) {
   const { duration_s: duration } = review.match;
   const curve = review.curve;
   const [hoverT, setHoverT] = useState<number | null>(null);
@@ -159,6 +160,8 @@ export function WinGraph({ review, t, selected, hoveredId, onSeek }: Props) {
         .map((m) => ({ m, x: m.t_end / duration, p: winAtClock(curve, m.t_end, duration) })),
     [review.moments, curve, duration],
   );
+
+  const span = selected ?? selectedWindow;
 
   const pct = (frac: number) => `${(Math.min(1, Math.max(0, frac)) * 100).toFixed(3)}%`;
   const timeAt = (e: MouseEvent<HTMLDivElement>) => {
@@ -177,12 +180,24 @@ export function WinGraph({ review, t, selected, hoveredId, onSeek }: Props) {
       </h2>
       <div className={styles.stage} style={{ height: HEIGHT }}>
         <div className={styles.layer} style={plotInset} aria-hidden="true">
-          {selected && (
+          {(review.windows ?? []).map((w) => (
+            <div
+              key={w.id}
+              data-testid={`band-${w.id}`}
+              data-missed={!w.used || undefined}
+              className={w.used ? styles.band : `${styles.band} ${styles.missed}`}
+              style={{
+                left: pct(w.t_start / duration),
+                width: `max(2px, ${pct((w.t_end - w.t_start) / duration)})`,
+              }}
+            />
+          ))}
+          {span && (
             <div
               className={styles.span}
               style={{
-                left: pct(selected.t_start / duration),
-                width: `max(2px, ${pct((selected.t_end - selected.t_start) / duration)})`,
+                left: pct(span.t_start / duration),
+                width: `max(2px, ${pct((span.t_end - span.t_start) / duration)})`,
               }}
             />
           )}

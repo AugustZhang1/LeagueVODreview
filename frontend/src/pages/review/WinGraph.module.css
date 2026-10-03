@@ -39,6 +39,18 @@
   background: var(--surface-2);
 }
 
+.band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--surface-2);
+  box-sizing: border-box;
+}
+
+.missed {
+  border: 1px dashed var(--text-3);
+}
+
 .marker {
   position: absolute;
   transform: translate(-50%, -50%);

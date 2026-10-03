@@ -17,6 +17,7 @@ from lolreview.features import (
     states_at,
 )
 from lolreview.model import WinModel
+from lolreview.windows import find_windows
 
 MONSTER_KINDS = {
     "HORDE": "grubs",
@@ -382,6 +383,8 @@ def build_review(
         biggest_id=biggest.id if biggest else "",
     )
 
+    windows = find_windows(states, grid, end_ms, my_team, tier, model, events, names, cfg)
+
     patches = model.patches
     started = info.get("gameStartTimestamp") or info.get("gameCreation") or 0
     review_match = schemas.ReviewMatch(
@@ -407,5 +410,5 @@ def build_review(
     ]
     return schemas.Review(
         match=review_match, players=players, buildings=buildings, curve=curve,
-        moments=moments, snapshots=snapshots, summary=summary,
+        moments=moments, snapshots=snapshots, summary=summary, windows=windows,
     )  # fmt: skip

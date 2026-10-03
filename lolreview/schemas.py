@@ -209,6 +209,25 @@ class Summary(BaseModel):
     biggest_id: str
 
 
+class WindowOption(BaseModel):
+    what: str  # "Dragon", "Baron", "bot outer tower", ...
+    value: float  # win chance with it taken minus without, for your team
+
+
+class ObjectiveWindow(BaseModel):
+    """A stretch when the enemy was weak (jungler or 2+ players dead) and something was up."""
+
+    id: str
+    t_start: float
+    t_end: float
+    title: str  # "Enemy Lee Sin dead, Dragon up"
+    reason: str  # "Lee Sin dead for 0:31, Zed for 0:12"
+    options: list[WindowOption]  # best first
+    value: float  # the best option's value
+    used: bool  # your team took an objective, tower or plate in it (or within 10 s after)
+    taken: list[str]
+
+
 class Review(BaseModel):
     match: ReviewMatch
     players: list[Player]
@@ -217,6 +236,7 @@ class Review(BaseModel):
     moments: list[Moment]
     snapshots: list[Snapshot]
     summary: Summary
+    windows: list[ObjectiveWindow] = []
 
 
 class ModelMetrics(BaseModel):

@@ -45,13 +45,36 @@
 .badge {
   display: inline-flex;
   flex: none;
-  width: 28px;
+  width: 36px;
+}
+
+.miss {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px dashed var(--text-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.worth {
+  color: var(--text-3);
+  white-space: nowrap;
 }
 
 .time {
   flex: none;
   width: 5ch;
   color: var(--text-2);
+}
+
+/* a window's "12:31–13:02" */
+.time.range {
+  width: auto;
+  white-space: nowrap;
 }
 
 .title {

@@ -89,8 +89,8 @@ function ReviewView({
     onOpen: () => seekReplay.mutate(time.selected ? leadIn(time.selected) : time.t),
   };
   useShortcuts(time, () => replayReady && replay.onOpen());
-  const { t, snapshot, selected, moments } = time;
-  const { seek, selectMoment, setHoveredId, setFilter } = time;
+  const { t, snapshot, selected, selectedWindow, moments, windows } = time;
+  const { seek, selectMoment, selectWindow, setHoveredId, setFilter } = time;
 
   return (
     <div className={styles.page}>
@@ -99,6 +99,7 @@ function ReviewView({
         review={review}
         t={t}
         selected={selected}
+        selectedWindow={selectedWindow}
         hoveredId={time.hoveredId}
         onSeek={seek}
       />
@@ -123,10 +124,13 @@ function ReviewView({
           <MomentList
             review={review}
             moments={moments}
+            windows={windows}
             filter={time.filter}
             selectedId={selected?.id ?? null}
             onFilter={setFilter}
+            selectedWindowId={selectedWindow?.id ?? null}
             onSelect={selectMoment}
+            onSelectWindow={selectWindow}
             onHover={setHoveredId}
           />
         </div>

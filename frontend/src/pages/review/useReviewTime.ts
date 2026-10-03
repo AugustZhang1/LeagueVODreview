@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Moment, Review, Snapshot } from "../../api/models";
+import type { Moment, ObjectiveWindow, Review, Snapshot } from "../../api/models";
 import { momentEnd } from "./curve";
 
-export type MomentFilter = "all" | "graded" | "mine";
+export type MomentFilter = "all" | "graded" | "missed" | "mine";
 
 const URL_WRITE_MS = 200;
 const PLAY_RATE = 60;
@@ -35,12 +35,18 @@ export function useReviewTime(
     [review.moments],
   );
 
+  const windows = useMemo(
+    () => (review.windows ?? []).filter((w) => !w.used).sort((a, b) => a.t_start - b.t_start),
+    [review.windows],
+  );
+
   const [t, setT] = useState(() => clamp(Math.floor(initialT ?? 0), 0, duration));
   const [selectedId, setSelectedId] = useState<string | null>(
     () =>
       moments.find((m) => momentEnd(m, duration) === clamp(Math.floor(initialT ?? -1), 0, duration))
         ?.id ?? null,
   );
+  const [selectedWindowId, setSelectedWindowId] = useState<string | null>(null);
   const [filter, setFilter] = useState<MomentFilter>("all");
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -51,6 +57,7 @@ export function useReviewTime(
       const value = clamp(Math.round(next), 0, duration);
       tRef.current = value;
       setT(value);
+      setSelectedWindowId(null);
       setSelectedId(
         momentId !== undefined
           ? momentId
@@ -66,6 +73,14 @@ export function useReviewTime(
       onSelectMoment?.(m);
     },
     [seek, duration, onSelectMoment],
+  );
+
+  const selectWindow = useCallback(
+    (w: ObjectiveWindow) => {
+      seek(w.t_start, null);
+      setSelectedWindowId(w.id);
+    },
+    [seek],
   );
 
   const selectedIndex = moments.findIndex((m) => m.id === selectedId);
@@ -143,12 +158,16 @@ export function useReviewTime(
     review.snapshots[clamp(Math.floor(t / 15), 0, review.snapshots.length - 1)];
   const selected = selectedIndex >= 0 ? moments[selectedIndex] : null;
 
+  const selectedWindow = windows.find((w) => w.id === selectedWindowId) ?? null;
+
   return {
     t,
     duration,
     snapshot,
     moments,
+    windows,
     selected,
+    selectedWindow,
     filter,
     setFilter,
     hoveredId,
@@ -157,6 +176,7 @@ export function useReviewTime(
     togglePlay,
     seek,
     selectMoment,
+    selectWindow,
     stepMoment,
   };
 }

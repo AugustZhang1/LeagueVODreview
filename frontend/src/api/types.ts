@@ -303,6 +303,30 @@ export interface components {
             /** Zone */
             zone: string;
         };
+        /**
+         * ObjectiveWindow
+         * @description A stretch when the enemy was weak (jungler or 2+ players dead) and something was up.
+         */
+        ObjectiveWindow: {
+            /** Id */
+            id: string;
+            /** Options */
+            options: components["schemas"]["WindowOption"][];
+            /** Reason */
+            reason: string;
+            /** T End */
+            t_end: number;
+            /** T Start */
+            t_start: number;
+            /** Taken */
+            taken: string[];
+            /** Title */
+            title: string;
+            /** Used */
+            used: boolean;
+            /** Value */
+            value: number;
+        };
         /** Player */
         Player: {
             /** Champion */
@@ -427,6 +451,11 @@ export interface components {
             /** Snapshots */
             snapshots: components["schemas"]["Snapshot"][];
             summary: components["schemas"]["Summary"];
+            /**
+             * Windows
+             * @default []
+             */
+            windows: components["schemas"]["ObjectiveWindow"][];
         };
         /** ReviewMatch */
         ReviewMatch: {
@@ -515,6 +544,13 @@ export interface components {
             soul: string | null;
             /** Towers */
             towers: number;
+        };
+        /** WindowOption */
+        WindowOption: {
+            /** Value */
+            value: number;
+            /** What */
+            what: string;
         };
     };
     responses: never;

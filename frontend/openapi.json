@@ -543,6 +543,66 @@
         "title": "Moment",
         "type": "object"
       },
+      "ObjectiveWindow": {
+        "description": "A stretch when the enemy was weak (jungler or 2+ players dead) and something was up.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/WindowOption"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "t_end": {
+            "title": "T End",
+            "type": "number"
+          },
+          "t_start": {
+            "title": "T Start",
+            "type": "number"
+          },
+          "taken": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Taken",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "used": {
+            "title": "Used",
+            "type": "boolean"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "t_start",
+          "t_end",
+          "title",
+          "reason",
+          "options",
+          "value",
+          "used",
+          "taken"
+        ],
+        "title": "ObjectiveWindow",
+        "type": "object"
+      },
       "Player": {
         "properties": {
           "champion": {
@@ -911,6 +971,14 @@
           },
           "summary": {
             "$ref": "#/components/schemas/Summary"
+          },
+          "windows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ObjectiveWindow"
+            },
+            "title": "Windows",
+            "type": "array"
           }
         },
         "required": [
@@ -1179,6 +1247,24 @@
           "buff"
         ],
         "title": "TeamState",
+        "type": "object"
+      },
+      "WindowOption": {
+        "properties": {
+          "value": {
+            "title": "Value",
+            "type": "number"
+          },
+          "what": {
+            "title": "What",
+            "type": "string"
+          }
+        },
+        "required": [
+          "what",
+          "value"
+        ],
+        "title": "WindowOption",
         "type": "object"
       }
     }

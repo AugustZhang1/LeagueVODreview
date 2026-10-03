@@ -111,11 +111,9 @@ test.describe("keyboard only", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByRole("tooltip")).toHaveCount(0);
 
-    // rows of the moments list are reachable and Enter selects one
+    // rows of the moments list are reachable and Enter selects one (past Graded, Missed, Mine)
     await tabUntil(page, /^All$/);
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Tab");
+    for (let i = 0; i < 4; i++) await page.keyboard.press("Tab");
     await page.keyboard.press("Enter");
     await expect(page.locator("[data-moment] [aria-current]")).toHaveCount(1);
     await expect(page.locator('[data-testid^="detail-"]')).toBeVisible();

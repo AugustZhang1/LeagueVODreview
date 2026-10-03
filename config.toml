@@ -63,3 +63,11 @@ great = 0.10
 good = 0.05
 mistake = -0.05
 blunder = -0.10
+
+# Missed windows (Plan Step 19): the enemy is weak when its jungler, or min_dead of them, have at
+# least jungler_dead_s left to respawn; a window is listed when its best option is worth min_value.
+[windows]
+jungler_dead_s = 20
+min_dead = 2
+used_after_s = 10
+min_value = 0.03
