@@ -1,9 +1,11 @@
 """Write a fake Parquet dataset in the crawler's layout, for testing training end to end.
 
     python training/make_synthetic_dataset.py --out data_synth [--games 3000] [--seed 7]
+                                              [--version 2]
 
-Layout: <out>/<platform>/<patch>/v1/part-00001.parquet. The label depends on the features
-(a logistic of gold, kills, towers and objectives plus noise), so a model can learn it.
+Layout: <out>/<platform>/<patch>/v<version>/part-00001.parquet. The label depends on the features
+(a logistic of gold, kills, towers and objectives plus noise), so a model can learn it. Version 2's
+columns (setups at the pits, split pushing, wards) also lean toward the stronger team.
 """
 
 from __future__ import annotations
@@ -20,7 +22,9 @@ PLATFORMS = ["NA1", "EUW1", "KR"]
 PATCHES = ["26.17", "26.18", "26.19"]
 
 
-def make_game(rng: np.random.Generator, game_id: int, platform: str, patch: str) -> dict:
+def make_game(
+    rng: np.random.Generator, game_id: int, platform: str, patch: str, version: int = 2
+) -> dict:
     tier = int(rng.integers(2, 10))
     duration = int(rng.integers(20, 40)) * 60 + int(rng.integers(0, 60))
     skill = rng.normal()  # latent edge for blue
@@ -71,7 +75,7 @@ def make_game(rng: np.random.Generator, game_id: int, platform: str, patch: str)
     )
     blue_won = bool(rng.random() < 1 / (1 + np.exp(-logit[-1] * 1.3)))
     n_rows = len(t)
-    return {
+    game = {
         "match_id": np.full(n_rows, f"{platform}_{game_id}"),
         "platform": np.full(n_rows, platform),
         "patch": np.full(n_rows, patch),
@@ -96,18 +100,56 @@ def make_game(rng: np.random.Generator, game_id: int, platform: str, patch: str)
         "soul_diff": soul.astype(np.int16),
         "soul_type": soul_type,
     }
+    if version >= 2:
+        game.update(version_2_columns(rng, minute, drift, skill))
+    return game
 
 
-def make_dataset(out: Path, games: int = 3000, seed: int = 7, games_per_file: int = 500) -> int:
+def version_2_columns(
+    rng: np.random.Generator, minute: np.ndarray, drift: np.ndarray, skill: float
+) -> dict:
+    n = len(minute)
+
+    def ints(values) -> np.ndarray:
+        return np.round(values).astype(np.int16)
+
+    alive = np.clip(ints(rng.normal(drift * 0.3, 1.0, n)), -5, 5)
+    dead_blue = (np.maximum(0, -alive) + rng.poisson(0.3, n)) * (10 + minute)
+    dead_red = (np.maximum(0, alive) + rng.poisson(0.3, n)) * (10 + minute)
+    baron_in = np.where(minute >= 20, rng.choice([0, 0, 60, 200, 360], n), 1200 - minute * 60)
+    dragon_in = rng.choice([0, 0, 30, 120, 300], n)
+    return {
+        "alive_diff": alive,
+        "blue_dead_s": ints(dead_blue),
+        "red_dead_s": ints(dead_red),
+        "baron_pit_in_s": ints(np.maximum(0, baron_in)),
+        "dragon_pit_in_s": ints(dragon_in),
+        "baron_setup_diff": np.where(
+            baron_in <= 90, np.clip(ints(rng.normal(skill * 1.2, 1.2, n)), -5, 5), 0
+        ).astype(np.int16),
+        "dragon_setup_diff": np.where(
+            dragon_in <= 90, np.clip(ints(rng.normal(skill * 0.8, 1.2, n)), -5, 5), 0
+        ).astype(np.int16),
+        "grouped_diff": np.clip(ints(rng.normal(0, 1.5, n)), -4, 4),
+        "split_diff": np.where(minute >= 14, rng.choice([-1, 0, 0, 0, 1], n), 0).astype(np.int16),
+        "enemy_jungle_diff": np.clip(ints(rng.normal(drift * 0.3, 1.0, n)), -5, 5),
+        "wards_placed_diff": ints(rng.normal(skill, 3.0, n)),
+        "wards_killed_diff": ints(rng.normal(0, 2.0, n)),
+    }
+
+
+def make_dataset(
+    out: Path, games: int = 3000, seed: int = 7, games_per_file: int = 500, version: int = 2
+) -> int:
     """Write the dataset and return the number of rows."""
     rng = np.random.default_rng(seed)
     groups: dict[tuple[str, str], list[dict]] = {}
     for g in range(games):
         key = (PLATFORMS[g % len(PLATFORMS)], PATCHES[(g // len(PLATFORMS)) % len(PATCHES)])
-        groups.setdefault(key, []).append(make_game(rng, g, *key))
+        groups.setdefault(key, []).append(make_game(rng, g, *key, version=version))
     total = 0
     for (platform, patch), items in groups.items():
-        folder = out / platform / patch / "v1"
+        folder = out / platform / patch / f"v{version}"
         folder.mkdir(parents=True, exist_ok=True)
         for i in range(0, len(items), games_per_file):
             chunk = items[i : i + games_per_file]
@@ -123,9 +165,10 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--games", type=int, default=3000)
     p.add_argument("--seed", type=int, default=7)
+    p.add_argument("--version", type=int, default=2, choices=[1, 2])
     args = p.parse_args(argv)
-    rows = make_dataset(args.out, args.games, args.seed)
-    print(f"wrote {args.games} games, {rows} rows to {args.out}")
+    rows = make_dataset(args.out, args.games, args.seed, version=args.version)
+    print(f"wrote {args.games} games, {rows} rows (features version {args.version}) to {args.out}")
 
 
 if __name__ == "__main__":

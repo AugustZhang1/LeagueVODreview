@@ -309,6 +309,8 @@ def test_rows_to_table(game):
     assert schema.field("minute").type == pa.float32()
     assert schema.field("kill_diff").type == pa.int16()
     assert schema.field("tier").type == pa.int16()
+    assert schema.field("red_dead_s").type == pa.int16()
+    assert schema.field("baron_setup_diff").type == pa.int16()
     for name in ("soul_type", "platform", "patch"):
         assert pa.types.is_dictionary(schema.field(name).type)
     assert table.column("soul_type").to_pylist() == [r["soul_type"] for r in rows]
@@ -323,3 +325,140 @@ def test_rows_from_timeline_alone(game):
     for f in no_end["info"]["frames"]:
         f["events"] = [e for e in f["events"] if e["type"] != "GAME_END"]
     assert F.match_from_timeline(no_end, "26.19") is None
+
+
+def monster(timeline, kind):
+    return [e for e in all_events(timeline) if e.get("monsterType") == kind]
+
+
+def test_pit_timers(load_game):
+    # Grubs at 8:00, then Herald at 15:00 (despawned at 19:45 here), then Baron at 20:00 and every
+    # 6 min after a kill. Dragons every 5 min; the 4th of one team is the soul, Elder 6 min later.
+    match, timeline = load_game("NA1_5652921747")
+
+    def at(t):
+        s = F.state_at(match, timeline, t)
+        return s.baron_pit_in_ms, s.dragon_pit_in_ms
+
+    assert at(0) == (480_000, 300_000)
+    assert at(340_000) == (140_000, 0)  # the first dragon falls at 5:58
+    grubs = monster(timeline, "HORDE")
+    assert len(grubs) == F.GRUBS_PER_CAMP
+    assert at(grubs[-1]["timestamp"])[0] == 900_000 - grubs[-1]["timestamp"]
+    herald = monster(timeline, "RIFTHERALD")[0]
+    assert herald["killerTeamId"] == 300  # despawned
+    assert at(herald["timestamp"])[0] == 1_200_000 - herald["timestamp"]
+    baron = monster(timeline, "BARON_NASHOR")[0]
+    assert at(baron["timestamp"])[0] == 360_000
+    assert at(baron["timestamp"] + 400_000)[0] == 0
+    dragons = monster(timeline, "DRAGON")
+    assert at(dragons[0]["timestamp"])[1] == 300_000
+    soul = [e for e in dragons if e["killerTeamId"] == RED][3]
+    assert F.state_at(match, timeline, soul["timestamp"]).teams[RED].soul
+    assert at(soul["timestamp"])[1] == 360_000
+
+
+def test_objective_and_building_positions(load_game):
+    match, timeline = load_game("NA1_5652762926")
+    for e in all_events(timeline):
+        if e["type"] in ("ELITE_MONSTER_KILL", "BUILDING_KILL") and e.get("killerId"):
+            state = F.state_at(match, timeline, e["timestamp"])
+            for pid in [e["killerId"], *e.get("assistingParticipantIds", [])]:
+                p = state.players[pid]
+                assert (p.x, p.y, p.pos_t_ms) == (*e["position"].values(), e["timestamp"])
+
+
+def test_recent_wards():
+    match = {
+        "info": {
+            "participants": [
+                {"participantId": 1, "teamId": BLUE},
+                {"participantId": 6, "teamId": RED},
+            ]
+        }
+    }
+    evs = [
+        {"type": "WARD_PLACED", "creatorId": 1, "wardType": "YELLOW_TRINKET", "timestamp": 10_000},
+        {"type": "WARD_PLACED", "creatorId": 1, "wardType": "CONTROL_WARD", "timestamp": 20_000},
+        {"type": "WARD_PLACED", "creatorId": 6, "wardType": "UNDEFINED", "timestamp": 20_000},
+        {"type": "WARD_KILL", "killerId": 6, "wardType": "SIGHT_WARD", "timestamp": 30_000},
+        {"type": "WARD_PLACED", "creatorId": 0, "wardType": "SIGHT_WARD", "timestamp": 30_000},
+    ]
+    timeline = {"info": {"frames": [{"timestamp": 0, "participantFrames": {}, "events": evs}]}}
+
+    def wards(t):
+        row = F.feature_row(F.state_at(match, timeline, t), "GOLD")
+        return row["wards_placed_diff"], row["wards_killed_diff"]
+
+    assert wards(15_000) == (1, 0)
+    assert wards(40_000) == (2, -1)  # traps (UNDEFINED) don't count
+    assert wards(10_000 + F.WARD_WINDOW_S * 1000 + 1) == (1, -1)
+    assert wards(30_000 + F.WARD_WINDOW_S * 1000 + 1) == (0, 0)
+
+
+def _state(t_ms, spots, baron_in_ms=0, dragon_in_ms=200_000):
+    """A state with players at (x, y); pids 1-5 blue, 6-10 red. A spot of None is a dead player."""
+    players = {}
+    for pid, spot in enumerate(spots, 1):
+        team = BLUE if pid <= 5 else RED
+        if spot is None:
+            players[pid] = F.PlayerState(
+                pid, team, "", 0, 0, t_ms - 5000, dead_until_ms=t_ms + 30_000
+            )
+        else:
+            players[pid] = F.PlayerState(pid, team, "", *spot, pos_t_ms=t_ms - 1000)
+    return F.GameState(
+        t_ms, {BLUE: F.TeamState(), RED: F.TeamState()}, players, set(), [],
+        baron_pit_in_ms=baron_in_ms, dragon_pit_in_ms=dragon_in_ms,
+    )  # fmt: skip
+
+
+BARON = (5007, 10471)
+NEAR_BARON = [(5007, 10471), (5400, 10000), (4600, 10900), (5800, 11000)]
+SPLIT_BOT = (13600, 6500)  # red's half of the bot lane
+
+
+def test_setup_split_and_groups():
+    # Blue: 4 at Baron, 1 alone bot on red's side. Red: 2 at Baron, 2 grouped mid, 1 dead at Baron.
+    spots = [*NEAR_BARON, SPLIT_BOT, (5100, 10300), (4900, 10600), (7400, 7400), (7600, 7300), None]
+    row = F.map_features(_state(25 * 60_000, spots))
+    assert row["baron_setup_diff"] == 4 - 2
+    assert row["dragon_setup_diff"] == 0  # dragon is 200 s away
+    assert row["split_diff"] == 1
+    assert row["grouped_diff"] == 4 - 2
+    assert row["alive_diff"] == 1
+    assert (row["blue_dead_s"], row["red_dead_s"]) == (0, 30)
+    assert row["baron_pit_in_s"] == 0 and row["dragon_pit_in_s"] == 200
+
+    soon = F.map_features(_state(25 * 60_000, spots, baron_in_ms=F.SETUP_S * 1000 + 1))
+    assert soon["baron_setup_diff"] == 0
+    early = F.map_features(_state(10 * 60_000, spots))
+    assert early["split_diff"] == 0  # laning, not split pushing
+
+
+def test_split_needs_enemy_half_and_no_one_near():
+    def split(spots):
+        return F.map_features(_state(20 * 60_000, spots))["split_diff"]
+
+    mid = [(7400, 7400)] * 4
+    red_mid = [(9000, 9000)] * 5
+    assert split([*mid, SPLIT_BOT, *red_mid]) == 1
+    assert split([*mid, (13600, 1000), *red_mid]) == 0  # blue's own half of the bot lane
+    assert split([*mid[:3], (13300, 6700), SPLIT_BOT, *red_mid]) == 0  # two together
+    assert split([*mid, (7500, 7400), (1500, 8000), *red_mid[:4]]) == -1  # red, top, blue's half
+
+
+def test_stale_positions_ignored():
+    # Respawned after dying at Baron but no frame since: not counted as standing there
+    state = _state(25 * 60_000, [*NEAR_BARON, (7400, 7400), *[(9000, 9000)] * 5])
+    p = state.players[1]
+    p.dead_until_ms, p.pos_t_ms = state.t_ms - 5000, state.t_ms - 40_000
+    row = F.map_features(state)
+    assert row["baron_setup_diff"] == 3 and row["alive_diff"] == 0
+
+
+def test_enemy_jungle():
+    red_jungle = (10500, 9000)
+    blue_jungle = (4000, 6000)
+    spots = [red_jungle, red_jungle, *[(7400, 7400)] * 3, blue_jungle, *[(9000, 9000)] * 4]
+    assert F.map_features(_state(20 * 60_000, spots))["enemy_jungle_diff"] == 2 - 1

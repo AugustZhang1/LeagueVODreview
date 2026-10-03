@@ -121,3 +121,12 @@ def test_ids_match_features_scheme(synthetic_games):
                     seen += 1
     assert seen > 0
     assert len(SYNTHETIC_IDS) == 4
+
+
+def test_side_of():
+    assert map_data.side_of(1000, 1000) == "blue"
+    assert map_data.side_of(13000, 13000) == "red"
+    # the pits mirror each other across the map's center, so they're on opposite sides
+    assert map_data.side_of(*map_data.BARON_PIT) == "red"
+    assert map_data.side_of(*map_data.DRAGON_PIT) == "blue"
+    assert map_data.zone_of(*map_data.BARON_PIT) == "baron pit"

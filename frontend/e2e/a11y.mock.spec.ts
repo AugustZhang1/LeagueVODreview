@@ -98,7 +98,7 @@ test.describe("keyboard only", () => {
       "LeagueVODreview",
       "Search",
       "Model",
-      "18:55+7%",
+      "16:50−9%",
       "Games",
       "Previous moment",
       "Next moment",
