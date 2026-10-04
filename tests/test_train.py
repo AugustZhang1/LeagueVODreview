@@ -226,6 +226,31 @@ def test_out_of_fold_champion_numbers(run):
     assert (one_game == 1).all()
 
 
+def test_one_rank_against_old_model(tmp_path):
+    # Version 3 re-crawls games that are also in version 1 (same match ids), plus older games
+    data, out = tmp_path / "data", tmp_path / "out"
+    synth.make_dataset(data, games=1200, seed=7, version=1)
+    synth.make_dataset(data, games=800, seed=8, version=3)
+    df = train.load_data(data, [], 3, None, 42, ["CHALLENGER"])
+    assert set(df["tier"]) == {9}
+    m = train.main(["--data", str(data), "--out", str(out), "--no-tune", "--features-version",
+                    "3", "--tiers", "CHALLENGER", "--old-version", "1"])  # fmt: skip
+    assert m["tiers"] == ["CHALLENGER"] and m["games"] == df["match_id"].nunique()
+    o = m["old_model"]
+    old = train.load_data(data, [], 1, None, 42, ["CHALLENGER"])
+    _, val, test = train.split_by_match(df, 42)
+    held_out = set(val["match_id"]) | set(test["match_id"])
+    assert o["version"] == 1
+    assert o["train_games"] == len(set(old["match_id"]) - held_out) < old["match_id"].nunique()
+    assert o["new"]["log_loss"] == pytest.approx(m["models"]["lightgbm"]["overall"]["log_loss"])
+    assert {"accuracy", "log_loss", "brier", "calibration_gap_pts"} == set(o["old"])
+    assert [r["bucket"] for r in o["by_minute"]] == [
+        r["bucket"] for r in m["models"]["lightgbm"]["by_minute"]
+    ]
+    report = (out / "report.md").read_text()
+    assert "ranks CHALLENGER" in report and "## Old model against the new one" in report
+
+
 def test_version_1_training(tmp_path):
     data, out = tmp_path / "data", tmp_path / "out"
     synth.make_dataset(data, games=300, seed=6, version=1)

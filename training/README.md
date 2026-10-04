@@ -105,5 +105,7 @@ python training/train.py --data /tmp/synth --out /tmp/synth_out --patches 26.18,
 | `--no-tune` | only the first LightGBM setting (faster) |
 | `--seed 42` | split and model seed |
 | `--max-rows N` | keep whole games until about N rows (quick runs) |
+| `--tiers CHALLENGER` | only these ranks' games (default: all) |
+| `--old-version 1` | also train on version 1's games (same ranks, without this run's validation and test games, since a re-crawled game is in both) and compare that model with the new one on the test games: the report's "Old model against the new one" |
 
 The maximum calibration gap ignores bins with fewer than 20 rows.

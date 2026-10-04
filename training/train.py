@@ -126,9 +126,16 @@ def pick_version(games: dict[int, int]) -> int:
 
 
 def load_data(
-    data: Path, patches: list[str] | None, features_version: int, max_rows: int | None, seed: int
+    data: Path,
+    patches: list[str] | None,
+    features_version: int,
+    max_rows: int | None,
+    seed: int,
+    tiers: list[str] | None = None,
 ) -> pd.DataFrame:
-    """Rows of one features version (0: `pick_version`), with a `features_version` column."""
+    """Rows of one features version (0: `pick_version`), with a `features_version` column.
+    `tiers` (e.g. ["CHALLENGER"]) keeps only those ranks' games."""
+    tier_ids = [TIER_NAMES.index(t.title()) for t in tiers or []]
     files = sorted(data.rglob("*.parquet"))
     log(f"found {len(files)} parquet files under {data}")
     by_version: dict[int, list[pd.DataFrame]] = {}
@@ -143,10 +150,12 @@ def load_data(
                                patch=part["patch"].astype(str))  # fmt: skip
             if patches:
                 part = part[part["patch"].isin(patches)]
+            if tier_ids:
+                part = part[part["tier"].astype(int).isin(tier_ids)]
             if not part.empty:
                 by_version.setdefault(int(version), []).append(part)
     if not by_version:
-        raise SystemExit("no rows left after the patch filter")
+        raise SystemExit("no rows left after the patch and rank filters")
     games = {v: int(pd.concat([p["match_id"] for p in ps]).nunique())
              for v, ps in sorted(by_version.items())}  # fmt: skip
     log(f"games per features version: {games}")
@@ -402,6 +411,33 @@ def compare_feature_sets(train, val, test, p_test: np.ndarray, weight: str, seed
     return result
 
 
+def fit_old_model(old: pd.DataFrame, val, test, p_test: np.ndarray, grid: list[dict], weight: str,
+                  seed: int) -> dict:  # fmt: skip
+    """The model an older features version's games give (e.g. the version 1 model this one may
+    replace), against the new model on the new model's test games. The old games leave out the new
+    run's validation and test games (a re-crawled game is in both versions), so neither model has
+    seen the test games; the old model gets its own LightGBM setting, tuned on the same validation
+    games."""
+    version = int(old["features_version"].iloc[0])
+    old = old[~old["match_id"].isin(set(val["match_id"]) | set(test["match_id"]))]
+    games = int(old["match_id"].nunique())
+    log(f"== old model: version {version} features on {games} games")
+    cols = COLUMNS_BY_VERSION[version]
+    booster, setting, _ = tune_lightgbm(old, val, cols, grid, weight, seed)
+    p_old = predict(booster, test, cols)
+    y = test["blue_won"].to_numpy()
+    result = {"version": version, "train_games": games, "setting": setting}
+    for name, p in (("old", p_old), ("new", p_test)):
+        result[name] = {**scores(y, p), "calibration_gap_pts": calibration_table(y, p)[1]}
+    result["by_minute"] = [
+        {"bucket": o["bucket"], "rows": o["rows"], "old_log_loss": o["log_loss"],
+         "new_log_loss": n["log_loss"]}
+        for o, n in zip(by_minute(test, p_old), by_minute(test, p_test), strict=True)
+    ]  # fmt: skip
+    log(f"old model: {result['old']}; new model: {result['new']}")
+    return result
+
+
 def feature_effects(booster: lgb.Booster, test: pd.DataFrame, cols: list[str],
                     max_rows: int = 200_000) -> list[dict]:  # fmt: skip
     """For each position, vision or champion feature, on test rows where it isn't 0: the win
@@ -531,7 +567,8 @@ def write_report(m: dict, val_ll: float, path: Path) -> None:
         "# Training report",
         "",
         f"Trained {m['trained_at']} on {m['games']} games ({m['rows']} rows), patches "
-        f"{', '.join(m['patches'])}, features version {m['features_version']}.",
+        f"{', '.join(m['patches'])}, features version {m['features_version']}"
+        f"{', ranks ' + ', '.join(m['tiers']) if m.get('tiers') else ''}.",
         f"Split (games): {m['split']}. Weighting: {m['weighting']}. Isotonic: {m['isotonic']}.",
         f"LightGBM validation log loss: {val_ll:.4f}.",
         *([f"Champion columns {'kept' if cc['used'] else 'dropped'}: validation log loss"
@@ -587,6 +624,22 @@ def write_report(m: dict, val_ll: float, path: Path) -> None:
                          [[r["situation"], r["rows"], r["games"],
                            *[r[f"v{v}_log_loss"] for v in olds], r["log_loss"]]
                           for r in c["situations"]])]  # fmt: skip
+    o = m.get("old_model")
+    if o:
+        heads = ["model", "train games", "accuracy", "log loss", "brier", "calibration gap (pts)"]
+        out += ["", "## Old model against the new one", "",
+                f"Old model: features version {o['version']}, trained on that version's games"
+                " (the same ranks) without this run's validation and test games, with its own"
+                " best LightGBM setting. Both on this run's test games. Lower log loss is"
+                " better.", "",
+                md_table(heads, [[f"old (version {o['version']})", o["train_games"],
+                                  *o["old"].values()],
+                                 [f"new (version {m['features_version']})", m["split"]["train"],
+                                  *o["new"].values()]]),
+                "", "### By minute", "",
+                md_table(["minute", "old log loss", "new log loss", "rows"],
+                         [[r["bucket"], r["old_log_loss"], r["new_log_loss"], r["rows"]]
+                          for r in o["by_minute"]])]  # fmt: skip
     ch = m.get("champions")
     if ch:
         heads = ["champion", "games", "win rate", "per 10 min of game (pts)"]
@@ -647,15 +700,21 @@ def main(argv: list[str] | None = None) -> dict:
     ap.add_argument("--no-tune", action="store_true", help="only the first LightGBM setting")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--max-rows", type=int)
+    ap.add_argument("--tiers", default="", help="comma separated, e.g. CHALLENGER (default: all)")
+    ap.add_argument(
+        "--old-version", type=int, default=0, choices=[0, 1, 2],
+        help="also train a model on this older version's games and compare it on the test games",
+    )  # fmt: skip
     # Kaggle runs the file inside a notebook kernel that may add its own flags
     args, _ = ap.parse_known_args(argv)
     data = args.data or default_data_dir()
     out = args.out or Path("/kaggle/working")
     out.mkdir(parents=True, exist_ok=True)
     patches = [p.strip() for p in args.patches.split(",") if p.strip()]
+    tiers = [t.strip() for t in args.tiers.split(",") if t.strip()]
 
     log(f"== loading {data}")
-    df = load_data(data, patches, args.features_version, args.max_rows, args.seed)
+    df = load_data(data, patches, args.features_version, args.max_rows, args.seed, tiers)
     version = int(df["features_version"].iloc[0])
     cols = COLUMNS_BY_VERSION[version]
     games = int(df["match_id"].nunique())
@@ -727,6 +786,11 @@ def main(argv: list[str] | None = None) -> dict:
 
     tier_models = fit_tier_models(train, val, test, p_test, args, out, cols, setting)
 
+    old_model = None
+    if args.old_version:
+        old = load_data(data, patches, args.old_version, None, args.seed, tiers)
+        old_model = fit_old_model(old, val, test, p_test, grid, args.weight, args.seed)
+
     comparison, effects = None, []
     if version > 1:
         p_full = p_test_raw if full is booster else predict(full, test, full_cols)
@@ -751,6 +815,7 @@ def main(argv: list[str] | None = None) -> dict:
         "games": games,
         "rows": int(len(df)),
         "patches": used_patches,
+        "tiers": tiers,
         "features_version": version,
         "features": cols,
         "split": split,
@@ -767,6 +832,7 @@ def main(argv: list[str] | None = None) -> dict:
         "feature_effects": effects,
         "champions": champion_summary(champions),
         "tier_models": tier_models,
+        "old_model": old_model,
     }
     (out / "metrics.json").write_text(json.dumps(metrics, indent=2))
     plot_calibration(calibration, out / "calibration.png")

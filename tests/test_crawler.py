@@ -359,3 +359,7 @@ def test_patch_of_id(tmp_path):
     assert [c._patch_of_id(f"NA1_{n}") for n in (10, 15, 20, 25, 30, 31)] == [
         "16.18", "16.18", "16.18", None, "16.19", None
     ]  # fmt: skip
+    # Another platform's ids (an NA player's LA1 games) neither stretch the ranges nor match them
+    c._note_patch_id("LA1_1", "16.19")
+    assert c._patch_ids() == {"16.18": [10, 20], "16.19": [30, 30]}
+    assert c._patch_of_id("LA1_15") is None

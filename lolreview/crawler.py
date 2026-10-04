@@ -241,14 +241,23 @@ class PlatformCrawler:
     def _patch_ids(self) -> dict[str, list[int]]:
         return json.loads(self.state.meta_get("patch_ids", "{}"))
 
+    def _own_id(self, match_id: str) -> bool:
+        """A game of this platform: a player's match list also has their games on the cluster's
+        other platforms (an NA player's LA1 games), whose ids count separately."""
+        return match_id.split("_", 1)[0].lower() == self.platform.lower()
+
     def _patch_of_id(self, match_id: str) -> str | None:
         """The patch whose seen game ids (lowest to highest) include this one, else None. Ids grow
         over time and a patch starts at one id, so between two ids of a patch it's that patch."""
+        if not self._own_id(match_id):
+            return None
         n = int(match_id.rsplit("_", 1)[1])
         hits = [p for p, (lo, hi) in self._patch_ids().items() if lo <= n <= hi]
         return hits[0] if len(hits) == 1 else None
 
     def _note_patch_id(self, match_id: str, patch: str) -> None:
+        if not self._own_id(match_id):
+            return
         n = int(match_id.rsplit("_", 1)[1])
         ids = self._patch_ids()
         lo, hi = ids.get(patch, (n, n))
