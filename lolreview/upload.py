@@ -1,4 +1,4 @@
-"""Upload the recent crawl batches to a private Kaggle dataset (Plan.md Step 9)."""
+"""Upload the recent crawl batches to a private Kaggle dataset."""
 
 import argparse
 import json

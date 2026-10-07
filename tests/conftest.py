@@ -14,7 +14,7 @@ REAL = FIXTURES / "real"
 sys.path.insert(0, str(FIXTURES))
 
 SYNTHETIC_IDS = [f"NA1_900000000{i}" for i in range(1, 5)]
-# Real ranked solo games saved by scripts/fetch_samples.py in Step 3.
+# Real ranked solo games saved by scripts/fetch_samples.py, with player identities anonymized.
 REAL_IDS = sorted(f.name.removesuffix(".match.json") for f in REAL.glob("*.match.json"))
 
 

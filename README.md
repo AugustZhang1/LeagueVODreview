@@ -1,6 +1,6 @@
 # LeagueVODreview
 
-Reviews a ranked solo League of Legends game by scoring the win chance every few seconds, grouping kills and objectives into moments, and grading each one. A crawler collects training games, a model learns win chance from them, and a local web app shows the review. See `Overview.md` for the idea, `Plan.md` for the build plan and `UI.md` for the app's design.
+Reviews a ranked solo League of Legends game by scoring the win chance every few seconds, grouping kills and objectives into moments, and grading each one. A crawler collects training games, a model learns win chance from them, and a local web app shows the review. See `Overview.md` for the idea and design.
 
 ## Layout
 
@@ -57,3 +57,10 @@ npm run gen:api     # regenerate src/api/types.ts from openapi.json
 also finds one under `PLAYWRIGHT_BROWSERS_PATH`. Set `E2E_DEMO=0` to skip the demo-backend run.
 
 In a dev build, `/dev/components` shows every shared component on the real tokens.
+
+## License
+
+MIT, see `LICENSE`. LeagueVODreview isn't endorsed by Riot Games and doesn't reflect the views or
+opinions of Riot Games or anyone officially involved in producing or managing Riot Games
+properties. Riot Games and all associated properties are trademarks or registered trademarks of
+Riot Games, Inc.

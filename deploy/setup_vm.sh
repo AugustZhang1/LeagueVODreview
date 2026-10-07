@@ -2,9 +2,7 @@
 # Set up the crawler on a fresh Debian 12 VM. Safe to run twice.
 set -euo pipefail
 
-# The repo is private, so the VM clones it with its own read-only deploy key. The first run prints
-# the key to add under the repo's Settings -> Deploy keys; then run the script again.
-REPO_URL="git@github.com:AugustZhang1/LeagueVODreview.git"
+REPO_URL="${REPO_URL:-https://github.com/AugustZhang1/LeagueVODreview.git}"
 REPO_DIR="$HOME/LeagueVODreview"
 SERVICE_USER="$(id -un)"
 
@@ -24,14 +22,6 @@ fi
 echo "== 2/4 python, code, venv"
 sudo apt-get update -y
 sudo apt-get install -y python3 python3-venv git curl ca-certificates
-mkdir -p ~/.ssh && chmod 700 ~/.ssh
-grep -q '^github.com ' ~/.ssh/known_hosts 2>/dev/null || ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
-[ -f ~/.ssh/id_ed25519 ] || ssh-keygen -q -t ed25519 -N "" -C lol-crawler -f ~/.ssh/id_ed25519
-if ! git ls-remote "$REPO_URL" >/dev/null 2>&1; then
-    echo "Add this read-only deploy key under the repo's Settings -> Deploy keys, then run again:"
-    cat ~/.ssh/id_ed25519.pub
-    exit 1
-fi
 if [ -d "$REPO_DIR/.git" ]; then
     git -C "$REPO_DIR" pull --ff-only
 else

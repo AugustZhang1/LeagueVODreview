@@ -1,4 +1,4 @@
-"""Per-platform crawl state in SQLite (Plan.md Step 5)."""
+"""Per-platform crawl state in SQLite."""
 
 import sqlite3
 import time

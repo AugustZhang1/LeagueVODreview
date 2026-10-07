@@ -1,4 +1,4 @@
-"""Client for the League client's local Replay API (Plan Step 16)."""
+"""Client for the League client's local Replay API."""
 
 from __future__ import annotations
 

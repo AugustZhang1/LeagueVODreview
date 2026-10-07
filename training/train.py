@@ -1,4 +1,4 @@
-"""Train the win-chance model (Plan Steps 10 and 18). One standalone file, meant to run on Kaggle.
+"""Train the win-chance model. One standalone file, meant to run on Kaggle.
 
     python training/train.py --data DIR --out DIR [--patches 26.18,26.19] [--features-version N]
                              [--weight none|game] [--isotonic] [--no-tune] [--seed 42]

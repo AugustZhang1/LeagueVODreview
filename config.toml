@@ -22,7 +22,7 @@ long_window_s = 120
 americas_long_count = 80
 
 # Objective timers in game seconds, patch 16.19. Spawns and respawns agree with 100 Challenger games
-# (earliest kill, shortest gap between kills; Step 3). Grubs (3, once) and Herald (once) don't
+# (earliest kill, shortest gap between kills). Grubs (3, once) and Herald (once) don't
 # respawn; Herald leaves when Baron is due. Atakhan was removed in 26.1.
 [timers]
 dragon_first_s = 300
@@ -64,7 +64,7 @@ good = 0.05
 mistake = -0.05
 blunder = -0.10
 
-# Missed windows (Plan Step 19): the enemy is weak when its jungler, or min_dead of them, have at
+# Missed windows: the enemy is weak when its jungler, or min_dead of them, have at
 # least jungler_dead_s left to respawn; a window is listed when its best option is worth min_value.
 [windows]
 jungler_dead_s = 20

@@ -1,4 +1,4 @@
-"""Progress page for the crawler (Plan.md Step 6): stdlib http.server, no JavaScript."""
+"""Progress page for the crawler: stdlib http.server, no JavaScript."""
 
 import json
 import threading

@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-BOUNDS = (-120, 14870)  # verify in Step 3
+BOUNDS = (-120, 14870)
 _M = 14870
 _LO = -120
 _HI = _M + 120  # polygons run a little past the map so edge points stay inside

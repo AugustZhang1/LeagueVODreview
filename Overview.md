@@ -110,7 +110,7 @@ Each stage works on its own.
 ## App
 
 - **Backend:** FastAPI. Fetches and caches matches, builds features, runs the model, returns the review as one JSON.
-- **Frontend:** React. Clean, neat and simple: a dark theme where blue means your team and red the enemy. The full design is in `UI.md`.
+- **Frontend:** React. Clean, neat and simple: a dark theme where blue means your team and red the enemy.
   - Recharts win % graph
   - Timeline scrubber
   - Canvas minimap using the Data Dragon map image

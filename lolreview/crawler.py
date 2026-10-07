@@ -1,4 +1,4 @@
-"""Crawl ranked solo games into Parquet batches (Plan.md Step 5).
+"""Crawl ranked solo games into Parquet batches.
 
 python -m lolreview.crawler [--platforms na1,euw1,kr] [--fake] [--minutes N]
                             [--data DIR] [--batch-games N]

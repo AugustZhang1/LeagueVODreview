@@ -25,5 +25,5 @@ regenerates the games in memory and compares them to the committed files.
 ## Real fixtures
 
 `real/` holds three real ranked solo games from NA Challenger on patch 16.19, saved by
-`scripts/fetch_samples.py` in Step 3, and `REPORT.md`, its summary of 20 games. The feature and
+`scripts/fetch_samples.py` (player names and IDs anonymized), and `REPORT.md`, its summary of 20 games. The feature and
 review tests run on them as well as on the synthetic games.

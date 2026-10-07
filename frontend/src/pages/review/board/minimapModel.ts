@@ -1,7 +1,7 @@
 import type { Building, Player, PlayerState, Review, Side, Snapshot } from "../../../api/models";
 import { toCanvas } from "../../../lib/map";
 
-/** Icon diameter and ring widths in CSS pixels, from UI.md. */
+/** Icon diameter and ring widths in CSS pixels. */
 export const ICON_SIZE = 26;
 export const RING = 2;
 export const BUILDING_SIZE = 6;

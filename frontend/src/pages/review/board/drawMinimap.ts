@@ -190,7 +190,7 @@ function drawDebug(ctx: CanvasRenderingContext2D, a: DrawArgs) {
   ctx.restore();
 }
 
-/** Draws the whole minimap in UI.md's order: buildings, kill marks, enemies, allies, you. */
+/** Draws the whole minimap in this order: buildings, kill marks, enemies, allies, you. */
 export function drawMinimap(ctx: CanvasRenderingContext2D, a: DrawArgs) {
   ctx.setTransform(a.dpr, 0, 0, a.dpr, 0, 0);
   ctx.clearRect(0, 0, a.size, a.size);

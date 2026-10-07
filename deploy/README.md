@@ -1,8 +1,7 @@
 # Deploy the crawler to the VM
 
-Run these on your laptop unless a step says "on the VM". The repo is private, so the first run of
-`setup_vm.sh` prints a deploy key to add under the repo's Settings -> Deploy keys (read-only);
-then run it again.
+Run these on your laptop unless a step says "on the VM". To deploy your own fork, set `REPO_URL`
+when running `setup_vm.sh` (it defaults to this repo).
 
 ## 1. Create the VM
 
