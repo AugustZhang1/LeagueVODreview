@@ -101,8 +101,12 @@ sed -e "s|@HOST@|${IP//./-}.sslip.io|g" ~/Caddyfile | sudo tee /etc/caddy/Caddyf
 Check it: `curl https://<host>/api/health`. After retraining, copy the new `models/` files the same
 way and `sudo systemctl restart lolreview-app`.
 
+To use the whole app at that address, build the UI on the laptop and copy it over (again after UI
+changes): `cd frontend && npm run build`, then
+`gcloud compute scp --recurse dist lol-crawler:LeagueVODreview/frontend/ --zone us-central1-a`.
+
 The app shares the Riot key with the crawler, which leaves 15 requests per 2 minutes on NA for it:
-enough for you, not for strangers. Point the GitHub Pages site at it only with a production key:
+about one new player every 2 minutes. To point the GitHub Pages site at it:
 
 ```
 gh variable set API_BASE --body "https://35-255-204-93.sslip.io"
