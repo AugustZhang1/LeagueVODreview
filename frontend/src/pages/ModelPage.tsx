@@ -30,8 +30,8 @@ function NoModel() {
   return (
     <Panel className={styles.noModel}>
       <p>
-        No trained model yet; the app is using a placeholder. Train on Kaggle (training/README.md) and put{" "}
-        <code className={styles.code}>model.txt</code> and{" "}
+        No trained model yet; the app is using a placeholder. Train on Kaggle (training/README.md)
+        and put <code className={styles.code}>model.txt</code> and{" "}
         <code className={styles.code}>metrics.json</code> in{" "}
         <code className={styles.code}>models/</code>.
       </p>
