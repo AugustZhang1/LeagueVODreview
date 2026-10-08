@@ -1,5 +1,6 @@
-# Publishes the UI to GitHub Pages on real, anonymized games baked into the build
-# (src/mocks/showcase.json): no backend, no Riot key.
+# Publishes the UI to GitHub Pages. By default it serves the games baked into the build
+# (src/mocks/showcase.json): no backend, no Riot key. Set the repository variable API_BASE to the
+# VM's HTTPS address (deploy/README.md, step 7) to look up any player through the hosted API instead.
 name: pages
 
 on:
@@ -33,7 +34,9 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-      - run: npx vite build --mode pages --base=/LeagueVODreview/
+      - run: npx vite build --mode ${{ vars.API_BASE && 'production' || 'pages' }} --base=/LeagueVODreview/
+        env:
+          VITE_API_BASE: ${{ vars.API_BASE }}
       # Pages serves 404.html for unknown paths, so deep links like /review/... still load the app.
       - run: cp dist/index.html dist/404.html
       - uses: actions/upload-pages-artifact@v5

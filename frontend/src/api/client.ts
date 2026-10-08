@@ -39,10 +39,13 @@ export async function parseError(res: Response): Promise<ApiError> {
   return new ApiError("http_error", `Request failed with status ${res.status}`, res.status);
 }
 
+/** Where the API lives when the UI is hosted elsewhere (GitHub Pages); same origin when empty. */
+const API_BASE: string = import.meta.env.VITE_API_BASE ?? "";
+
 export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(path, { signal, headers: { Accept: "application/json" } });
+    res = await fetch(API_BASE + path, { signal, headers: { Accept: "application/json" } });
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") throw err;
     throw new ApiError("network_error", "Can't reach the app's server.", 0);
@@ -54,7 +57,7 @@ export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> 
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(path, {
+    res = await fetch(API_BASE + path, {
       method: "POST",
       headers: { Accept: "application/json", "Content-Type": "application/json" },
       body: JSON.stringify(body),

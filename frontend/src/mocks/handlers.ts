@@ -92,6 +92,13 @@ export const handlers = [
     if (String(params.name).toLowerCase() === "nobody") {
       return errorResponse("riot_id_not_found", "Riot ID not found.", 404);
     }
+    if (real && `${params.name}#${params.tag}`.toLowerCase() !== player.riot_id.toLowerCase()) {
+      return errorResponse(
+        "demo_only",
+        `This demo only has ${player.riot_id}'s games. Looking up other players needs the full app with a Riot API key.`,
+        404,
+      );
+    }
     const url = new URL(request.url);
     const start = Number(url.searchParams.get("start") ?? 0);
     const count = Number(url.searchParams.get("count") ?? 10);
@@ -99,7 +106,7 @@ export const handlers = [
     const next = start + count < player.games.length && mode !== "empty" ? start + count : null;
     return HttpResponse.json({
       ...player,
-      riot_id: `${params.name}#${params.tag}`,
+      riot_id: real ? player.riot_id : `${params.name}#${params.tag}`,
       platform: String(params.platform).toUpperCase(),
       games,
       next_start: next,

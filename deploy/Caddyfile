@@ -1,0 +1,7 @@
+# HTTPS for the review app. @HOST@ is the VM's external IP with dashes plus .sslip.io
+# (e.g. 1-2-3-4.sslip.io): a free hostname, so Caddy can get a certificate without a domain.
+# Only the GitHub Pages site may call the API from a browser.
+@HOST@ {
+	header Access-Control-Allow-Origin https://augustzhang1.github.io
+	reverse_proxy 127.0.0.1:8000
+}

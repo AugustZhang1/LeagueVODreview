@@ -37,6 +37,8 @@ export function describeError(error: unknown, ctx: ErrorContext = {}): Described
       return { message: "Match not found.", canRetry: false };
     case "unsupported_queue":
       return { message: "Only ranked solo/duo games can be reviewed.", canRetry: false };
+    case "demo_only":
+      return { message: (error as ApiError).message, canRetry: false };
     default:
       return { message: "Something went wrong.", canRetry: true };
   }

@@ -73,3 +73,40 @@ for the progress page. `KAGGLE_API_TOKEN` must be in the VM's `.env`.
 
 Each upload counts against the VM's free 1 GB/month of outbound traffic. Upload when you are about
 to retrain, not on a timer; going over costs a few cents.
+
+## 7. Host the review app
+
+The app runs next to the crawler, on `127.0.0.1:8000`, with Caddy in front for HTTPS. The address
+is the VM's external IP with dashes plus `.sslip.io` (now `https://35-255-204-93.sslip.io`), a free
+hostname, so no domain is needed. It changes if the VM is stopped and started (a reboot keeps it).
+
+```
+gcloud compute scp models/model.txt models/metrics.json models/champions.json lol-crawler:LeagueVODreview/models/ --zone us-central1-a
+gcloud compute scp deploy/lolreview-app.service deploy/Caddyfile lol-crawler:. --zone us-central1-a
+gcloud compute firewall-rules create allow-lolreview-https --allow tcp:80,tcp:443 --target-tags lolreview-https
+gcloud compute instances add-tags lol-crawler --zone us-central1-a --tags lolreview-https
+```
+
+On the VM:
+
+```
+cd ~/LeagueVODreview && ~/.local/bin/uv pip install -p .venv -e ".[vm,app]"
+sed -e "s|@USER@|$USER|g" -e "s|@REPO@|$HOME/LeagueVODreview|g" ~/lolreview-app.service | sudo tee /etc/systemd/system/lolreview-app.service
+sudo systemctl daemon-reload && sudo systemctl enable --now lolreview-app
+sudo apt-get install -y caddy
+IP=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip)
+sed -e "s|@HOST@|${IP//./-}.sslip.io|g" ~/Caddyfile | sudo tee /etc/caddy/Caddyfile && sudo systemctl reload caddy
+```
+
+Check it: `curl https://<host>/api/health`. After retraining, copy the new `models/` files the same
+way and `sudo systemctl restart lolreview-app`.
+
+The app shares the Riot key with the crawler, which leaves 15 requests per 2 minutes on NA for it:
+enough for you, not for strangers. Point the GitHub Pages site at it only with a production key:
+
+```
+gh variable set API_BASE --body "https://35-255-204-93.sslip.io"
+gh workflow run pages.yml
+```
+
+`gh variable delete API_BASE` and another run go back to the saved games.
