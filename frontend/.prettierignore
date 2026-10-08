@@ -6,4 +6,5 @@ src/api/types.ts
 public/mockServiceWorker.js
 screenshots
 src/mocks/review.fixture.json
+src/mocks/showcase.json
 .e2e-dist

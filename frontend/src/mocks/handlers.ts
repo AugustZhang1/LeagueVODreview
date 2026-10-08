@@ -4,6 +4,7 @@ import healthJson from "./health.json";
 import modelJson from "./model.json";
 import playerJson from "./player.json";
 import reviewFixture from "./review.fixture.json";
+import showcase from "./showcase.json";
 
 /**
  * `?mock=` with one of the `MODES` below on the page URL picks a state to
@@ -59,9 +60,22 @@ function failure() {
   }
 }
 
-const health = healthJson as Health;
-const player = playerJson as PlayerGames;
+/**
+ * The GitHub Pages build (`--mode pages`) serves real games from the trained
+ * model instead, exported from the local cache with names and match ids
+ * replaced. Tests and `dev:mock` keep the fixtures above.
+ */
+const real = import.meta.env.MODE === "pages";
+const health = (real ? showcase.health : healthJson) as Health;
+const player = (real ? showcase.player : playerJson) as PlayerGames;
 const fixture = reviewFixture as unknown as Review;
+const reviews = showcase.reviews as unknown as Record<string, Review>;
+const modelMetrics = (real ? showcase.model : modelJson) as unknown as ModelMetrics;
+
+function reviewFor(matchId: string): Review {
+  if (real) return reviews[matchId] ?? Object.values(reviews)[0];
+  return { ...fixture, match: { ...fixture.match, match_id: matchId } };
+}
 const replayReason = "Open this game's replay in the League client";
 
 export const handlers = [
@@ -100,10 +114,7 @@ export const handlers = [
       return errorResponse("unsupported_queue", "Only ranked solo/duo games.", 400);
     }
     if (mode === "empty") return errorResponse("match_not_found", "Match not found.", 404);
-    return HttpResponse.json({
-      ...fixture,
-      match: { ...fixture.match, match_id: String(params.matchId) },
-    });
+    return HttpResponse.json(reviewFor(String(params.matchId)));
   }),
 
   http.get("/api/replay/status", async () => {
@@ -117,6 +128,6 @@ export const handlers = [
   http.get("/api/model", async () => {
     await delay(300);
     if (mode === "empty") return errorResponse("model_missing", "No trained model yet.", 404);
-    return HttpResponse.json(modelJson as ModelMetrics);
+    return HttpResponse.json(modelMetrics);
   }),
 ];
