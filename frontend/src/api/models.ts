@@ -17,6 +17,7 @@ export type Moment = S["Moment"];
 export type ObjectiveWindow = S["ObjectiveWindow"];
 export type WindowOption = S["WindowOption"];
 export type FightDamage = S["FightDamage"];
+export type Driver = S["Driver"];
 export type GameEvent = S["GameEvent"];
 export type Snapshot = S["Snapshot"];
 export type Objectives = S["Objectives"];

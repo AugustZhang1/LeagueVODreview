@@ -15,6 +15,56 @@ _OBJECTIVE_NAMES = {
     "atakhan": "Atakhan",
 }
 
+# Plain-English names for the model's features, for the "Why" drivers on a moment
+FEATURE_LABELS = {
+    "tier": "Rank",
+    "minute": "Game time",
+    "gold_diff": "Gold lead",
+    "kill_diff": "Kill lead",
+    "tower_diff": "Towers",
+    "level_diff": "Levels",
+    "cs_diff": "CS lead",
+    "grub_diff": "Void grubs",
+    "herald_diff": "Rift Heralds",
+    "quest_diff": "Role quests",
+    "inhibs_down_diff": "Inhibitors down",
+    "baron_active": "Baron buff",
+    "elder_active": "Elder buff",
+    "blue_dragons": "Blue dragons",
+    "red_dragons": "Red dragons",
+    "soul_diff": "Dragon soul",
+    "soul_type": "Soul type",
+    "alive_diff": "Players alive",
+    "blue_dead_s": "Blue dead time",
+    "red_dead_s": "Red dead time",
+    "baron_pit_in_s": "Baron pit timer",
+    "dragon_pit_in_s": "Dragon timer",
+    "baron_setup_diff": "Baron setup",
+    "dragon_setup_diff": "Dragon setup",
+    "grouped_diff": "Grouping",
+    "split_diff": "Split pushing",
+    "enemy_jungle_diff": "In enemy jungle",
+    "wards_placed_diff": "Wards placed",
+    "wards_killed_diff": "Wards killed",
+    "champ_wr_diff": "Champion strength",
+    "scaling_diff": "Champion scaling",
+}
+
+
+# Features named after a side; a review names them from the reviewed player's side
+_SIDED_LABELS = {
+    "dragons": ("Your dragons", "Enemy dragons"),
+    "dead_s": ("Your team's death timers", "Enemy death timers"),
+}
+
+
+def feature_label(name: str, my_color: str) -> str:
+    side, _, rest = name.partition("_")
+    if side in ("blue", "red") and rest in _SIDED_LABELS:
+        mine, theirs = _SIDED_LABELS[rest]
+        return mine if side == my_color else theirs
+    return FEATURE_LABELS.get(name, name)
+
 
 def ordinal(n: int) -> str:
     if 10 <= n % 100 <= 20:

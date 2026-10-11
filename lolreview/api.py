@@ -41,7 +41,7 @@ log = logging.getLogger(__name__)
 DEV_ORIGIN = "http://localhost:5173"
 DEFAULT_TIER = "SILVER"
 DEMO_REPLAY_REASON = "Replays aren't available in demo mode"
-REVIEW_FORMAT = 3  # bump when the Review JSON gains fields, so older cached reviews are rebuilt
+REVIEW_FORMAT = 4  # bump when the Review JSON gains fields, so older cached reviews are rebuilt
 
 
 class ApiError(Exception):

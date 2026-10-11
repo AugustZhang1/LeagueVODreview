@@ -48,3 +48,45 @@ describe("MomentDetail damage", () => {
     expect(screen.getByText(/Kill gold/)).toHaveTextContent("Kill gold: −350");
   });
 });
+
+describe("MomentDetail why", () => {
+  const drivers = [
+    { label: "Baron buff", change: -0.9 },
+    { label: "Gold lead", change: 0.3 },
+    { label: "Towers", change: 0.16 },
+  ];
+
+  it("lists the drivers with a bar each", () => {
+    render(<MomentDetail moment={withFight({ drivers })} review={review} />);
+    expect(screen.getByText("Why")).toBeInTheDocument();
+    const rows = screen.getAllByTestId("driver-row");
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toHaveTextContent("Baron buff");
+    expect(rows[2]).toHaveTextContent("Towers");
+  });
+
+  it("hides the block when there are no drivers or the field is missing", () => {
+    const { rerender } = render(
+      <MomentDetail moment={withFight({ drivers: [] })} review={review} />,
+    );
+    expect(screen.queryByText("Why")).not.toBeInTheDocument();
+    const old = { ...base, drivers: undefined } as unknown as Moment;
+    rerender(<MomentDetail moment={old} review={review} />);
+    expect(screen.queryByText("Why")).not.toBeInTheDocument();
+  });
+
+  it("shows the early-game note only before 5 minutes", () => {
+    const { rerender } = render(
+      <MomentDetail moment={withFight({ t_end: 240 })} review={review} />,
+    );
+    expect(screen.getByText(/Early game/)).toBeInTheDocument();
+    rerender(<MomentDetail moment={withFight({ t_end: 400 })} review={review} />);
+    expect(screen.queryByText(/Early game/)).not.toBeInTheDocument();
+  });
+
+  it("shows the drivers on a graded moment of the mock review", () => {
+    const dragon = review.moments.find((m) => m.id === "m02")!;
+    render(<MomentDetail moment={dragon} review={review} />);
+    expect(screen.getByText("Your dragons")).toBeInTheDocument();
+  });
+});

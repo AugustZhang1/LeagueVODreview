@@ -4,10 +4,17 @@ import time
 import pytest
 from conftest import REAL_IDS, SYNTHETIC_IDS
 
-from lolreview import schemas
+from lolreview import describe, schemas
 from lolreview.config import load_config
 from lolreview.model import PlaceholderModel
-from lolreview.review import Remake, UnsupportedQueue, _fight_damage, _kill_gold, build_review
+from lolreview.review import (
+    Remake,
+    UnsupportedQueue,
+    _drivers,
+    _fight_damage,
+    _kill_gold,
+    build_review,
+)
 
 GOOD = SYNTHETIC_IDS[:3] + REAL_IDS
 MODEL = PlaceholderModel()
@@ -310,3 +317,47 @@ def test_moment_damage_on_real_game(load_game):
     r = review_for(match, timeline, 1)
     assert any(m.damage for m in r.moments)
     assert any(m.kill_gold for m in r.moments)
+
+
+def test_drivers_sign_cap_and_skips():
+    before = {"tier": 3, "minute": 10.0, "gold_diff": 0, "baron_active": 0, "kill_diff": 0,
+              "cs_diff": 0, "tower_diff": 0}  # fmt: skip
+    after = {**before, "tier": 4, "minute": 11.0, "gold_diff": 0.3, "baron_active": -0.9,
+             "kill_diff": 0.05, "cs_diff": 0.004, "tower_diff": 0.16}  # fmt: skip
+    blue = _drivers(before, after, "blue")
+    assert [(d.label, d.change) for d in blue] == [
+        ("Baron buff", -0.9), ("Gold lead", 0.3), ("Towers", 0.16),
+    ]  # fmt: skip
+    red = _drivers(before, after, "red")
+    assert [(d.label, d.change) for d in red] == [
+        ("Baron buff", 0.9), ("Gold lead", -0.3), ("Towers", -0.16),
+    ]  # fmt: skip
+
+
+def test_driver_labels_follow_my_side():
+    assert describe.feature_label("blue_dragons", "blue") == "Your dragons"
+    assert describe.feature_label("blue_dragons", "red") == "Enemy dragons"
+    assert describe.feature_label("red_dead_s", "red") == "Your team's death timers"
+    assert describe.feature_label("gold_diff", "red") == "Gold lead"
+    before, after = {"soul_type": 0.0, "gold_diff": 0.0}, {"soul_type": 0.5, "gold_diff": 0.2}
+    assert [d.label for d in _drivers(before, after, "blue")] == ["Gold lead"]
+
+
+def test_drivers_on_moments(load_game):
+    match, timeline = load_game(SYNTHETIC_IDS[0])
+    blue = review_for(match, timeline, 4)
+    red = review_for(match, timeline, 9)
+    sided = {"Your dragons": "Enemy dragons", "Your team's death timers": "Enemy death timers"}
+    sided |= {v: k for k, v in sided.items()}
+    labels = set(describe.FEATURE_LABELS.values()) | set(sided)
+    assert any(m.drivers for m in blue.moments)
+    for m in blue.moments:
+        assert len(m.drivers) <= 3
+        sizes = [abs(d.change) for d in m.drivers]
+        assert sizes == sorted(sizes, reverse=True)
+        assert all(s >= 0.01 and d.label in labels for s, d in zip(sizes, m.drivers, strict=True))
+        assert describe.FEATURE_LABELS["tier"] not in {d.label for d in m.drivers}
+        assert describe.FEATURE_LABELS["minute"] not in {d.label for d in m.drivers}
+    for a, b in zip(blue.moments, red.moments, strict=True):
+        assert [sided.get(d.label, d.label) for d in a.drivers] == [d.label for d in b.drivers]
+        assert [d.change for d in a.drivers] == [-d.change for d in b.drivers]

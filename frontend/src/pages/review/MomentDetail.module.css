@@ -66,6 +66,19 @@
   color: var(--text-2);
 }
 
+.why {
+  margin-top: var(--space-2);
+}
+
+.driver {
+  grid-template-columns: 120px minmax(0, 1fr);
+}
+
+.early {
+  margin-top: var(--space-1);
+  color: var(--text-3);
+}
+
 .dealt {
   text-align: right;
 }

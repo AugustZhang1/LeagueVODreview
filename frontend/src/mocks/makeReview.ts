@@ -428,6 +428,67 @@ const SPECS: Spec[] = [
   },
 ];
 
+// What moved some graded moments: each driver's share of the move (shares add to 1). Its change
+// is share × Z_SCALE × z, so it has the moment's sign, positive when it helped your team.
+const WHY: Record<string, [label: string, share: number][]> = {
+  m01: [
+    ["Kill lead", 0.6],
+    ["Players alive", 0.4],
+  ],
+  m02: [
+    ["Your dragons", 0.7],
+    ["Gold lead", 0.3],
+  ],
+  m05: [
+    ["Kill lead", 0.6],
+    ["Players alive", 0.4],
+  ],
+  m06: [
+    ["Rift Heralds", 0.6],
+    ["Gold lead", 0.4],
+  ],
+  m07: [
+    ["Kill lead", 0.7],
+    ["Players alive", 0.3],
+  ],
+  m09: [
+    ["Towers", 0.6],
+    ["Gold lead", 0.4],
+  ],
+  m14: [
+    ["Your dragons", 0.4],
+    ["Kill lead", 0.4],
+    ["Players alive", 0.2],
+  ],
+  m15: [
+    ["Kill lead", 0.5],
+    ["Players alive", 0.3],
+    ["Gold lead", 0.2],
+  ],
+  m17: [
+    ["Kill lead", 0.5],
+    ["Players alive", 0.3],
+    ["Gold lead", 0.2],
+  ],
+  m18: [
+    ["Baron buff", 0.6],
+    ["Gold lead", 0.4],
+  ],
+  m22: [
+    ["Kill lead", 0.6],
+    ["Players alive", 0.4],
+  ],
+  m24: [
+    ["Kill lead", 0.6],
+    ["Players alive", 0.4],
+  ],
+  m26: [
+    ["Kill lead", 0.5],
+    ["Players alive", 0.3],
+    ["Gold lead", 0.2],
+  ],
+};
+
 const Z_SCALE = 1.5;
 const sigmoid = (z: number) => 1 / (1 + Math.exp(-z));
 const smooth = (x: number) => x * x * (3 - 2 * x);
@@ -619,8 +680,9 @@ export function makeReview(matchId = "NA1_5300000001", participantId = 4): Revie
     const before = pAt(s.start);
     const after = pAt(s.end);
     const delta = after - before;
+    const id = `m${String(i + 1).padStart(2, "0")}`;
     return {
-      id: `m${String(i + 1).padStart(2, "0")}`,
+      id,
       t_start: s.start,
       t_end: s.end,
       p_before: round4(before),
@@ -633,6 +695,10 @@ export function makeReview(matchId = "NA1_5300000001", participantId = 4): Revie
       events: specEvents[i],
       damage: fight.damage,
       kill_gold: fight.gold,
+      drivers: (WHY[id] ?? []).map(([label, share]) => ({
+        label,
+        change: Math.round(share * Z_SCALE * spec.z * 1000) / 1000,
+      })),
     };
   });
 

@@ -11,6 +11,7 @@ import pandas as pd
 import pytest
 
 from lolreview import features
+from lolreview.describe import FEATURE_LABELS
 from lolreview.model import FeatureMismatch, PlaceholderModel, load_model, models_changed
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -88,6 +89,53 @@ def test_placeholder_objective_sizes():
     assert gain(blue_dragons=1, red_dragons=1) == pytest.approx(0)
     assert gain(baron_active=1) > 2 * gain(blue_dragons=1)
     assert gain(inhibs_down_diff=1) > 2 * gain(blue_dragons=1)
+
+
+def test_pred_contrib_layout_on_a_tiny_booster():
+    # Checks what the app relies on: one column per feature, the bias last, and the rest adding
+    # up to the raw log-odds
+    rng = np.random.default_rng(0)
+    x = rng.normal(size=(300, 4))
+    y = (x[:, 0] - x[:, 1] + rng.normal(scale=0.5, size=300) > 0).astype(int)
+    booster = lgb.train({"objective": "binary", "verbose": -1, "seed": 1}, lgb.Dataset(x, y), 20)
+    contrib = booster.predict(x, pred_contrib=True)
+    assert contrib.shape == (300, 5)
+    np.testing.assert_allclose(contrib.sum(axis=1), booster.predict(x, raw_score=True), atol=1e-6)
+
+
+def test_placeholder_contributions_sum_to_log_odds():
+    m = PlaceholderModel()
+    rows = [
+        _row(gold_diff=4000, kill_diff=-2, baron_active=1, minute=25.0),
+        _row(tower_diff=3, cs_diff=-20, blue_dead_s=40, minute=8.0),
+    ]
+    for c, p in zip(m.contributions(rows), m.predict(rows), strict=True):
+        assert set(c) == set(m.WEIGHTS) | set(m.SCALED_WEIGHTS)
+        assert sum(c.values()) == pytest.approx(math.log(p / (1 - p)))
+    factor = m.time_factor(25.0)
+    assert m.contributions(rows[:1])[0]["gold_diff"] == pytest.approx(factor * 0.0001 * 4000)
+    assert m.contributions(rows[1:])[0]["blue_dead_s"] == pytest.approx(-0.001 * 40)
+
+
+def test_trained_contributions_match_the_booster(trained):
+    data, out = trained
+    model = load_model(out)
+    rows, frame = _sample(data, out / "champions.json")
+    frame = frame[model.columns]
+    booster = lgb.Booster(model_file=str(out / "model.txt"))
+    got = model.contributions(rows)
+    assert all(set(c) == set(model.columns) for c in got)
+    values = np.array([[c[k] for k in model.columns] for c in got])
+    full = booster.predict(frame, pred_contrib=True)
+    np.testing.assert_allclose(values, full[:, :-1], atol=1e-9)
+    np.testing.assert_allclose(
+        values.sum(axis=1) + full[:, -1], booster.predict(frame, raw_score=True), atol=1e-6
+    )
+    assert model.contributions([]) == []
+
+
+def test_every_feature_has_a_label():
+    assert set(FEATURE_LABELS) == set(features.FEATURE_COLUMNS + features.CHAMPION_FEATURES)
 
 
 def test_placeholder_gold_matters_more_late():

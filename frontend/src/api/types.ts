@@ -146,6 +146,13 @@ export interface components {
             /** T */
             t: number;
         };
+        /** Driver */
+        Driver: {
+            /** Change */
+            change: number;
+            /** Label */
+            label: string;
+        };
         /** ErrorBody */
         ErrorBody: {
             /** Code */
@@ -277,6 +284,11 @@ export interface components {
             damage: components["schemas"]["FightDamage"][];
             /** Delta */
             delta: number;
+            /**
+             * Drivers
+             * @default []
+             */
+            drivers: components["schemas"]["Driver"][];
             /** Events */
             events: components["schemas"]["GameEvent"][];
             /** Grade */

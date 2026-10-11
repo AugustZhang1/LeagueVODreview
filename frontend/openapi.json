@@ -83,6 +83,24 @@
         "title": "CurvePoint",
         "type": "object"
       },
+      "Driver": {
+        "properties": {
+          "change": {
+            "title": "Change",
+            "type": "number"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "change"
+        ],
+        "title": "Driver",
+        "type": "object"
+      },
       "ErrorBody": {
         "properties": {
           "code": {
@@ -464,6 +482,14 @@
           "delta": {
             "title": "Delta",
             "type": "number"
+          },
+          "drivers": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Driver"
+            },
+            "title": "Drivers",
+            "type": "array"
           },
           "events": {
             "items": {

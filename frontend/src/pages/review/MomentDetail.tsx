@@ -56,6 +56,8 @@ export function MomentDetail({ moment, review }: { moment: Moment; review: Revie
     );
   };
 
+  const drivers = moment.drivers ?? [];
+  const maxChange = Math.max(1e-6, ...drivers.map((d) => Math.abs(d.change)));
   const damage = moment.damage ?? [];
   const goldSwing = moment.kill_gold ?? 0;
   const maxDealt = Math.max(1, ...damage.map((d) => d.dealt));
@@ -70,6 +72,31 @@ export function MomentDetail({ moment, review }: { moment: Moment; review: Revie
         </span>
         <Delta value={moment.delta} />
       </p>
+      {drivers.length > 0 && (
+        <div className={styles.why}>
+          <h4 className={styles.heading}>Why</h4>
+          <div className={styles.rows}>
+            {drivers.map((d) => (
+              <div
+                key={d.label}
+                className={`${styles.row} ${styles.driver}`}
+                data-testid="driver-row"
+              >
+                <span>{d.label}</span>
+                <span className={styles.track}>
+                  <span
+                    className={`${styles.bar} ${d.change > 0 ? styles.ally : styles.enemy}`}
+                    style={{ width: `${(Math.abs(d.change) / maxChange) * 100}%` }}
+                  />
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {moment.t_end < 300 && (
+        <p className={styles.early}>Early game: the model is least sure in the first 5 minutes.</p>
+      )}
       <p className={styles.where}>{capitalize(moment.zone)}</p>
       <ul className={styles.events}>
         {moment.events.map((ev, i) => (

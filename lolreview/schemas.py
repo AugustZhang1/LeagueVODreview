@@ -124,6 +124,11 @@ class FightDamage(BaseModel):
     taken: int
 
 
+class Driver(BaseModel):
+    label: str  # "Gold lead", "Baron buff", ...
+    change: float  # in log-odds, after minus before the moment; positive helped your team
+
+
 class Moment(BaseModel):
     id: str
     t_start: float
@@ -138,6 +143,7 @@ class Moment(BaseModel):
     events: list[GameEvent]
     damage: list[FightDamage] = []
     kill_gold: int = 0
+    drivers: list[Driver] = []
 
 
 class PlayerState(BaseModel):

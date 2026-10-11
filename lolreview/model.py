@@ -48,6 +48,10 @@ class WinModel:
         """Blue win probability for each feature row."""
         raise NotImplementedError
 
+    def contributions(self, rows: list[dict]) -> list[dict[str, float]]:
+        """Each feature's push on blue's log-odds, for each row."""
+        raise NotImplementedError
+
 
 class PlaceholderModel(WinModel):
     """Logistic formula with hand-set weights, so the app runs before a model is trained."""
@@ -85,14 +89,17 @@ class PlaceholderModel(WinModel):
     def time_factor(minute: float) -> float:
         return 0.6 + 1.4 * min(max(minute, 0.0), 40.0) / 40.0
 
-    def predict(self, rows: list[dict]) -> list[float]:
+    def contributions(self, rows: list[dict]) -> list[dict[str, float]]:
         out = []
         for row in rows:
             factor = self.time_factor(float(row.get("minute", 0)))
-            z = sum(w * float(row.get(name, 0)) for name, w in self.WEIGHTS.items())
-            z += factor * sum(w * float(row.get(n, 0)) for n, w in self.SCALED_WEIGHTS.items())
-            out.append(1.0 / (1.0 + math.exp(-z)))
+            c = {name: w * float(row.get(name, 0)) for name, w in self.WEIGHTS.items()}
+            c.update({n: factor * w * float(row.get(n, 0)) for n, w in self.SCALED_WEIGHTS.items()})
+            out.append(c)
         return out
+
+    def predict(self, rows: list[dict]) -> list[float]:
+        return [1.0 / (1.0 + math.exp(-sum(c.values()))) for c in self.contributions(rows)]
 
 
 class TrainedModel(WinModel):
@@ -160,14 +167,22 @@ class TrainedModel(WinModel):
 
     def predict(self, rows: list[dict]) -> list[float]:
         """Each row goes to its rank's model if there is one, else to this overall model."""
-        out = [0.0] * len(rows)
+        return self._route(rows, "_predict")
+
+    def contributions(self, rows: list[dict]) -> list[dict[str, float]]:
+        """LightGBM's raw log-odds per column, before the isotonic calibration (which isn't
+        per feature). The bias column is left out."""
+        return self._route(rows, "_contributions")
+
+    def _route(self, rows: list[dict], method: str) -> list:
+        out: list = [None] * len(rows)
         groups: dict[int, list[int]] = {}
         for i, r in enumerate(rows):
             groups.setdefault(int(r["tier"]), []).append(i)
         for tier, idx in groups.items():
             model = self.by_tier.get(tier, self)
-            for i, p in zip(idx, model._predict([rows[i] for i in idx]), strict=True):
-                out[i] = p
+            for i, v in zip(idx, getattr(model, method)([rows[i] for i in idx]), strict=True):
+                out[i] = v
         return out
 
     def _predict(self, rows: list[dict]) -> list[float]:
@@ -178,6 +193,13 @@ class TrainedModel(WinModel):
         if self.iso is not None:
             p = np.interp(p, self.iso[0], self.iso[1])
         return [float(v) for v in p]
+
+    def _contributions(self, rows: list[dict]) -> list[dict[str, float]]:
+        if not rows:
+            return []
+        x = np.array([self._encode(r) for r in rows], dtype=float)
+        contrib = self.booster.predict(x, pred_contrib=True)[:, :-1]  # last column: the bias
+        return [dict(zip(self.columns, map(float, r), strict=True)) for r in contrib]
 
 
 def load_model(models_dir: str | Path) -> WinModel:

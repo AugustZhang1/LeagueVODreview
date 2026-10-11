@@ -31,6 +31,10 @@ REVIEW_EVENT_TYPES = (
     "BUILDING_KILL",
     "TURRET_PLATE_DESTROYED",
 )
+# The rank and the clock aren't things a team did; soul_type is a category code, not an amount
+DRIVER_SKIP = ("tier", "minute", "soul_type")
+DRIVER_MIN = 0.01  # log-odds; smaller moves aren't worth a line
+DRIVERS_SHOWN = 3
 
 
 class ReviewError(ValueError):
@@ -205,6 +209,26 @@ def _grade(delta: float, cfg: dict) -> str | None:
     return None
 
 
+def _drivers(
+    before: dict[str, float], after: dict[str, float], my_color: str
+) -> list[schemas.Driver]:
+    """The features that moved the most across a moment, signed so positive helped your team."""
+    sign = 1 if my_color == "blue" else -1
+    changes = {
+        name: round(sign * (after[name] - before[name]), 3)
+        for name in before
+        if name not in DRIVER_SKIP
+    }
+    big = sorted(
+        ((name, c) for name, c in changes.items() if abs(c) >= DRIVER_MIN),
+        key=lambda nc: -abs(nc[1]),
+    )
+    return [
+        schemas.Driver(label=describe.feature_label(name, my_color), change=c)
+        for name, c in big[:DRIVERS_SHOWN]
+    ]
+
+
 def _snapshot(
     t_ms: int, state: GameState, order: list[int], my_team: int, cfg: dict
 ) -> schemas.Snapshot:
@@ -323,7 +347,8 @@ def build_review(
     around = {max(0, t + d) for t, _, _ in events for d in (-1, 1)}
     times = sorted(set(grid) | around)
     states = dict(zip(times, states_at(match, timeline, times), strict=True))
-    probs_blue = model.predict([feature_row(states[t], tier) for t in times])
+    rows_at = {t: feature_row(states[t], tier) for t in times}
+    probs_blue = model.predict([rows_at[t] for t in times])
     p = {t: (pb if my_team == BLUE else 1 - pb) for t, pb in zip(times, probs_blue, strict=True)}
 
     curve_times = sorted({t for t in grid if t < end_ms} | {t for t in around if t < end_ms})
@@ -342,11 +367,16 @@ def build_review(
         ),
         key=lambda e: e["timestamp"],
     )
+    groups = _group(events, window_ms)
+    # The model's push on blue just before and just after each moment, for its drivers
+    ends = [(max(0, g[0][0] - 1), g[-1][0] + 1) for g in groups]
+    pushes = model.contributions([rows_at[t] for pair in ends for t in pair])
     moments = []
-    for i, group in enumerate(_group(events, window_ms), 1):
+    for i, group in enumerate(groups, 1):
         t_first, t_last = group[0][0], group[-1][0]
         p_before = round(p_at(max(0, t_first - 1)), 4)
         p_after = round(p_at(t_last + 1), 4)
+        drivers = _drivers(pushes[2 * i - 2], pushes[2 * i - 1], my_color)
         delta = round(p_after - p_before, 4)
         evs = [ev for _, ev, _ in group]
         first = evs[0]
@@ -374,6 +404,7 @@ def build_review(
                 events=evs,
                 damage=_fight_damage(m_kills, team_of),
                 kill_gold=_kill_gold(m_kills, team_of, my_team),
+                drivers=drivers,
             )  # fmt: skip
         )
 
