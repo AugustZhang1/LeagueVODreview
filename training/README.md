@@ -109,3 +109,16 @@ python training/train.py --data /tmp/synth --out /tmp/synth_out --patches 26.18,
 | `--old-version 1` | also train on version 1's games (same ranks, without this run's validation and test games, since a re-crawled game is in both) and compare that model with the new one on the test games: the report's "Old model against the new one" |
 
 The maximum calibration gap ignores bins with fewer than 20 rows.
+
+## Dataset report and drift evaluation
+
+`scripts/dataset_report.py --data data` prints the games and rows by platform, patch, rank and
+features version, the Parquet size on disk, games stored in more than one file, and each
+platform's crawl state (`state-<platform>.sqlite`, read-only, if present).
+
+`scripts/drift_eval.py --data data [--max-rows N] [--out drift.json]` scores the model on games it
+wasn't trained on, using the first LightGBM setting and the version's columns without the champion
+columns. Unseen patch: train on the older patches, test on held-out older games and on the newest
+patch. Unseen rank: train on Master to Challenger, test on held-out games from those ranks and on
+Diamond. A group with under 200 games is skipped. Both scripts read only the
+`<platform>/<patch>/v<N>` layout, so the copies under `data/kaggle_*` are left out.
