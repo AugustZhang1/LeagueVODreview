@@ -27,6 +27,34 @@ describe("Scoreboard", () => {
     expect(screen.getByText("Me")).toBeInTheDocument();
   });
 
+  it("shows the dragon and pit timers and the counts above zero", () => {
+    render(<Scoreboard review={review} snapshot={review.snapshots[88]} t={1320} />);
+    expect(screen.getByText("3:10")).toBeInTheDocument();
+    expect(screen.getByText("up")).toBeInTheDocument();
+    expect(screen.getByText("Herald")).toBeInTheDocument();
+    expect(screen.queryByText("Grubs")).toBeNull();
+  });
+
+  it("counts the objective timers down as the scrubber moves", () => {
+    const { rerender } = render(
+      <Scoreboard review={review} snapshot={review.snapshots[88]} t={1320} />,
+    );
+    rerender(<Scoreboard review={review} snapshot={review.snapshots[88]} t={1330} />);
+    expect(screen.getByText("3:00")).toBeInTheDocument();
+  });
+
+  it("hides the timers when the review has no objectives", () => {
+    render(
+      <Scoreboard
+        review={review}
+        snapshot={{ ...review.snapshots[88], objectives: null }}
+        t={1320}
+      />,
+    );
+    expect(screen.queryByText("Dragon")).toBeNull();
+    expect(screen.queryByText("3:10")).toBeNull();
+  });
+
   it("re-renders on a new snapshot but not when only the parent updates", async () => {
     function Harness() {
       const [tick, setTick] = useState(0);

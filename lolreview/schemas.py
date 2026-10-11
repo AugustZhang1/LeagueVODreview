@@ -186,12 +186,20 @@ class RecentKill(BaseModel):
     age_s: float
 
 
+class Objectives(BaseModel):
+    dragon_in_s: float  # until the next dragon, or Elder once a team has the soul
+    dragon_kind: Literal["dragon", "elder"]
+    baron_pit_in_s: float  # until the Baron pit's next monster is up
+    baron_pit_kind: Literal["grubs", "herald", "baron"]
+
+
 class Snapshot(BaseModel):
     t: float
     players: list[PlayerState]
     teams: SnapshotTeams
     buildings_down: list[str]
     recent_kills: list[RecentKill]
+    objectives: Objectives | None = None
 
 
 class GradeCounts(BaseModel):

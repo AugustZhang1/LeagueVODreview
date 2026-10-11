@@ -5,6 +5,7 @@ import type {
   GameEvent,
   GradeCounts,
   Moment,
+  Objectives,
   ObjectiveWindow,
   Player,
   PlayerState,
@@ -759,12 +760,34 @@ export function makeReview(matchId = "NA1_5300000001", participantId = 4): Revie
     };
   };
 
+  // Timers as the game runs them (config.toml [timers]): a dragon 5 min after the last one, and
+  // the Baron pit's grubs (8:00, until 14:45), then Baron (20:00, 6 min after the last one).
+  const objectivesAt = (t: number): Objectives => {
+    const last = (kind: GameEvent["kind"]) =>
+      events.filter((e) => e.kind === kind && e.t <= t).at(-1);
+    const dragon = last("dragon");
+    const baron = last("baron");
+    const pit: Pick<Objectives, "baron_pit_kind" | "baron_pit_in_s"> =
+      t < 885
+        ? { baron_pit_kind: "grubs", baron_pit_in_s: Math.max(0, 480 - t) }
+        : {
+            baron_pit_kind: "baron",
+            baron_pit_in_s: Math.max(0, (baron ? baron.t + 360 : 1200) - t),
+          };
+    return {
+      dragon_in_s: Math.max(0, (dragon ? dragon.t + 300 : 300) - t),
+      dragon_kind: "dragon",
+      ...pit,
+    };
+  };
+
   const snapshots: Snapshot[] = [];
   for (let t = 0; t <= DURATION; t += STEP) {
     snapshots.push({
       t,
       players: ROSTER.map((r) => stateOf(r, t)),
       teams: { ally: teamState("ally", t), enemy: teamState("enemy", t) },
+      objectives: objectivesAt(t),
       buildings_down: events
         .filter((e) => e.t <= t && buildingOf.has(e))
         .map((e) => buildingOf.get(e)!),

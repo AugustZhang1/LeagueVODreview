@@ -603,6 +603,43 @@
         "title": "ObjectiveWindow",
         "type": "object"
       },
+      "Objectives": {
+        "properties": {
+          "baron_pit_in_s": {
+            "title": "Baron Pit In S",
+            "type": "number"
+          },
+          "baron_pit_kind": {
+            "enum": [
+              "grubs",
+              "herald",
+              "baron"
+            ],
+            "title": "Baron Pit Kind",
+            "type": "string"
+          },
+          "dragon_in_s": {
+            "title": "Dragon In S",
+            "type": "number"
+          },
+          "dragon_kind": {
+            "enum": [
+              "dragon",
+              "elder"
+            ],
+            "title": "Dragon Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dragon_in_s",
+          "dragon_kind",
+          "baron_pit_in_s",
+          "baron_pit_kind"
+        ],
+        "title": "Objectives",
+        "type": "object"
+      },
       "Player": {
         "properties": {
           "champion": {
@@ -1110,6 +1147,16 @@
             },
             "title": "Buildings Down",
             "type": "array"
+          },
+          "objectives": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Objectives"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "players": {
             "items": {

@@ -1,4 +1,5 @@
 import type {
+  Objectives,
   Player,
   PlayerState,
   Review,
@@ -8,7 +9,7 @@ import type {
   TeamState,
 } from "../../../api/models";
 import { formatGold, formatGoldDelta, formatTime } from "../../../lib/format";
-import { respawnAt } from "./minimapModel";
+import { respawnAt, secondsPastSnapshot } from "./minimapModel";
 
 const ROLE_ORDER: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 const roleRank = (r: Role) => ROLE_ORDER.indexOf(r);
@@ -39,9 +40,22 @@ export type TeamHeader = {
   buff: { label: string; time: string } | null;
   /** Gold lead such as "+4.1k" on the leading team only. */
   lead: string | null;
+  grubs: number;
+  heralds: number;
+  barons: number;
 };
 
 export type TeamBlock = { header: TeamHeader; rows: Row[] };
+
+/** One objective timer: "Dragon" and "1:12", or "up" once it has run out. */
+export type ObjectiveTimer = { label: string; time: string };
+export type ObjectiveTimers = { dragon: ObjectiveTimer; pit: ObjectiveTimer };
+
+const PIT_LABEL: Record<Objectives["baron_pit_kind"], string> = {
+  grubs: "Grubs",
+  herald: "Herald",
+  baron: "Baron",
+};
 
 /** "0:12": minutes without padding, as the in-game death timer shows it. */
 function formatRespawn(seconds: number): string {
@@ -79,6 +93,23 @@ export function buildHeader(team: Side, ts: TeamState, other: TeamState): TeamHe
     soul: ts.soul ? `${ts.soul} soul` : null,
     buff: ts.buff ? { label: cap(ts.buff.kind), time: formatTime(ts.buff.ends_in_s) } : null,
     lead: Math.round(diff) > 0 ? formatGoldDelta(diff) : null,
+    grubs: ts.grubs,
+    heralds: ts.heralds,
+    barons: ts.barons,
+  };
+}
+
+/** Dragon and pit timers at `t`, counting down from the snapshot; null without objectives. */
+export function buildObjectives(snapshot: Snapshot, t = snapshot.t): ObjectiveTimers | null {
+  const o = snapshot.objectives;
+  if (!o) return null;
+  const timer = (label: string, seconds: number): ObjectiveTimer => {
+    const left = Math.max(0, seconds - secondsPastSnapshot(t, snapshot));
+    return { label, time: left > 0 ? formatRespawn(left) : "up" };
+  };
+  return {
+    dragon: timer(o.dragon_kind === "elder" ? "Elder" : "Dragon", o.dragon_in_s),
+    pit: timer(PIT_LABEL[o.baron_pit_kind], o.baron_pit_in_s),
   };
 }
 

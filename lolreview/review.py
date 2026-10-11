@@ -17,7 +17,7 @@ from lolreview.features import (
     states_at,
 )
 from lolreview.model import WinModel
-from lolreview.windows import find_windows
+from lolreview.windows import baron_pit_monster, find_windows
 
 MONSTER_KINDS = {
     "HORDE": "grubs",
@@ -205,7 +205,9 @@ def _grade(delta: float, cfg: dict) -> str | None:
     return None
 
 
-def _snapshot(t_ms: int, state: GameState, order: list[int], my_team: int) -> schemas.Snapshot:
+def _snapshot(
+    t_ms: int, state: GameState, order: list[int], my_team: int, cfg: dict
+) -> schemas.Snapshot:
     players = []
     for pid in order:
         p = state.players[pid]
@@ -232,12 +234,19 @@ def _snapshot(t_ms: int, state: GameState, order: list[int], my_team: int) -> sc
         schemas.RecentKill(x=x, y=y, team=_side(tid, my_team), age_s=max(0, t_ms - kt) / 1000)
         for kt, x, y, tid in state.recent_kills
     ]
+    objectives = schemas.Objectives(
+        dragon_in_s=state.dragon_pit_in_ms / 1000,
+        dragon_kind="elder" if any(x.soul for x in state.teams.values()) else "dragon",
+        baron_pit_in_s=state.baron_pit_in_ms / 1000,
+        baron_pit_kind=baron_pit_monster(state, cfg),
+    )
     return schemas.Snapshot(
         t=t_ms / 1000,
         players=players,
         teams=schemas.SnapshotTeams(ally=team(my_team), enemy=team(_other(my_team))),
         buildings_down=sorted(state.buildings_down),
         recent_kills=recent,
+        objectives=objectives,
     )
 
 
@@ -370,7 +379,7 @@ def build_review(
 
     players = _players(info, champions, participant_id, my_team)
     order = [pl.participant_id for pl in players]
-    snapshots = [_snapshot(t, states[t], order, my_team) for t in grid]
+    snapshots = [_snapshot(t, states[t], order, my_team, cfg) for t in grid]
 
     def counts(ms: list[schemas.Moment]) -> schemas.GradeCounts:
         n = {g: sum(1 for m in ms if m.grade == g) for g in ("!!", "!", "?", "??")}

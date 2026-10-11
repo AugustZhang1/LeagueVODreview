@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { makeReview } from "../../../mocks/makeReview";
-import { buildHeader, buildScoreboard } from "./boardModel";
+import { buildHeader, buildObjectives, buildScoreboard } from "./boardModel";
 
 const review = makeReview();
 const snap = review.snapshots[88];
+const timers = {
+  dragon_in_s: 72,
+  dragon_kind: "dragon" as const,
+  baron_pit_in_s: 0,
+  baron_pit_kind: "grubs" as const,
+};
 
 describe("buildScoreboard", () => {
   const [ally, enemy] = buildScoreboard(review, snap);
@@ -56,6 +62,41 @@ describe("buildHeader", () => {
     expect(h.dragonTypes).toEqual(["Ocean", "Infernal"]);
     expect(h.soul).toBe("Ocean soul");
     expect(h.buff).toEqual({ label: "Baron", time: "01:12" });
+  });
+  it("counts grubs, heralds and barons", () => {
+    const h = buildHeader("ally", { ...base, grubs: 2, heralds: 1 }, other);
+    expect([h.grubs, h.heralds, h.barons]).toEqual([2, 1, 1]);
+  });
+});
+
+describe("buildObjectives", () => {
+  it("counts the dragon and pit down from the snapshot, then says up", () => {
+    const s = { ...snap, t: 100, objectives: timers };
+    expect(buildObjectives(s)).toEqual({
+      dragon: { label: "Dragon", time: "1:12" },
+      pit: { label: "Grubs", time: "up" },
+    });
+    expect(buildObjectives(s, 115)?.dragon.time).toBe("0:57");
+    expect(buildObjectives(s, 200)?.dragon.time).toBe("up");
+  });
+  it("names an Elder dragon and a Baron pit", () => {
+    const s = {
+      ...snap,
+      t: 100,
+      objectives: {
+        ...timers,
+        dragon_kind: "elder" as const,
+        baron_pit_in_s: 40,
+        baron_pit_kind: "baron" as const,
+      },
+    };
+    expect(buildObjectives(s)).toEqual({
+      dragon: { label: "Elder", time: "1:12" },
+      pit: { label: "Baron", time: "0:40" },
+    });
+  });
+  it("is null when the review has no objectives", () => {
+    expect(buildObjectives({ ...snap, objectives: null })).toBeNull();
   });
 });
 

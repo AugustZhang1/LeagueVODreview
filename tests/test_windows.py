@@ -7,7 +7,7 @@ from lolreview.constants import BLUE, RED
 from lolreview.features import GameState, PlayerState, TeamState, feature_row
 from lolreview.model import PlaceholderModel
 from lolreview.review import build_review
-from lolreview.windows import _credit, find_windows
+from lolreview.windows import _credit, baron_pit_monster, find_windows
 
 MODEL = PlaceholderModel()
 CFG = load_config()
@@ -88,6 +88,13 @@ def test_baron_pit_monsters():
     assert run({T: st}, cfg=loose())[0].options[0].what == "Rift Herald"
     st = make_state({2: 25}, dragon_in=99**6, baron_in=0)
     assert run({T: st}, cfg=loose())[0].options[0].what == "Baron"
+
+
+def test_baron_pit_monster_order():
+    assert baron_pit_monster(make_state(grubs=0), CFG) == "grubs"
+    assert baron_pit_monster(make_state(heralds=0), CFG) == "herald"
+    assert baron_pit_monster(make_state(), CFG) == "baron"
+    assert baron_pit_monster(make_state(t=900_000, heralds=0), CFG) == "herald"
 
 
 def test_elder_when_a_soul_is_taken():

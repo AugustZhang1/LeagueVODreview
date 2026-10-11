@@ -19,6 +19,7 @@ export type WindowOption = S["WindowOption"];
 export type FightDamage = S["FightDamage"];
 export type GameEvent = S["GameEvent"];
 export type Snapshot = S["Snapshot"];
+export type Objectives = S["Objectives"];
 export type PlayerState = S["PlayerState"];
 export type TeamState = S["TeamState"];
 export type GradeCounts = S["GradeCounts"];

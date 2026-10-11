@@ -327,6 +327,23 @@ export interface components {
             /** Value */
             value: number;
         };
+        /** Objectives */
+        Objectives: {
+            /** Baron Pit In S */
+            baron_pit_in_s: number;
+            /**
+             * Baron Pit Kind
+             * @enum {string}
+             */
+            baron_pit_kind: "grubs" | "herald" | "baron";
+            /** Dragon In S */
+            dragon_in_s: number;
+            /**
+             * Dragon Kind
+             * @enum {string}
+             */
+            dragon_kind: "dragon" | "elder";
+        };
         /** Player */
         Player: {
             /** Champion */
@@ -505,6 +522,7 @@ export interface components {
         Snapshot: {
             /** Buildings Down */
             buildings_down: string[];
+            objectives?: components["schemas"]["Objectives"] | null;
             /** Players */
             players: components["schemas"]["PlayerState"][];
             /** Recent Kills */

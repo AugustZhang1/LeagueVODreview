@@ -219,6 +219,28 @@ def test_snapshot_fields(load_game):
     assert r.snapshots[-1].buildings_down == sorted(r.snapshots[-1].buildings_down)
 
 
+def test_objectives_at_two_minutes(load_game):
+    match, timeline = load_game(SYNTHETIC_IDS[0])
+    r = review_for(match, timeline, 4)
+    snap = r.snapshots[8]
+    assert snap.t == 120
+    # first dragon at 5:00, first pit monster (grubs) at 8:00
+    assert snap.objectives.dragon_in_s == 180
+    assert snap.objectives.dragon_kind == "dragon"
+    assert snap.objectives.baron_pit_in_s == 360
+    assert snap.objectives.baron_pit_kind == "grubs"
+    assert all(s.objectives is not None for s in r.snapshots)
+
+
+def test_objectives_elder_once_a_soul_is_taken(load_game):
+    match, timeline = load_game(SYNTHETIC_IDS[2])
+    r = review_for(match, timeline, 1)
+    soul_at = next(i for i, s in enumerate(r.snapshots) if s.teams.ally.soul or s.teams.enemy.soul)
+    kinds = [s.objectives.dragon_kind for s in r.snapshots]
+    assert kinds[:soul_at] == ["dragon"] * soul_at
+    assert kinds[soul_at:] == ["elder"] * (len(kinds) - soul_at)
+
+
 def test_fast(load_game):
     match, timeline = load_game(SYNTHETIC_IDS[2])
     review_for(match, timeline, 1)

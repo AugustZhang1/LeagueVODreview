@@ -6,7 +6,7 @@ import { Panel } from "../../components/Panel";
 import { Tooltip } from "../../components/Tooltip";
 import { formatTime } from "../../lib/format";
 import { respawnAt } from "./board/minimapModel";
-import { buildScoreboard, type Row, type TeamHeader } from "./board/boardModel";
+import { buildObjectives, buildScoreboard, type Row, type TeamHeader } from "./board/boardModel";
 import styles from "./Scoreboard.module.css";
 
 type Props = { review: Review; snapshot: Snapshot; t: number };
@@ -37,6 +37,9 @@ function Header({ h }: { h: TeamHeader }) {
       ) : (
         dragons
       )}
+      {h.grubs > 0 && <Pair label="Grubs" value={h.grubs} />}
+      {h.heralds > 0 && <Pair label="Herald" value={h.heralds} />}
+      {h.barons > 0 && <Pair label="Baron" value={h.barons} />}
       {h.soul && <span className={styles.pairLabel}>{h.soul}</span>}
       {h.buff && <Pair label={h.buff.label} value={h.buff.time} />}
       {h.lead && <span className={`${styles.lead} num`}>{h.lead}</span>}
@@ -76,25 +79,21 @@ function PlayerRow({ row, version }: { row: Row; version: string }) {
   );
 }
 
-function ScoreboardView({ review, snapshot, t }: Props) {
+function TeamsView({ review, snapshot, t }: Props) {
   const blocks = buildScoreboard(review, snapshot, t);
   const version = review.match.ddragon_version;
-  return (
-    <Panel title={`Scoreboard at ${formatTime(snapshot.t)}`} className={styles.panel}>
-      {blocks.map((b) => (
-        <section key={b.header.team} className={styles.team}>
-          <Header h={b.header} />
-          <table className={styles.table}>
-            <tbody>
-              {b.rows.map((r) => (
-                <PlayerRow key={r.player.participant_id} row={r} version={version} />
-              ))}
-            </tbody>
-          </table>
-        </section>
-      ))}
-    </Panel>
-  );
+  return blocks.map((b) => (
+    <section key={b.header.team} className={styles.team}>
+      <Header h={b.header} />
+      <table className={styles.table}>
+        <tbody>
+          {b.rows.map((r) => (
+            <PlayerRow key={r.player.participant_id} row={r} version={version} />
+          ))}
+        </tbody>
+      </table>
+    </section>
+  ));
 }
 
 /** Whole seconds still on each death timer; the only thing besides the snapshot that changes the table. */
@@ -105,7 +104,26 @@ const timers = ({ snapshot, t }: Props) =>
  * Re-renders when the review or snapshot changes, or a death timer ticks over; not on every
  * scrubber tick.
  */
-export const Scoreboard = memo(
-  ScoreboardView,
+const Teams = memo(
+  TeamsView,
   (a, b) => a.review === b.review && a.snapshot === b.snapshot && timers(a) === timers(b),
 );
+
+/** The objective timers tick every second, so they sit outside the memoized table. */
+export function Scoreboard({ review, snapshot, t }: Props) {
+  const objectives = buildObjectives(snapshot, t);
+  return (
+    <Panel title={`Scoreboard at ${formatTime(snapshot.t)}`} className={styles.panel}>
+      {objectives && (
+        <div className={styles.objectives}>
+          <Pair label={objectives.dragon.label} value={objectives.dragon.time} />
+          <span className={styles.pairLabel} aria-hidden="true">
+            ·
+          </span>
+          <Pair label={objectives.pit.label} value={objectives.pit.time} />
+        </div>
+      )}
+      <Teams review={review} snapshot={snapshot} t={t} />
+    </Panel>
+  );
+}

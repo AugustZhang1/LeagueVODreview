@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from lolreview import schemas
 from lolreview.constants import BLUE, RED
 from lolreview.features import GameState, feature_row
 from lolreview.model import WinModel
 
 LANES = {"TOP": "top", "MIDDLE": "mid", "BOTTOM": "bot"}
+PIT_OPTIONS = {"grubs": "Void Grubs", "herald": "Rift Herald", "baron": "Baron"}
 TAKEN_KINDS = {
     "dragon",
     "elder",
@@ -36,20 +39,25 @@ def _weak_until(state: GameState, enemy: int, cfg: dict) -> int | None:
     return max(ends) if ends else None
 
 
-def _monster_options(state: GameState, horizon: int, cfg: dict) -> list[str]:
+def baron_pit_monster(state: GameState, cfg: dict) -> Literal["grubs", "herald", "baron"]:
+    """The monster the Baron pit holds next: grubs, then Herald, then Baron."""
     t = cfg["timers"]
+    teams = state.teams.values()
+    secs = state.t_ms / 1000
+    if sum(x.grubs for x in teams) < 3 and secs < t["grubs_despawn_s"]:
+        return "grubs"
+    if sum(x.heralds for x in teams) == 0 and secs < t["herald_despawn_s"]:
+        return "herald"
+    return "baron"
+
+
+def _monster_options(state: GameState, horizon: int, cfg: dict) -> list[str]:
     teams = state.teams.values()
     out = []
     if state.dragon_pit_in_ms <= horizon:
         out.append("Elder Dragon" if any(x.soul for x in teams) else "Dragon")
     if state.baron_pit_in_ms <= horizon:
-        secs = state.t_ms / 1000
-        if sum(x.grubs for x in teams) < 3 and secs < t["grubs_despawn_s"]:
-            out.append("Void Grubs")
-        elif sum(x.heralds for x in teams) == 0 and secs < t["herald_despawn_s"]:
-            out.append("Rift Herald")
-        else:
-            out.append("Baron")
+        out.append(PIT_OPTIONS[baron_pit_monster(state, cfg)])
     return out
 
 
