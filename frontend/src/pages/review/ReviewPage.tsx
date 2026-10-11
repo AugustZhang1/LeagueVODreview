@@ -153,6 +153,13 @@ function ReviewSkeleton({ building }: { building: boolean }) {
         <div className={styles.skelHeaderText}>
           <Skeleton width={220} height={24} />
           <Skeleton width={560} height={20} />
+          <div className={styles.skelMistakes}>
+            <Skeleton width={160} height={18} />
+            <Skeleton width={260} height={20} />
+          </div>
+          <div className={styles.skelGuide}>
+            <Skeleton width={150} height={18} />
+          </div>
         </div>
       </div>
       <div className={styles.skelGraph}>
@@ -166,7 +173,7 @@ function ReviewSkeleton({ building }: { building: boolean }) {
         </div>
         <div className={styles.scoreboard}>
           <Panel title="Scoreboard">
-            <Skeleton height={346} />
+            <Skeleton height={375} />
           </Panel>
         </div>
         <div className={styles.moments}>
@@ -174,6 +181,18 @@ function ReviewSkeleton({ building }: { building: boolean }) {
             <Skeleton height={346} />
           </Panel>
         </div>
+      </div>
+      <div className={styles.extras}>
+        <Panel title={<Skeleton width={160} height={16} />}>
+          <Skeleton height={200} />
+          <div className={styles.skelChecks}>
+            <Skeleton height={20} />
+            <Skeleton height={20} />
+          </div>
+        </Panel>
+        <Panel title="Notes">
+          <Skeleton height={160} />
+        </Panel>
       </div>
     </div>
   );

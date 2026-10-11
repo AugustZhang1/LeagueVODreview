@@ -99,6 +99,8 @@ test.describe("keyboard only", () => {
       "Search",
       "Model",
       "16:50−9%",
+      "16:50Lost fight 1 for 3, then ",
+      "How to read this",
       "Games",
       "Previous moment",
       "Next moment",
