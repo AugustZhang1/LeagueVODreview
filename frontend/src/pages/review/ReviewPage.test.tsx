@@ -140,32 +140,35 @@ describe("review page", () => {
     const user = userEvent.setup();
     setup();
     const list = () => document.querySelectorAll("[data-moment]");
-    expect(list()).toHaveLength(
-      review.moments.length + review.windows.filter((w) => !w.used).length,
-    );
+    expect(list()).toHaveLength(review.moments.length + review.windows.length);
     await user.click(screen.getByRole("button", { name: "Graded" }));
     expect(list()).toHaveLength(graded.length);
     await user.click(screen.getByRole("button", { name: "Mine" }));
     expect(list()).toHaveLength(review.moments.filter((m) => m.involves_me).length);
   });
 
-  it("lists missed windows in time order and filters them", async () => {
+  it("lists missed and used windows in time order and filters them", async () => {
     const user = userEvent.setup();
     setup();
     const missed = review.windows.filter((w) => !w.used);
     const rows = () => [...document.querySelectorAll("[data-moment]")];
     expect(screen.getAllByLabelText("Missed window")).toHaveLength(missed.length);
-    expect(rows()).toHaveLength(review.moments.length + missed.length);
+    expect(screen.getAllByLabelText("Used window")).toHaveLength(
+      review.windows.length - missed.length,
+    );
+    expect(rows()).toHaveLength(review.moments.length + review.windows.length);
     const ats = rows().map((r) => {
       const id = r.getAttribute("data-moment")!;
-      const w = missed.find((x) => x.id === id);
+      const w = review.windows.find((x) => x.id === id);
       return w ? w.t_start : review.moments.find((m) => m.id === id)!.t_end;
     });
     expect(ats).toEqual([...ats].sort((a, b) => a - b));
     await user.click(screen.getByRole("button", { name: "Missed" }));
     expect(rows()).toHaveLength(missed.length);
+    expect(screen.queryByLabelText("Used window")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Graded" }));
     expect(screen.queryByLabelText("Missed window")).toBeNull();
+    expect(screen.queryByLabelText("Used window")).toBeNull();
     expect(screen.queryByText(/Baron up/)).toBeNull();
   });
 
@@ -178,10 +181,22 @@ describe("review page", () => {
     expect(detail).toHaveTextContent("Lee Sin dead for 0:31, Zed for 0:12");
     expect(detail).toHaveTextContent("Dragon+7%");
     expect(detail).toHaveTextContent("Bot outer tower+3%");
+    expect(detail).toHaveTextContent("What happened instead");
     expect(detail).toHaveTextContent("Your team didn't take an objective or tower in time.");
     await user.click(screen.getByRole("button", { name: "Missed" }));
     fireEvent.change(slider(), { target: { value: "900" } });
     expect(screen.queryByTestId("detail-w1")).toBeNull();
+  });
+
+  it("opens a used window: shows what the team took", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(
+      screen.getByRole("button", { name: /Enemy Wukong and Kai'Sa dead, Baron up/ }),
+    );
+    const detail = screen.getByTestId("detail-w2");
+    expect(detail).toHaveTextContent("Your team took: Baron");
+    expect(detail).not.toHaveTextContent("What happened instead");
   });
 
   it("draws one band per window on the graph, missed ones marked", () => {
@@ -258,6 +273,13 @@ describe("review page", () => {
     );
     expect(screen.getByText("Length")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Games/ })).toHaveAttribute("href", "/p/na/Me/NA1");
+  });
+
+  it("shows the lane chart and notes under the panels", () => {
+    setup();
+    expect(screen.getByRole("heading", { name: /^Lane vs / })).toBeInTheDocument();
+    expect(screen.getByText(/^At 10:00: /)).toBeInTheDocument();
+    expect(screen.getByLabelText("Your notes on this game")).toBeInTheDocument();
   });
 
   it("shows the building skeleton while loading", () => {

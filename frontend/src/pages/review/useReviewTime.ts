@@ -36,7 +36,7 @@ export function useReviewTime(
   );
 
   const windows = useMemo(
-    () => (review.windows ?? []).filter((w) => !w.used).sort((a, b) => a.t_start - b.t_start),
+    () => [...(review.windows ?? [])].sort((a, b) => a.t_start - b.t_start),
     [review.windows],
   );
 

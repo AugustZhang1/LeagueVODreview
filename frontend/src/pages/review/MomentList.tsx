@@ -35,7 +35,9 @@ function buildRows(moments: Moment[], windows: ObjectiveWindow[], filter: Moment
     m,
   }));
   if (filter === "all" || filter === "missed") {
-    for (const w of windows) rows.push({ kind: "window", at: w.t_start, w });
+    for (const w of windows) {
+      if (filter === "all" || !w.used) rows.push({ kind: "window", at: w.t_start, w });
+    }
   }
   return rows.sort((a, b) => a.at - b.at);
 }
@@ -104,9 +106,15 @@ export const MomentList = memo(function MomentList({
                     onClick={() => onSelectWindow(w)}
                   >
                     <span className={styles.badge}>
-                      <span role="img" aria-label="Missed window" className={styles.miss}>
-                        <span aria-hidden="true">Miss</span>
-                      </span>
+                      {w.used ? (
+                        <span role="img" aria-label="Used window" className={styles.used}>
+                          <span aria-hidden="true">Used</span>
+                        </span>
+                      ) : (
+                        <span role="img" aria-label="Missed window" className={styles.miss}>
+                          <span aria-hidden="true">Miss</span>
+                        </span>
+                      )}
                     </span>
                     <span className={`${styles.time} ${styles.range} num`}>
                       {formatTime(w.t_start)}–{formatTime(w.t_end)}
@@ -116,7 +124,7 @@ export const MomentList = memo(function MomentList({
                     </span>
                     <span className={styles.worth}>worth ~{formatDelta(w.value)}</span>
                   </button>
-                  {selected && <WindowDetail window={w} />}
+                  {selected && <WindowDetail window={w} moments={moments} />}
                 </li>
               );
             }

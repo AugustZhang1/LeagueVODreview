@@ -5,6 +5,8 @@ import { useReplaySeek, useReplayStatus, useReview } from "../../api/queries";
 import { ErrorBox } from "../../components/ErrorBox";
 import { Panel } from "../../components/Panel";
 import { Skeleton } from "../../components/Skeleton";
+import { GameNotes } from "./GameNotes";
+import { LaneChart } from "./LaneChart";
 import { Minimap } from "./Minimap";
 import { MomentList } from "./MomentList";
 import { ReviewHeader } from "./ReviewHeader";
@@ -134,6 +136,10 @@ function ReviewView({
             onHover={setHoveredId}
           />
         </div>
+      </div>
+      <div className={styles.extras}>
+        <LaneChart review={review} />
+        <GameNotes matchId={matchId} participantId={participantId} t={t} />
       </div>
     </div>
   );

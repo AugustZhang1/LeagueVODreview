@@ -60,6 +60,18 @@
   font-weight: 600;
 }
 
+.used {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  background: var(--ally-tint);
+  color: var(--ally);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .worth {
   color: var(--text-3);
   white-space: nowrap;

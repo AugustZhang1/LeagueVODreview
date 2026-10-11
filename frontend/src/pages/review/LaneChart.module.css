@@ -1,0 +1,14 @@
+.chart {
+  height: 200px;
+}
+
+.checks {
+  margin-top: var(--space-3);
+  color: var(--text-2);
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.checks p + p {
+  margin-top: var(--space-1);
+}

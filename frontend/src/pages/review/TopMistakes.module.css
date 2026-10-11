@@ -1,0 +1,32 @@
+.section {
+  margin-top: var(--space-3);
+}
+
+.heading {
+  margin-bottom: var(--space-1);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.empty {
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

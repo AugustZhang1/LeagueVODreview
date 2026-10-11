@@ -4,9 +4,11 @@ import type { GradeCounts, Moment, Review } from "../../api/models";
 import { ChampIcon } from "../../components/ChampIcon";
 import { Delta } from "../../components/Delta";
 import { GradeBadge } from "../../components/GradeBadge";
-import { formatFullDate, formatRelative, formatTime } from "../../lib/format";
+import { formatFullDate, formatRelative, formatTime, formatWinChance } from "../../lib/format";
 import { GRADES } from "../../lib/grades";
 import { momentEnd } from "./curve";
+import { HowToRead } from "./HowToRead";
+import { TopMistakes } from "./TopMistakes";
 import styles from "./ReviewHeader.module.css";
 
 const ROLE_NAMES = {
@@ -55,6 +57,26 @@ export function notesFor(review: Review): string[] {
   return notes;
 }
 
+export type Comeback = { kind: "comeback" | "thrown"; p: number; t: number };
+
+/**
+ * A win that dipped below 20% or a loss that rose above 80%, with the point where it happened.
+ * The last curve point is the result, so it's left out.
+ */
+export function comebackOf(review: Review): Comeback | null {
+  const points = review.curve.slice(0, -1);
+  if (points.length === 0) return null;
+  const { result } = review.match;
+  if (result === "win") {
+    const low = points.reduce((a, b) => (b.p < a.p ? b : a));
+    if (low.p < 0.2) return { kind: "comeback", p: low.p, t: low.t };
+  } else if (result === "loss") {
+    const high = points.reduce((a, b) => (b.p > a.p ? b : a));
+    if (high.p > 0.8) return { kind: "thrown", p: high.p, t: high.t };
+  }
+  return null;
+}
+
 export function ReviewHeader({ review, participantId, onJump }: Props) {
   const { match, summary } = review;
   const me = review.players.find((p) => p.is_me) ?? review.players[0];
@@ -68,6 +90,7 @@ export function ReviewHeader({ review, participantId, onJump }: Props) {
       : ", your team surrendered"
     : "";
   const notes = notesFor(review);
+  const comeback = comebackOf(review);
 
   return (
     <header className={styles.header}>
@@ -117,7 +140,15 @@ export function ReviewHeader({ review, participantId, onJump }: Props) {
               </a>
             </span>
           )}
+          {comeback && (
+            <Facts
+              label={comeback.kind === "comeback" ? "Comeback" : "Thrown lead"}
+              value={`from ${formatWinChance(comeback.p)} at ${formatTime(comeback.t)}`}
+            />
+          )}
         </div>
+        <TopMistakes review={review} participantId={participantId} onJump={onJump} />
+        <HowToRead />
       </div>
       <Link to={gamesHref} className={styles.back}>
         <ChevronLeft size={16} aria-hidden="true" />
