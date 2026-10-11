@@ -432,3 +432,55 @@ def test_poisoned_summary_cache_is_rebuilt(env):
     assert r.status_code == 200
     games = {g["match_id"]: g for g in r.json()["games"]}
     assert games[MID]["role"] == "MIDDLE"
+
+
+def test_allow_list_limits_player_lookups(env, monkeypatch):
+    monkeypatch.setenv("LOLREVIEW_ALLOWED_PLAYERS", " duo#na1, ME#NA1 ")
+    client = CountingRiot()
+    c = env.make(client)
+    assert c.get("/api/player/na1/Me/NA1").status_code == 200
+    calls = len(client.calls)
+    r = c.get("/api/player/na1/Nobody/NA1")
+    assert (r.status_code, error_of(r)["code"]) == (403, "not_allowed")
+    assert "owner's games" in error_of(r)["message"]
+    assert len(client.calls) == calls  # refused before any Riot call
+
+
+def test_allow_list_limits_reviews(env, monkeypatch):
+    monkeypatch.setenv("LOLREVIEW_ALLOWED_PLAYERS", "Me#NA1")
+    c = env.make()
+    other = next(
+        x["participantId"]
+        for x in DemoRiot().match("americas", MID)["info"]["participants"]
+        if x["participantId"] != P
+    )
+    r = c.get(f"/api/review/{MID}?p={other}")
+    assert (r.status_code, error_of(r)["code"]) == (403, "not_allowed")
+    assert env.built == []
+    assert c.get(f"/api/review/{MID}?p={P}").status_code == 200
+
+
+def test_allow_list_still_serves_cached_reviews(env, monkeypatch):
+    monkeypatch.delenv("LOLREVIEW_ALLOWED_PLAYERS", raising=False)
+    other = next(
+        x["participantId"]
+        for x in DemoRiot().match("americas", MID)["info"]["participants"]
+        if x["participantId"] != P
+    )
+    assert env.make().get(f"/api/review/{MID}?p={other}").status_code == 200
+    monkeypatch.setenv("LOLREVIEW_ALLOWED_PLAYERS", "Me#NA1")
+    r = env.make().get(f"/api/review/{MID}?p={other}")
+    assert r.status_code == 200
+    assert len(env.built) == 1
+
+
+def test_allow_list_unset_allows_everyone(env, monkeypatch):
+    monkeypatch.delenv("LOLREVIEW_ALLOWED_PLAYERS", raising=False)
+    c = env.make()
+    assert c.get("/api/player/na1/Nobody/NA1").status_code == 404
+    other = next(
+        x["participantId"]
+        for x in DemoRiot().match("americas", MID)["info"]["participants"]
+        if x["participantId"] != P
+    )
+    assert c.get(f"/api/review/{MID}?p={other}").status_code == 200

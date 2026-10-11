@@ -21,7 +21,7 @@ uv pip install -p .venv -e ".[dev]"
 .venv/bin/ruff format --check .
 ```
 
-Regenerate the synthetic games with `.venv/bin/python tests/fixtures/make_synthetic.py` and the API schema with `.venv/bin/python scripts/export_openapi.py`.
+Regenerate the synthetic games with `.venv/bin/python tests/fixtures/make_synthetic.py` and the API schema with `.venv/bin/python scripts/export_openapi.py`. `.venv/bin/python scripts/bench_api.py [--runs 20]` times the review API on the demo games (p50, p95 and max per endpoint).
 
 ## Running the app
 

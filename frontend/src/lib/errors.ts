@@ -38,6 +38,7 @@ export function describeError(error: unknown, ctx: ErrorContext = {}): Described
     case "unsupported_queue":
       return { message: "Only ranked solo/duo games can be reviewed.", canRetry: false };
     case "demo_only":
+    case "not_allowed":
       return { message: (error as ApiError).message, canRetry: false };
     default:
       return { message: "Something went wrong.", canRetry: true };

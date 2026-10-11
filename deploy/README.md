@@ -114,3 +114,20 @@ gh workflow run pages.yml
 ```
 
 `gh variable delete API_BASE` and another run go back to the saved games.
+
+Until Riot approves a production key, the hosted app shows only its owner's games. A personal key
+isn't meant to serve the public, so the app refuses other players with a 403 and makes no Riot call
+for them. Set the owner's Riot ID in the unit's environment (comma separated for more players):
+
+```
+sudo systemctl edit lolreview-app
+```
+
+and add, under `[Service]`:
+
+```
+Environment=LOLREVIEW_ALLOWED_PLAYERS=Me#NA1
+```
+
+Then `sudo systemctl restart lolreview-app`. A drop-in like this survives the install step above,
+which rewrites the unit file. Leave the variable unset to serve any player again.

@@ -41,7 +41,7 @@ log = logging.getLogger(__name__)
 DEV_ORIGIN = "http://localhost:5173"
 DEFAULT_TIER = "SILVER"
 DEMO_REPLAY_REASON = "Replays aren't available in demo mode"
-REVIEW_FORMAT = 2  # bump when the Review JSON gains fields, so older cached reviews are rebuilt
+REVIEW_FORMAT = 3  # bump when the Review JSON gains fields, so older cached reviews are rebuilt
 
 
 class ApiError(Exception):
@@ -110,6 +110,20 @@ def _build_review(
 
 def _unsupported() -> ApiError:
     return ApiError(422, "unsupported_queue", "Only ranked solo/duo games can be reviewed.")
+
+
+def _not_allowed() -> ApiError:
+    return ApiError(403, "not_allowed", "This hosted app only shows its owner's games.")
+
+
+def _allowed_players() -> set[str] | None:
+    raw = os.environ.get("LOLREVIEW_ALLOWED_PLAYERS", "")
+    allowed = {name.strip().lower() for name in raw.split(",") if name.strip()}
+    return allowed or None
+
+
+def _is_allowed(allowed: set[str] | None, name: str, tag: str) -> bool:
+    return allowed is None or f"{name}#{tag}".lower() in allowed
 
 
 def _patch_of(match: dict) -> str:
@@ -281,6 +295,7 @@ def create_app(
             CORSMiddleware, allow_origins=[DEV_ORIGIN], allow_methods=["GET", "POST"]
         )
 
+    allowed = _allowed_players()
     state: dict[str, _Context] = {}
     state_lock = threading.Lock()
 
@@ -344,6 +359,8 @@ def create_app(
         cluster = PLATFORM_TO_CLUSTER.get(platform)
         if cluster is None:
             raise ApiError(404, "riot_id_not_found", f"Unknown platform {platform}.")
+        if not _is_allowed(allowed, name, tag):
+            raise _not_allowed()
         start = max(0, start)
         count = max(1, min(count, 100))
         account = c.cache.get_account(cluster, name, tag)
@@ -399,6 +416,10 @@ def create_app(
         participant = next((x for x in info["participants"] if x["participantId"] == p), None)
         if participant is None:
             raise ApiError(404, "match_not_found", "Match not found.")
+        name = participant.get("riotIdGameName", "")
+        tag = participant.get("riotIdTagline", "")
+        if not _is_allowed(allowed, name, tag):
+            raise _not_allowed()
         if info.get("queueId") != QUEUE_RANKED_SOLO or _is_remake(info, participant):
             raise _unsupported()
         try:
