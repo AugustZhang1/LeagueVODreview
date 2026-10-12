@@ -5,7 +5,10 @@ import { join } from "node:path";
 const MOCK_PORT = 5174;
 const DEMO_PORT = 8000;
 const repoRoot = join(import.meta.dirname, "..");
-const venvPython = join(repoRoot, ".venv", "bin", "python");
+const venvPython =
+  [join(repoRoot, ".venv", "Scripts", "python.exe"), join(repoRoot, ".venv", "bin", "python")].find(
+    existsSync,
+  ) ?? join(repoRoot, ".venv", "bin", "python");
 
 /** Where a preinstalled Chromium lives, if the sandbox has one (CI downloads its own). */
 function localChromium(): string | undefined {
@@ -64,7 +67,11 @@ export default defineConfig({
           {
             command: `${venvPython} -m lolreview.app --demo --port ${DEMO_PORT}`,
             cwd: repoRoot,
-            env: { OMP_NUM_THREADS: "1" },
+            // no trained model, even when models/ on this machine has one
+            env: {
+              OMP_NUM_THREADS: "1",
+              LOLREVIEW_MODELS_DIR: join(repoRoot, "frontend", ".e2e-no-models"),
+            },
             url: `http://127.0.0.1:${DEMO_PORT}/api/health`,
             reuseExistingServer: !process.env.CI,
           },

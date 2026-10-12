@@ -31,9 +31,9 @@ test("search Me#NA1, open every game, then the model page", async ({ page }) => 
     await expect(slider).toBeVisible();
     await expect(page.getByText(/^Scoreboard at 00:00$/)).toBeVisible();
     await expect(page.getByRole("img", { name: "Minimap" })).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(
-      900,
-    );
+    // the lane chart and notes sit below the fold by design; the panels must fit
+    const panels = await page.locator('[class*="panels"]').boundingBox();
+    expect(panels!.y + panels!.height).toBeLessThanOrEqual(900);
 
     await page.keyboard.press("ArrowRight");
     await expect(page.locator('[data-testid^="detail-"]')).toBeVisible();

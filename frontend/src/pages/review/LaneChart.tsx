@@ -27,8 +27,10 @@ const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n)}
 export const LaneChart = memo(function LaneChart({ review }: { review: Review }) {
   const lane = laneDiff(review);
   if (!lane) return null;
-  const { opponent, points } = lane;
+  const { opponent } = lane;
   const duration = review.match.duration_s;
+  // the last snapshot can be a few seconds past the end of the game
+  const points = lane.points.filter((p) => p.t <= duration);
   return (
     <Panel title={`Lane vs ${opponent.champion_name}`}>
       <div className={styles.chart}>

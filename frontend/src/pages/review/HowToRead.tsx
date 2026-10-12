@@ -16,8 +16,8 @@ export function HowToRead() {
       <summary>How to read this</summary>
       <ul className={styles.list}>
         <li>
-          Win chance is the model's estimate of your team's chance to win at that moment, from games
-          at your rank. It's not a prediction of this game.
+          The win chance on the graph is the model's estimate of your team's chance to win at that
+          moment, from games at your rank. It's not a prediction of this game.
         </li>
         <li>
           Grades compare the win chance from just before a moment to just after it:

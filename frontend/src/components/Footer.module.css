@@ -24,3 +24,15 @@
   flex: none;
   text-align: right;
 }
+
+@media (max-width: 599px) {
+  .inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+
+  .model {
+    text-align: left;
+  }
+}

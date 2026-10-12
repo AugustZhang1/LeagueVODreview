@@ -73,15 +73,10 @@
   gap: var(--space-2);
 }
 
-.skelMistakes {
+.skelRow {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  margin-top: var(--space-1);
-}
-
-.skelGuide {
-  margin-top: var(--space-1);
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .skelChecks {

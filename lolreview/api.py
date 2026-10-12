@@ -171,7 +171,10 @@ class _Context:
         else:
             self.client = client or riot.RiotClient(on_key_error="raise", max_429_retries=1)
             self.ddragon = ddragon or DataDragon(self.cache)
-        models_dir = Path(load_config()["paths"]["models_dir"])
+        # LOLREVIEW_MODELS_DIR overrides config.toml (the browser tests point it at an empty folder)
+        models_dir = Path(
+            os.environ.get("LOLREVIEW_MODELS_DIR") or load_config()["paths"]["models_dir"]
+        )
         self.models_dir = models_dir if models_dir.is_absolute() else ROOT / models_dir
         self._model = None
         self._model_lock = threading.Lock()

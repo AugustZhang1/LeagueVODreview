@@ -72,6 +72,7 @@ export function MomentDetail({ moment, review }: { moment: Moment; review: Revie
         </span>
         <Delta value={moment.delta} />
       </p>
+      <p className={styles.where}>{capitalize(moment.zone)}</p>
       {drivers.length > 0 && (
         <div className={styles.why}>
           <h4 className={styles.heading}>Why</h4>
@@ -97,7 +98,6 @@ export function MomentDetail({ moment, review }: { moment: Moment; review: Revie
       {moment.t_end < 300 && (
         <p className={styles.early}>Early game: the model is least sure in the first 5 minutes.</p>
       )}
-      <p className={styles.where}>{capitalize(moment.zone)}</p>
       <ul className={styles.events}>
         {moment.events.map((ev, i) => (
           <li key={i} className={styles.event}>

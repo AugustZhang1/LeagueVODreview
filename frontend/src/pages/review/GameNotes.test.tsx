@@ -32,6 +32,16 @@ describe("GameNotes", () => {
     expect(localStorage.getItem(key)).toBe("Dive\n12:34 ");
   });
 
+  it("Add time moves the caret to the end so typing continues the note", async () => {
+    const user = userEvent.setup();
+    render(<GameNotes matchId="NA1_1" participantId={4} t={754} />);
+    await user.type(box(), "Dive");
+    await user.click(screen.getByRole("button", { name: "Add time" }));
+    expect(box()).toHaveFocus();
+    await user.keyboard("Ran");
+    expect(box()).toHaveValue("Dive\n12:34 Ran");
+  });
+
   it("still works when localStorage throws", async () => {
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("denied");

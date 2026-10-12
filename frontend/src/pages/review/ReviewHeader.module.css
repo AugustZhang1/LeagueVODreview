@@ -81,3 +81,11 @@
 .back:hover {
   color: var(--text);
 }
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-4);
+  margin-top: var(--space-2);
+}

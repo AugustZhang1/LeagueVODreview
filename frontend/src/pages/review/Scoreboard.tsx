@@ -113,16 +113,21 @@ const Teams = memo(
 export function Scoreboard({ review, snapshot, t }: Props) {
   const objectives = buildObjectives(snapshot, t);
   return (
-    <Panel title={`Scoreboard at ${formatTime(snapshot.t)}`} className={styles.panel}>
-      {objectives && (
-        <div className={styles.objectives}>
-          <Pair label={objectives.dragon.label} value={objectives.dragon.time} />
-          <span className={styles.pairLabel} aria-hidden="true">
-            ·
-          </span>
-          <Pair label={objectives.pit.label} value={objectives.pit.time} />
-        </div>
-      )}
+    <Panel
+      title={`Scoreboard at ${formatTime(snapshot.t)}`}
+      actions={
+        objectives && (
+          <div className={styles.objectives}>
+            <Pair label={objectives.dragon.label} value={objectives.dragon.time} />
+            <span className={styles.pairLabel} aria-hidden="true">
+              ·
+            </span>
+            <Pair label={objectives.pit.label} value={objectives.pit.time} />
+          </div>
+        )
+      }
+      className={styles.panel}
+    >
       <Teams review={review} snapshot={snapshot} t={t} />
     </Panel>
   );

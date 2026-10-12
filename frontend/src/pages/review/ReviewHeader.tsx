@@ -147,8 +147,10 @@ export function ReviewHeader({ review, participantId, onJump }: Props) {
             />
           )}
         </div>
-        <TopMistakes review={review} participantId={participantId} onJump={onJump} />
-        <HowToRead />
+        <div className={styles.row}>
+          <TopMistakes review={review} participantId={participantId} onJump={onJump} />
+          <HowToRead />
+        </div>
       </div>
       <Link to={gamesHref} className={styles.back}>
         <ChevronLeft size={16} aria-hidden="true" />

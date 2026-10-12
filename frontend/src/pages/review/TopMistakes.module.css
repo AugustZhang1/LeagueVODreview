@@ -1,12 +1,16 @@
 .section {
-  margin-top: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  min-width: 0;
 }
 
 .heading {
-  margin-bottom: var(--space-1);
   color: var(--text-2);
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .empty {
@@ -16,17 +20,30 @@
 
 .list {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.item {
+  min-width: 0;
 }
 
 .link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  max-width: 100%;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.title {
+  min-width: 0;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

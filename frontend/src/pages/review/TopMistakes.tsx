@@ -33,7 +33,7 @@ export function TopMistakes({ review, participantId, onJump }: Props) {
       ) : (
         <ul className={styles.list}>
           {worst.map((m) => (
-            <li key={m.id}>
+            <li key={m.id} className={styles.item}>
               <a
                 className={styles.link}
                 href={`/review/${encodeURIComponent(match.match_id)}?p=${participantId}&t=${momentEnd(m, match.duration_s)}`}
@@ -43,7 +43,9 @@ export function TopMistakes({ review, participantId, onJump }: Props) {
                 }}
               >
                 <span className="num">{formatTime(m.t_end)}</span>
-                <span>{m.title}</span>
+                <span className={styles.title} title={m.title}>
+                  {m.title}
+                </span>
                 <Delta value={m.delta} />
               </a>
             </li>

@@ -1,7 +1,12 @@
+/* at the end of the header's row; open, the text takes the full width below it */
 .guide {
-  margin-top: var(--space-3);
+  margin-left: auto;
   color: var(--text-2);
   font-size: 13px;
+}
+
+.guide[open] {
+  flex-basis: 100%;
 }
 
 .guide summary {
