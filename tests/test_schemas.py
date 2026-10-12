@@ -123,6 +123,7 @@ def test_openapi_paths():
         "/api/health",
         "/api/player/{platform}/{name}/{tag}",
         "/api/review/{match_id}",
+        "/api/patterns",
         "/api/model",
         "/api/replay/status",
         "/api/replay/seek",

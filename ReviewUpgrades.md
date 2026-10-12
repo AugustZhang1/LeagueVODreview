@@ -247,3 +247,112 @@ Read the diff; run the full suites (`pytest -q`, `ruff check .`, `ruff format --
 `npm run typecheck`, `npm run test`, `npx eslint .`, prettier on changed files, `npm run build`,
 `npm run e2e`); open the demo app (`python -m lolreview.app --demo`, search `Me#NA1`) and check
 the feature by eye. Commit each task separately once it passes.
+
+## Round 2: patterns across your games (idea 11)
+
+The round above is done and committed. This round adds one feature: on the games page, a summary of
+where the player loses win chance across the games they've already reviewed. It reads only cached
+reviews, so it costs no Riot calls and never builds a review. Same rules as above.
+
+### Task G: backend
+
+Files: new `lolreview/patterns.py`, `lolreview/schemas.py`, `lolreview/api.py` (not
+`REVIEW_FORMAT`), new `tests/test_patterns.py`, `tests/test_api.py`, `frontend/openapi.json`,
+`frontend/src/api/types.ts`, `frontend/src/api/models.ts`.
+
+1. `schemas.py`:
+   ```python
+   class PatternRow(BaseModel):
+       label: str  # "Mid game (14-25 min)", "river", "Gold lead"
+       mistakes: int  # my ? and ?? moments in this group
+       games: int  # games with at least one of them
+       lost: float  # sum of their deltas, win chance (negative)
+
+
+   class Patterns(BaseModel):
+       games: int  # reviews found
+       wins: int
+       grades: GradeCounts  # mine, summed over the games
+       by_phase: list[PatternRow]  # always 3 rows: early, mid, late
+       by_zone: list[PatternRow]  # most lost first, at most 5
+       by_driver: list[PatternRow]  # most lost first, at most 5
+       windows_missed: int
+       windows_used: int
+       missed_value: float  # sum of the missed windows' value
+       comebacks: int
+       thrown: int
+       lane_gold_10: float | None  # average gold minus lane opponent's at 10:00
+       lane_cs_10: float | None
+   ```
+2. `patterns.py`: `patterns_of(reviews: list[dict]) -> dict` takes cached Review JSON dicts (as
+   stored by the review endpoint, grade keys `"!!"`, `"!"`, `"?"`, `"??"`) and returns a dict that
+   validates as `Patterns`. A "mistake" is a moment with `involves_me` and grade `?` or `??`.
+   - `grades`: sum of `summary.me` over the reviews.
+   - `by_phase`: by the moment's `t_start`: "Early game (0-14 min)" (< 840 s), "Mid game (14-25
+     min)" (< 1500 s), "Late game (25+ min)". Always all 3, in that order, zeros allowed.
+   - `by_zone`: by `moment.zone`, sorted by `lost` ascending (most negative first), then label;
+     at most 5.
+   - `by_driver`: per mistake, the driver with the most negative `change` (skip the mistake when
+     it has no driver with change < 0); grouped by `label`, sorted and capped like `by_zone`.
+   - `windows_missed` / `windows_used`: counts of `windows` with `used` false / true;
+     `missed_value`: sum of missed windows' `value`.
+   - `comebacks` / `thrown`: the same rule as `comebackOf` in
+     `frontend/src/pages/review/ReviewHeader.tsx` (curve without its last point; win with lowest
+     `p` < 0.2, loss with highest `p` > 0.8).
+   - `lane_gold_10` / `lane_cs_10`: the same pairing as `frontend/src/pages/review/laneDiff.ts`
+     (me = `is_me`; opponent = other team, same `role`); the snapshot at or just before t = 600;
+     only games with `match.duration_s >= 600` and an opponent; average over those games, rounded
+     to whole numbers; `None` when there are none.
+   - `lost`, `missed_value` rounded to 3 places. Missing keys (old reviews without `windows` or
+     `drivers`) count as empty.
+3. `api.py`: `GET /api/patterns?games=NA1_1:3,NA1_2:5` (`response_model=Patterns`,
+   `responses=errors`). `games` is a comma separated list of `match_id:participant_id`, at most 50
+   (extra ones ignored); malformed entries are skipped. For each, `c.cache.get_review(match_id, p,
+   version)` with the same `version` string as the review endpoint; missing ones are skipped (never
+   build a review here). Returns `patterns_of(found)`. Cached reviews are already served to anyone
+   by `/api/review`, so no allow-list check is needed.
+4. Regenerate: `.venv/Scripts/python.exe scripts/export_openapi.py`, then in `frontend/`
+   `npm run gen:api`. Export `Patterns` and `PatternRow` from `models.ts`.
+5. Tests: `tests/test_patterns.py` builds small review dicts by hand (a helper that makes a review
+   with given moments, windows, curve, players and snapshots) and checks each rule above: phase
+   boundaries (839 s early, 840 s mid, 1500 s late), zone sorting and the cap of 5, driver choice
+   (most negative; none negative = skipped), windows counts and value, comeback and thrown, lane at
+   10:00 (picks the snapshot at or before 600; game shorter than 600 s skipped; no opponent
+   skipped; `None` when no game counts), empty input (games 0, 3 zero phase rows). One more test
+   runs `patterns_of` on a real review from `build_review` on a synthetic game (see
+   `tests/test_review.py`) and validates it with `Patterns.model_validate`. In `tests/test_api.py`:
+   after a review is fetched, `/api/patterns?games=<id>:<p>` reports `games == 1`; an uncached or
+   malformed entry is skipped (`games == 0`), and no Riot call is made.
+
+### Task H: frontend
+
+Runs after G. Files: new `frontend/src/pages/games/Patterns.tsx` (+ `.module.css`,
+`Patterns.test.tsx`), `frontend/src/pages/GamesPage.tsx`, `GamesPage.module.css` if needed,
+`frontend/src/api/queries.ts`, `frontend/src/mocks/handlers.ts`, new
+`frontend/src/mocks/patterns.json`, `frontend/src/mocks/mocks.test.ts` if it checks every mock.
+
+1. `queries.ts`: `usePatterns(games: { match_id: string; participant_id: number }[])` calls
+   `/api/patterns?games=...` (sorted by match id so the key is stable), `enabled` only when there
+   are 2 or more, key `["patterns", <the games string>]`.
+2. `Patterns.tsx`: given the loaded `GameSummary` list, takes those with `reviewed` true. Renders
+   nothing when fewer than 2 are reviewed, while loading, on error, or when `games` < 2. Otherwise a
+   `<details>` (closed by default) between the games page header and its list. Its `<summary>`:
+   "Patterns in your 6 reviewed games: 1.8 mistakes a game, most win chance lost in mid game"
+   (mistakes = `grades["?"] + grades["??"]` over `games`, one decimal; the phase with the most
+   negative `lost`; leave the last clause out when no phase lost anything). Inside:
+   - one line: "4 wins, 2 losses · 2 comebacks · 1 thrown lead · Missed windows: 5 (worth ~+21%
+     in total), used 7" (use `formatWinChance`/`formatDelta`-style helpers from `lib/format.ts`
+     where they fit; drop the comeback/thrown parts at 0);
+   - "At 10:00 vs your lane opponent: +350 gold, +6 CS (average)" when present;
+   - three short tables or lists, "When", "Where", "Why": label, mistakes, games and lost (as a
+     `<Delta>`), from `by_phase`, `by_zone`, `by_driver`. Hide a table that has no mistakes.
+   Style it like the rest of the games page (tokens, CSS module, compact rows).
+3. `GamesPage.tsx`: render `<Patterns games={games} />` between the header and the list body.
+4. Mocks: `patterns.json` with believable numbers that validates against the schema (see how the
+   other mock JSON files are checked in `mocks.test.ts`); a handler for `/api/patterns`. In the
+   Pages build (`real`), the handler answers `showcase.patterns` instead: the real patterns of the
+   8 saved games, computed once by `patterns_of` and stored in `showcase.json` (done before this
+   task starts). Add a schema check for both.
+5. Tests: renders nothing with fewer than 2 reviewed games; the summary text (mistakes a game and
+   the worst phase); hides an empty table; the lane line only when present. Use MSW as other page
+   tests do, or render with a mocked query; follow `src/pages/pages.test.tsx`.

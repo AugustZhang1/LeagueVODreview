@@ -666,6 +666,129 @@
         "title": "Objectives",
         "type": "object"
       },
+      "PatternRow": {
+        "properties": {
+          "games": {
+            "title": "Games",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "lost": {
+            "title": "Lost",
+            "type": "number"
+          },
+          "mistakes": {
+            "title": "Mistakes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "mistakes",
+          "games",
+          "lost"
+        ],
+        "title": "PatternRow",
+        "type": "object"
+      },
+      "Patterns": {
+        "properties": {
+          "by_driver": {
+            "items": {
+              "$ref": "#/components/schemas/PatternRow"
+            },
+            "title": "By Driver",
+            "type": "array"
+          },
+          "by_phase": {
+            "items": {
+              "$ref": "#/components/schemas/PatternRow"
+            },
+            "title": "By Phase",
+            "type": "array"
+          },
+          "by_zone": {
+            "items": {
+              "$ref": "#/components/schemas/PatternRow"
+            },
+            "title": "By Zone",
+            "type": "array"
+          },
+          "comebacks": {
+            "title": "Comebacks",
+            "type": "integer"
+          },
+          "games": {
+            "title": "Games",
+            "type": "integer"
+          },
+          "grades": {
+            "$ref": "#/components/schemas/GradeCounts"
+          },
+          "lane_cs_10": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lane Cs 10"
+          },
+          "lane_gold_10": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lane Gold 10"
+          },
+          "missed_value": {
+            "title": "Missed Value",
+            "type": "number"
+          },
+          "thrown": {
+            "title": "Thrown",
+            "type": "integer"
+          },
+          "windows_missed": {
+            "title": "Windows Missed",
+            "type": "integer"
+          },
+          "windows_used": {
+            "title": "Windows Used",
+            "type": "integer"
+          },
+          "wins": {
+            "title": "Wins",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "games",
+          "wins",
+          "grades",
+          "by_phase",
+          "by_zone",
+          "by_driver",
+          "windows_missed",
+          "windows_used",
+          "missed_value",
+          "comebacks",
+          "thrown",
+          "lane_gold_10",
+          "lane_cs_10"
+        ],
+        "title": "Patterns",
+        "type": "object"
+      },
       "Player": {
         "properties": {
           "champion": {
@@ -1442,6 +1565,96 @@
           }
         },
         "summary": "Model Metrics"
+      }
+    },
+    "/api/patterns": {
+      "get": {
+        "operationId": "patterns_api_patterns_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "games",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Games",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Patterns"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Patterns"
       }
     },
     "/api/player/{platform}/{name}/{tag}": {

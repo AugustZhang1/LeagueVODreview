@@ -22,12 +22,14 @@ from lolreview.constants import (
     TIERS,
 )
 from lolreview.ddragon import DataDragon
+from lolreview.patterns import patterns_of
 from lolreview.schemas import (
     ErrorResponse,
     GameSummary,
     Health,
     ModelInfo,
     ModelMetrics,
+    Patterns,
     PlayerGames,
     Rank,
     ReplaySeek,
@@ -41,6 +43,7 @@ log = logging.getLogger(__name__)
 DEV_ORIGIN = "http://localhost:5173"
 DEFAULT_TIER = "SILVER"
 DEMO_REPLAY_REASON = "Replays aren't available in demo mode"
+PATTERNS_MAX_GAMES = 50
 REVIEW_FORMAT = 4  # bump when the Review JSON gains fields, so older cached reviews are rebuilt
 
 
@@ -437,6 +440,21 @@ def create_app(
         data = Review.model_validate(built).model_dump(mode="json", by_alias=True)
         c.cache.put_review(match_id, p, version, data)
         return JSONResponse(data)
+
+    @app.get("/api/patterns", response_model=Patterns, responses=errors)
+    def patterns(games: str = ""):
+        # Only cached reviews: never fetches a match or builds a review here.
+        c = ctx()
+        version = f"{c.model().version}+r{REVIEW_FORMAT}"
+        found = []
+        for item in games.split(",")[:PATTERNS_MAX_GAMES]:
+            match_id, sep, p = item.strip().partition(":")
+            if not match_id or not sep or not p.isdigit():
+                continue
+            review_data = c.cache.get_review(match_id, int(p), version)
+            if review_data is not None:
+                found.append(review_data)
+        return patterns_of(found)
 
     @app.get("/api/model", response_model=ModelMetrics, responses=errors)
     def model_metrics():

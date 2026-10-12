@@ -484,3 +484,16 @@ def test_allow_list_unset_allows_everyone(env, monkeypatch):
         if x["participantId"] != P
     )
     assert c.get(f"/api/review/{MID}?p={other}").status_code == 200
+
+
+def test_patterns_counts_only_cached_reviews(env):
+    c = env.make()
+    assert c.get("/api/patterns?games=").json()["games"] == 0
+    assert c.get(f"/api/patterns?games={MID}:{P}").json()["games"] == 0  # not reviewed yet
+    assert c.get(f"/api/review/{MID}?p={P}").status_code == 200
+    calls = len(env.client.calls)
+    r = c.get(f"/api/patterns?games={MID}:{P},NA1_1:1,{MID}:x,bad")
+    assert r.status_code == 200
+    assert r.json()["games"] == 1  # the uncached and malformed entries are skipped
+    assert len(env.built) == 1  # nothing built
+    assert len(env.client.calls) == calls  # no Riot call

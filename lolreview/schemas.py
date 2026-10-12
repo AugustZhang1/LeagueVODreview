@@ -253,6 +253,29 @@ class Review(BaseModel):
     windows: list[ObjectiveWindow] = []
 
 
+class PatternRow(BaseModel):
+    label: str  # "Mid game (14-25 min)", "river", "Gold lead"
+    mistakes: int  # my ? and ?? moments in this group
+    games: int  # games with at least one of them
+    lost: float  # sum of their deltas, win chance (negative)
+
+
+class Patterns(BaseModel):
+    games: int  # reviews found
+    wins: int
+    grades: GradeCounts  # mine, summed over the games
+    by_phase: list[PatternRow]  # always 3 rows: early, mid, late
+    by_zone: list[PatternRow]  # most lost first, at most 5
+    by_driver: list[PatternRow]  # most lost first, at most 5
+    windows_missed: int
+    windows_used: int
+    missed_value: float  # sum of the missed windows' value
+    comebacks: int
+    thrown: int
+    lane_gold_10: float | None  # average gold minus lane opponent's at 10:00
+    lane_cs_10: float | None
+
+
 class ModelMetrics(BaseModel):
     """metrics.json from training; fields are whatever train.py writes."""
 

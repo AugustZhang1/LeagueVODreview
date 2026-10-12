@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/patterns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Patterns */
+        get: operations["patterns_api_patterns_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/player/{platform}/{name}/{tag}": {
         parameters: {
             query?: never;
@@ -356,6 +373,45 @@ export interface components {
              */
             dragon_kind: "dragon" | "elder";
         };
+        /** PatternRow */
+        PatternRow: {
+            /** Games */
+            games: number;
+            /** Label */
+            label: string;
+            /** Lost */
+            lost: number;
+            /** Mistakes */
+            mistakes: number;
+        };
+        /** Patterns */
+        Patterns: {
+            /** By Driver */
+            by_driver: components["schemas"]["PatternRow"][];
+            /** By Phase */
+            by_phase: components["schemas"]["PatternRow"][];
+            /** By Zone */
+            by_zone: components["schemas"]["PatternRow"][];
+            /** Comebacks */
+            comebacks: number;
+            /** Games */
+            games: number;
+            grades: components["schemas"]["GradeCounts"];
+            /** Lane Cs 10 */
+            lane_cs_10: number | null;
+            /** Lane Gold 10 */
+            lane_gold_10: number | null;
+            /** Missed Value */
+            missed_value: number;
+            /** Thrown */
+            thrown: number;
+            /** Windows Missed */
+            windows_missed: number;
+            /** Windows Used */
+            windows_used: number;
+            /** Wins */
+            wins: number;
+        };
         /** Player */
         Player: {
             /** Champion */
@@ -627,6 +683,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelMetrics"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    patterns_api_patterns_get: {
+        parameters: {
+            query?: {
+                games?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Patterns"];
                 };
             };
             /** @description Unauthorized */
