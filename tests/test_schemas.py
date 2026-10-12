@@ -95,7 +95,8 @@ def test_health_and_player_games():
                 {
                     "match_id": "NA1_1", "participant_id": 4, "champion": "Ahri", "role": "MIDDLE",
                     "result": "win", "k": 1, "d": 2, "a": 3, "cs": 200, "duration_s": 1800,
-                    "started_at": "2026-09-28T01:05:11Z", "patch": "26.19", "reviewed": False,
+                    "started_at": "2026-09-28T01:05:11Z", "patch": "26.19",
+                    "ddragon_version": "26.19.1", "reviewed": False,
                 }
             ],
             "next_start": None,

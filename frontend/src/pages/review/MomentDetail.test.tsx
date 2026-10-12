@@ -49,6 +49,55 @@ describe("MomentDetail damage", () => {
   });
 });
 
+describe("MomentDetail your part", () => {
+  const second = review.players.filter((p) => p.team === "ally" && !p.is_me)[1]!;
+  const fight = (mine: number, mate: number, other = 0) =>
+    withFight({
+      damage: [
+        { participant_id: ally.participant_id, dealt: mate, taken: 0 },
+        { participant_id: me.participant_id, dealt: mine, taken: 0 },
+        { participant_id: second.participant_id, dealt: other, taken: 0 },
+        { participant_id: enemy.participant_id, dealt: 900, taken: 0 },
+      ],
+    });
+
+  it("tags top damage on my team", () => {
+    render(<MomentDetail moment={fight(3000, 1000)} review={review} />);
+    expect(screen.getByTestId("your-part")).toHaveTextContent(
+      "You 3,000, 75% of your team's · Top damage on your team",
+    );
+  });
+
+  it("tags low damage under 15% of my team's", () => {
+    render(<MomentDetail moment={fight(100, 1000, 900)} review={review} />);
+    expect(screen.getByTestId("your-part")).toHaveTextContent("5% of your team's · Low damage");
+  });
+
+  it("has no tag in between, and no line when I did no fight damage", () => {
+    const { rerender } = render(<MomentDetail moment={fight(500, 1000)} review={review} />);
+    expect(screen.getByTestId("your-part")).toHaveTextContent(/^You 500, 33% of your team's$/);
+    rerender(
+      <MomentDetail
+        moment={withFight({
+          damage: [{ participant_id: ally.participant_id, dealt: 5, taken: 0 }],
+        })}
+        review={review}
+      />,
+    );
+    expect(screen.queryByTestId("your-part")).not.toBeInTheDocument();
+  });
+});
+
+describe("MomentDetail better play", () => {
+  it("shows the tip when there is one", () => {
+    const tip = "Fought 2v3: back off until your team can join.";
+    const { rerender } = render(<MomentDetail moment={withFight({ tip })} review={review} />);
+    expect(screen.getByTestId("tip")).toHaveTextContent(`Better play ${tip}`);
+    rerender(<MomentDetail moment={withFight({ tip: null })} review={review} />);
+    expect(screen.queryByTestId("tip")).not.toBeInTheDocument();
+  });
+});
+
 describe("MomentDetail why", () => {
   const drivers = [
     { label: "Baron buff", change: -0.9 },

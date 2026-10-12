@@ -51,7 +51,7 @@ test("search Me#NA1, open every game, then the model page", async ({ page }) => 
     await expect(page).toHaveURL(/\/p\/na1\/Me\/NA1$/);
   }
 
-  await page.getByRole("link", { name: "Model" }).click();
+  await page.getByRole("link", { name: "Model", exact: true }).click();
   await expect(page.getByText(/No trained model yet/)).toBeVisible();
   await expect(page.getByText("Placeholder model")).toBeVisible();
   expect(problems).toEqual([]);

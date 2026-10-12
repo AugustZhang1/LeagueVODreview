@@ -4,11 +4,12 @@ import type { GradeCounts, Moment, Review } from "../../api/models";
 import { ChampIcon } from "../../components/ChampIcon";
 import { Delta } from "../../components/Delta";
 import { GradeBadge } from "../../components/GradeBadge";
+import { splashUrl } from "../../lib/ddragon";
 import { formatFullDate, formatRelative, formatTime, formatWinChance } from "../../lib/format";
 import { GRADES } from "../../lib/grades";
 import { momentEnd } from "./curve";
 import { HowToRead } from "./HowToRead";
-import { TopMistakes } from "./TopMistakes";
+import { BestPlays, TopMistakes } from "./TopMistakes";
 import styles from "./ReviewHeader.module.css";
 
 const ROLE_NAMES = {
@@ -94,6 +95,11 @@ export function ReviewHeader({ review, participantId, onJump }: Props) {
 
   return (
     <header className={styles.header}>
+      <div
+        className={styles.splash}
+        style={{ backgroundImage: `url(${splashUrl(me.champion)})` }}
+        aria-hidden="true"
+      />
       <ChampIcon
         version={match.ddragon_version}
         champion={me.champion}
@@ -150,6 +156,9 @@ export function ReviewHeader({ review, participantId, onJump }: Props) {
         <div className={styles.row}>
           <TopMistakes review={review} participantId={participantId} onJump={onJump} />
           <HowToRead />
+        </div>
+        <div className={styles.row}>
+          <BestPlays review={review} participantId={participantId} onJump={onJump} />
         </div>
       </div>
       <Link to={gamesHref} className={styles.back}>

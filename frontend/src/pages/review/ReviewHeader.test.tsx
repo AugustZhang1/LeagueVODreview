@@ -6,7 +6,7 @@ import type { CurvePoint, Moment, Review } from "../../api/models";
 import { makeReview } from "../../mocks/makeReview";
 import { HowToRead } from "./HowToRead";
 import { comebackOf } from "./ReviewHeader";
-import { TopMistakes } from "./TopMistakes";
+import { BestPlays, TopMistakes } from "./TopMistakes";
 
 const review = makeReview();
 const me = review.players.find((p) => p.is_me)!;
@@ -143,6 +143,44 @@ describe("TopMistakes", () => {
     );
     expect(screen.queryAllByRole("link")).toHaveLength(0);
     expect(screen.getByText("No mistakes graded against you in this game.")).toBeInTheDocument();
+  });
+});
+
+describe("BestPlays", () => {
+  it("lists my best three good plays, most positive first", () => {
+    const moments = [
+      mistake("a", 0.05, { grade: "!" }),
+      mistake("b", 0.2, { grade: "!!" }),
+      mistake("c", 0.12, { grade: "!!" }),
+      mistake("d", 0.08, { grade: "!" }),
+      mistake("e", 0.3, { grade: "!!", involves_me: false }),
+      mistake("f", -0.4),
+    ];
+    render(
+      <BestPlays
+        review={{ ...review, moments }}
+        participantId={me.participant_id}
+        onJump={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "Your best plays" })).toBeInTheDocument();
+    const links = screen.getAllByRole("link");
+    expect(links.map((l) => l.textContent)).toEqual([
+      expect.stringContaining("Mistake B"),
+      expect.stringContaining("Mistake C"),
+      expect.stringContaining("Mistake D"),
+    ]);
+  });
+
+  it("says so when no good play was graded for me", () => {
+    render(
+      <BestPlays
+        review={{ ...review, moments: [mistake("a", -0.1)] }}
+        participantId={me.participant_id}
+        onJump={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("No good plays graded for you in this game.")).toBeInTheDocument();
   });
 });
 

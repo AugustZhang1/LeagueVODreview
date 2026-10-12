@@ -6,6 +6,8 @@ from conftest import REAL_IDS, SYNTHETIC_IDS
 
 from lolreview import describe, schemas
 from lolreview.config import load_config
+from lolreview.constants import BLUE, RED
+from lolreview.features import GameState, PlayerState, TeamState
 from lolreview.model import PlaceholderModel
 from lolreview.review import (
     Remake,
@@ -13,6 +15,7 @@ from lolreview.review import (
     _drivers,
     _fight_damage,
     _kill_gold,
+    _tip,
     build_review,
 )
 
@@ -361,3 +364,67 @@ def test_drivers_on_moments(load_game):
     for a, b in zip(blue.moments, red.moments, strict=True):
         assert [sided.get(d.label, d.label) for d in a.drivers] == [d.label for d in b.drivers]
         assert [d.change for d in a.drivers] == [-d.change for d in b.drivers]
+
+
+TIP_NAMES = {1: "Ahri", 2: "Garen", 3: "Lux", 6: "Zed", 7: "Lee Sin", 8: "Jinx"}
+
+
+def tip_state(levels=None, dead=(), enemy_buff=None):
+    """Me (1), Garen (2) and Lux (3) on blue; Zed (6), Lee Sin (7) and Jinx (8) on red, at 10:00."""
+    t = 600_000
+    levels = levels or {}
+    players = {
+        pid: PlayerState(pid, BLUE if pid < 6 else RED, "", level=levels.get(pid, 9),
+                         dead_until_ms=t + 30_000 if pid in dead else 0)
+        for pid in TIP_NAMES
+    }  # fmt: skip
+    teams = {BLUE: TeamState(), RED: TeamState(buff=enemy_buff)}
+    return GameState(t, teams, players, set(), [])
+
+
+def kill(victim, killer, *assists, team="enemy"):
+    return schemas.GameEvent(t=600, team=team, kind="kill", killer=killer, victim=victim,
+                             assists=list(assists) or None)  # fmt: skip
+
+
+def tip(evs, state):
+    return _tip(evs, state, 1, BLUE, TIP_NAMES)
+
+
+def test_tip_rules_in_order():
+    baron = ("baron", 600_000 + 95_000)
+    assert tip([kill(1, 6)], tip_state(enemy_buff=baron)) == (
+        "Enemy had Baron buff for 95 more seconds: "
+        "wait it out under your towers instead of fighting."
+    )
+    assert tip([kill(1, 6, 7)], tip_state()) == (
+        "Caught alone by Zed + Lee Sin: stay near your team, or ward ahead before walking in."
+    )
+    assert tip([kill(2, 6, 7, 8), kill(1, 6)], tip_state()) == (
+        "Fought 2v3: back off until your team can join."
+    )
+    assert tip([kill(1, 6), kill(6, 1, team="ally")], tip_state(dead={2})) == (
+        "Your team had 2 alive to their 3: wait for respawns before fighting."
+    )
+    assert tip([kill(1, 6)], tip_state(levels={6: 11})) == (
+        "Zed was 2 levels ahead: avoid fighting them until you catch up."
+    )
+    took = schemas.GameEvent(t=610, team="enemy", kind="baron")
+    assert tip([kill(2, 6), kill(6, 1, team="ally"), took], tip_state()) == (
+        "Enemy took Baron: be at the pit with vision before it spawns, "
+        "or trade for a tower across the map."
+    )
+
+
+def test_no_tip_when_no_rule_fits():
+    assert tip([kill(1, 6)], tip_state(levels={6: 10})) is None  # an even 1v1
+    assert tip([kill(6, 1, team="ally")], tip_state()) is None
+
+
+def test_tips_only_on_my_mistakes(load_game):
+    match, timeline = load_game(SYNTHETIC_IDS[1])
+    r = review_for(match, timeline, 1)
+    assert any(m.tip for m in r.moments)
+    for m in r.moments:
+        if m.tip:
+            assert m.involves_me and m.grade in ("?", "??")

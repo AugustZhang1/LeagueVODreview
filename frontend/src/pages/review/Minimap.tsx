@@ -8,6 +8,9 @@ import { hitTest, positionAge, reviewMarks, type ChampionMark } from "./board/mi
 import styles from "./Minimap.module.css";
 
 type Props = { review: Review; snapshot: Snapshot; t: number };
+
+/** Most the map leans toward the pointer, in degrees, at its edges. */
+const TILT_DEG = 10;
 type Hover = { mark: ChampionMark; x: number; y: number };
 type Assets = { map: HTMLImageElement | null; icons: Map<string, HTMLImageElement | null> };
 
@@ -93,6 +96,17 @@ export function Minimap({ review, snapshot, t }: Props) {
     const y = e.clientY - box.top;
     const mark = hitTest(marks.champions, x, y);
     setHover(mark ? { mark, x, y } : null);
+    // Tilt toward the pointer, a few degrees; CSS applies it only for a mouse and full motion.
+    const el = wrap.current;
+    if (el && box.width > 0) {
+      el.style.setProperty("--tilt-x", `${((0.5 - y / box.height) * TILT_DEG).toFixed(2)}deg`);
+      el.style.setProperty("--tilt-y", `${((x / box.width - 0.5) * TILT_DEG).toFixed(2)}deg`);
+    }
+  };
+  const onLeave = () => {
+    setHover(null);
+    wrap.current?.style.removeProperty("--tilt-x");
+    wrap.current?.style.removeProperty("--tilt-y");
   };
 
   const tip = hover?.mark;
@@ -105,7 +119,7 @@ export function Minimap({ review, snapshot, t }: Props) {
         role="img"
         aria-label="Minimap"
         onPointerMove={onMove}
-        onPointerLeave={() => setHover(null)}
+        onPointerLeave={onLeave}
       />
       {hover && tip && (
         <div

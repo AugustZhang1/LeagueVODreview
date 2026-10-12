@@ -74,8 +74,12 @@ function failure() {
  * replaced. Tests and `dev:mock` keep the fixtures above.
  */
 const real = import.meta.env.MODE === "pages";
-const health = (real ? showcase.health : healthJson) as Health;
 const player = (real ? showcase.player : playerJson) as PlayerGames;
+const health = (
+  real
+    ? { ...showcase.health, demo_player: { riot_id: player.riot_id, platform: "na1" } }
+    : healthJson
+) as Health;
 const fixture = reviewFixture as unknown as Review;
 const reviews = showcase.reviews as unknown as Record<string, Review>;
 const modelMetrics = (real ? showcase.model : modelJson) as unknown as ModelMetrics;

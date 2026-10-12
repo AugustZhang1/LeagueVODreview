@@ -4,7 +4,7 @@ import type { Moment, ObjectiveWindow, Review } from "../../api/models";
 import { formatTime } from "../../lib/format";
 import { isGoodGrade, isStrongGrade } from "../../lib/grades";
 import { GradeBadge } from "../../components/GradeBadge";
-import { winAtClock, winLabel } from "./curve";
+import { turningPoint, winAtClock, winLabel, winWord } from "./curve";
 import { PLOT_LEFT, PLOT_RIGHT } from "./layout";
 import styles from "./WinGraph.module.css";
 
@@ -171,13 +171,29 @@ export function WinGraph({ review, t, selected, selectedWindow, hoveredId, onSee
   };
 
   const hoverMoment = hoverT === null ? null : momentAt(review.moments, hoverT, duration);
+  const now = winAtClock(curve, t, duration);
+  const story = useMemo(
+    () => turningPoint(review.moments, review.summary.biggest_id),
+    [review.moments, review.summary.biggest_id],
+  );
 
   return (
     <section className={styles.graph} aria-label="Win chance">
-      <h2 className={styles.label}>
-        Win chance
-        <span className={`${styles.value} num`}>{winLabel(curve, t, duration)}</span>
-      </h2>
+      <div className={styles.labelRow}>
+        <h2 className={styles.label}>
+          Win chance
+          <span className={`${styles.value} num`}>{winLabel(curve, t, duration)}</span>
+          <span className={styles.word}>{winWord(now)}</span>
+          <span className={styles.tug} aria-hidden="true">
+            <span className={styles.tugAlly} style={{ transform: `scaleX(${now})` }} />
+          </span>
+        </h2>
+        {story && (
+          <p className={styles.story}>
+            <span className={styles.storyLabel}>Turning point</span> {story}
+          </p>
+        )}
+      </div>
       <div className={styles.stage} style={{ height: HEIGHT }}>
         <div className={styles.layer} style={plotInset} aria-hidden="true">
           {(review.windows ?? []).map((w) => (

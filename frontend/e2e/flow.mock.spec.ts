@@ -31,7 +31,7 @@ test("search, games, review, next moment, model", async ({ page }) => {
   await page.keyboard.press("ArrowRight");
   await expect.poll(() => Number(url().searchParams.get("t"))).toBeGreaterThan(t);
 
-  await page.getByRole("link", { name: "Model" }).click();
+  await page.getByRole("link", { name: "Model", exact: true }).click();
   await expect(page.getByRole("heading", { name: "How much to trust the numbers" })).toBeVisible();
   await expect(page.getByText("Accuracy by minute")).toBeVisible();
   await expect(page.getByText(/^Trained /)).toContainText("1,998");

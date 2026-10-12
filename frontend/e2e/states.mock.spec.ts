@@ -15,7 +15,7 @@ test.describe("key expired", () => {
     await expect(banner).toHaveCSS("border-left-width", "3px");
     await search(page);
     await expect(page.getByRole("alert").last()).toContainText("Riot API key expired");
-    await page.getByRole("link", { name: "Model" }).click();
+    await page.getByRole("link", { name: "Model", exact: true }).click();
     await expect(banner).toBeVisible();
   });
 

@@ -39,3 +39,7 @@
   border-color: var(--border);
   background: var(--surface-2);
 }
+
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}

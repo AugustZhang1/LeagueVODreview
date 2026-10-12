@@ -24,6 +24,7 @@ from lolreview.constants import (
 from lolreview.ddragon import DataDragon
 from lolreview.patterns import patterns_of
 from lolreview.schemas import (
+    DemoPlayer,
     ErrorResponse,
     GameSummary,
     Health,
@@ -44,7 +45,7 @@ DEV_ORIGIN = "http://localhost:5173"
 DEFAULT_TIER = "SILVER"
 DEMO_REPLAY_REASON = "Replays aren't available in demo mode"
 PATTERNS_MAX_GAMES = 50
-REVIEW_FORMAT = 4  # bump when the Review JSON gains fields, so older cached reviews are rebuilt
+REVIEW_FORMAT = 5  # bump when the Review JSON gains fields, so older cached reviews are rebuilt
 
 
 class ApiError(Exception):
@@ -123,6 +124,12 @@ def _allowed_players() -> set[str] | None:
     raw = os.environ.get("LOLREVIEW_ALLOWED_PLAYERS", "")
     allowed = {name.strip().lower() for name in raw.split(",") if name.strip()}
     return allowed or None
+
+
+def _demo_player() -> DemoPlayer:
+    from lolreview import demo
+
+    return DemoPlayer(riot_id=f"{demo.DEMO_NAME}#{demo.DEMO_TAG}", platform=demo.DEMO_PLATFORM)
 
 
 def _is_allowed(allowed: set[str] | None, name: str, tag: str) -> bool:
@@ -233,7 +240,7 @@ class _Context:
         me = next((p for p in info["participants"] if p["puuid"] == puuid), None)
         if me is None:
             raise ApiError(404, "match_not_found", "Player not in this match.")
-        champions, _ = self.champions(match)
+        champions, version = self.champions(match)
         if _is_remake(info, me):
             result = "remake"
         else:
@@ -251,6 +258,7 @@ class _Context:
             "duration_s": info["gameDuration"],
             "started_at": _iso(info.get("gameStartTimestamp") or info["gameCreation"]),
             "patch": _patch_of(match),
+            "ddragon_version": version,
         }
         GameSummary(**summary, reviewed=False)
         self.cache.put_summary(match_id, puuid, summary)
@@ -356,6 +364,7 @@ def create_app(
                 trained_at=getattr(model, "trained_at", None),
                 patches=getattr(model, "patches", None),
             ),
+            demo_player=_demo_player() if c.demo else None,
         )
 
     @app.get("/api/player/{platform}/{name}/{tag}", response_model=PlayerGames, responses=errors)

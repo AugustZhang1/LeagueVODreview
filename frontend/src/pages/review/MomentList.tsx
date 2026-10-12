@@ -77,7 +77,11 @@ export const MomentList = memo(function MomentList({
     if (!list || !row) return;
     if (row.offsetTop < list.scrollTop) list.scrollTop = row.offsetTop;
     else if (row.offsetTop + row.offsetHeight > list.scrollTop + list.clientHeight) {
-      list.scrollTop = row.offsetTop + row.offsetHeight - list.clientHeight;
+      // Show the whole row with its detail, or its top (title, tip) when it's taller than the list
+      list.scrollTop = Math.min(
+        row.offsetTop,
+        row.offsetTop + row.offsetHeight - list.clientHeight,
+      );
     }
   }, [selectedId, selectedWindowId, filter]);
 

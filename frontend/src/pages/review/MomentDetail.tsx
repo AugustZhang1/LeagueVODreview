@@ -6,6 +6,9 @@ import { formatWinChance } from "../../lib/format";
 import { capitalize } from "./curve";
 import styles from "./MomentDetail.module.css";
 
+/** Under this share of my team's fight damage, I get a "Low damage" tag. */
+const LOW_SHARE = 0.15;
+
 function objective(ev: GameEvent): string {
   const d = ev.detail ? `${ev.detail} ` : "";
   switch (ev.kind) {
@@ -63,6 +66,15 @@ export function MomentDetail({ moment, review }: { moment: Moment; review: Revie
   const maxDealt = Math.max(1, ...damage.map((d) => d.dealt));
   const teamDealt = (side: Player["team"]) =>
     damage.reduce((sum, d) => (byId.get(d.participant_id)?.team === side ? sum + d.dealt : sum), 0);
+  const allyDealt = damage.filter((d) => byId.get(d.participant_id)?.team === "ally");
+  const mine = allyDealt.find((d) => byId.get(d.participant_id)?.is_me);
+  const share = mine ? mine.dealt / Math.max(1, teamDealt("ally")) : 0;
+  let partTag = "";
+  if (mine && allyDealt.length > 1) {
+    if (mine.dealt === Math.max(...allyDealt.map((d) => d.dealt)))
+      partTag = "Top damage on your team";
+    else if (share < LOW_SHARE) partTag = "Low damage";
+  }
 
   return (
     <div className={styles.detail} data-testid={`detail-${moment.id}`}>
@@ -73,6 +85,11 @@ export function MomentDetail({ moment, review }: { moment: Moment; review: Revie
         <Delta value={moment.delta} />
       </p>
       <p className={styles.where}>{capitalize(moment.zone)}</p>
+      {moment.tip && (
+        <p className={styles.tip} data-testid="tip">
+          <span className={styles.tipLabel}>Better play</span> {moment.tip}
+        </p>
+      )}
       {drivers.length > 0 && (
         <div className={styles.why}>
           <h4 className={styles.heading}>Why</h4>
@@ -148,6 +165,13 @@ export function MomentDetail({ moment, review }: { moment: Moment; review: Revie
             {" vs "}
             enemy <span className="num">{teamDealt("enemy").toLocaleString("en-US")}</span>
           </p>
+          {mine && (
+            <p className={styles.totals} data-testid="your-part">
+              You <span className="num">{mine.dealt.toLocaleString("en-US")}</span>,{" "}
+              {Math.round(share * 100)}% of your team's
+              {partTag && <span className={styles.partTag}> · {partTag}</span>}
+            </p>
+          )}
         </div>
       )}
       {goldSwing !== 0 && (

@@ -8,6 +8,9 @@ export const itemIconUrl = (version: string, itemId: number) =>
 
 export const mapUrl = (version: string) => `${BASE}/${version}/img/map/map11.png`;
 
+/** The champion's default skin splash art (1215x717); not versioned. */
+export const splashUrl = (champion: string) => `${BASE}/img/champion/splash/${champion}_0.jpg`;
+
 /** Two letters for the image fallback: "MonkeyKing" gives "MK", "Ahri" gives "Ah". */
 export function initials(name: string): string {
   const caps = name.match(/[A-Z]/g);

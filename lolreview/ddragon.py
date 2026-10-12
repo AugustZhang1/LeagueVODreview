@@ -9,6 +9,9 @@ log = logging.getLogger(__name__)
 
 BASE = "https://ddragon.leagueoflegends.com"
 VERSIONS_TTL_S = 86400.0
+# Demo mode fetches nothing, but the browser still loads icons and the map from Data Dragon;
+# the made-up games' patch (26.19) has no Data Dragon version, so they use a real one.
+OFFLINE_VERSION = "16.19.1"
 TIMEOUT_S = 15
 
 
@@ -50,7 +53,7 @@ class DataDragon:
     def version_for_patch(self, patch: str) -> str:
         """Newest Data Dragon version of a patch ("26.19" -> "26.19.1"); else the newest."""
         if self.offline:
-            return f"{patch}.1"
+            return OFFLINE_VERSION
         try:
             versions = self.versions()
         except Exception as exc:

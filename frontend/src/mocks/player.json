@@ -21,7 +21,8 @@
       "duration_s": 1902,
       "started_at": "2026-09-30T18:20:00Z",
       "patch": "26.19",
-      "reviewed": true
+      "reviewed": true,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000002",
@@ -36,7 +37,8 @@
       "duration_s": 1637,
       "started_at": "2026-09-30T17:20:00Z",
       "patch": "26.19",
-      "reviewed": true
+      "reviewed": true,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000003",
@@ -51,7 +53,8 @@
       "duration_s": 1774,
       "started_at": "2026-09-29T16:20:00Z",
       "patch": "26.19",
-      "reviewed": true
+      "reviewed": true,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000004",
@@ -66,7 +69,8 @@
       "duration_s": 210,
       "started_at": "2026-09-29T15:20:00Z",
       "patch": "26.19",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000005",
@@ -81,7 +85,8 @@
       "duration_s": 2048,
       "started_at": "2026-09-28T14:20:00Z",
       "patch": "26.19",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000006",
@@ -96,7 +101,8 @@
       "duration_s": 2185,
       "started_at": "2026-09-28T18:20:00Z",
       "patch": "26.19",
-      "reviewed": true
+      "reviewed": true,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000007",
@@ -111,7 +117,8 @@
       "duration_s": 2322,
       "started_at": "2026-09-27T17:20:00Z",
       "patch": "26.19",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000008",
@@ -126,7 +133,8 @@
       "duration_s": 1559,
       "started_at": "2026-09-27T16:20:00Z",
       "patch": "26.19",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000009",
@@ -141,7 +149,8 @@
       "duration_s": 1696,
       "started_at": "2026-09-26T15:20:00Z",
       "patch": "26.19",
-      "reviewed": true
+      "reviewed": true,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000010",
@@ -156,7 +165,8 @@
       "duration_s": 1833,
       "started_at": "2026-09-26T14:20:00Z",
       "patch": "26.19",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000011",
@@ -171,7 +181,8 @@
       "duration_s": 1970,
       "started_at": "2026-09-25T18:20:00Z",
       "patch": "26.19",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000012",
@@ -186,7 +197,8 @@
       "duration_s": 2107,
       "started_at": "2026-09-25T17:20:00Z",
       "patch": "26.19",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000013",
@@ -201,7 +213,8 @@
       "duration_s": 2244,
       "started_at": "2026-09-24T16:20:00Z",
       "patch": "26.19",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000014",
@@ -216,7 +229,8 @@
       "duration_s": 2381,
       "started_at": "2026-09-24T15:20:00Z",
       "patch": "26.19",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000015",
@@ -231,7 +245,8 @@
       "duration_s": 1618,
       "started_at": "2026-09-23T14:20:00Z",
       "patch": "26.19",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000016",
@@ -246,7 +261,8 @@
       "duration_s": 1755,
       "started_at": "2026-09-23T18:20:00Z",
       "patch": "26.19",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000017",
@@ -261,7 +277,8 @@
       "duration_s": 1892,
       "started_at": "2026-09-22T17:20:00Z",
       "patch": "26.19",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000018",
@@ -276,7 +293,8 @@
       "duration_s": 2029,
       "started_at": "2026-09-22T16:20:00Z",
       "patch": "26.19",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.19.1"
     },
     {
       "match_id": "NA1_5300000019",
@@ -291,7 +309,8 @@
       "duration_s": 2166,
       "started_at": "2026-09-21T15:20:00Z",
       "patch": "26.18",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.18.1"
     },
     {
       "match_id": "NA1_5300000020",
@@ -306,7 +325,8 @@
       "duration_s": 2303,
       "started_at": "2026-09-21T14:20:00Z",
       "patch": "26.18",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.18.1"
     },
     {
       "match_id": "NA1_5300000021",
@@ -321,7 +341,8 @@
       "duration_s": 1540,
       "started_at": "2026-09-20T18:20:00Z",
       "patch": "26.18",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.18.1"
     },
     {
       "match_id": "NA1_5300000022",
@@ -336,7 +357,8 @@
       "duration_s": 1677,
       "started_at": "2026-09-20T17:20:00Z",
       "patch": "26.18",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.18.1"
     },
     {
       "match_id": "NA1_5300000023",
@@ -351,7 +373,8 @@
       "duration_s": 1814,
       "started_at": "2026-09-19T16:20:00Z",
       "patch": "26.18",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.18.1"
     },
     {
       "match_id": "NA1_5300000024",
@@ -366,7 +389,8 @@
       "duration_s": 1951,
       "started_at": "2026-09-19T15:20:00Z",
       "patch": "26.18",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.18.1"
     },
     {
       "match_id": "NA1_5300000025",
@@ -381,7 +405,8 @@
       "duration_s": 2088,
       "started_at": "2026-09-18T14:20:00Z",
       "patch": "26.18",
-      "reviewed": false
+      "reviewed": false,
+      "ddragon_version": "26.18.1"
     }
   ],
   "next_start": null

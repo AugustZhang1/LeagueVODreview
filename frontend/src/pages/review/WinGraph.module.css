@@ -18,6 +18,51 @@
   min-width: 3ch;
 }
 
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.word {
+  min-width: 9ch;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Tug of war: your team's share in blue, theirs in red. The number and word carry it too. */
+.tug {
+  display: inline-flex;
+  align-self: center;
+  width: 96px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--enemy);
+  overflow: hidden;
+}
+
+.tugAlly {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--ally);
+  transform-origin: left;
+}
+
+.storyLabel {
+  color: var(--text-3);
+}
+
+.story {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .stage {
   position: relative;
 }
@@ -136,4 +181,17 @@
   gap: var(--space-2);
   margin-top: var(--space-1);
   color: var(--text-2);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .marker {
+    animation: pop 0.3s cubic-bezier(0.3, 1.6, 0.5, 1) 0.5s backwards;
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+  }
 }

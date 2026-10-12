@@ -14,6 +14,14 @@ function mistakesOf(moments: Moment[]): Moment[] {
     .slice(0, MAX);
 }
 
+/** Good plays ("!" or "!!") I was part of, most positive first. */
+function bestOf(moments: Moment[]): Moment[] {
+  return moments
+    .filter((m) => m.involves_me && (m.grade === "!" || m.grade === "!!"))
+    .sort((a, b) => b.delta - a.delta)
+    .slice(0, MAX);
+}
+
 type Props = {
   review: Review;
   participantId: number;
@@ -21,18 +29,23 @@ type Props = {
   onJump: (m: Moment) => void;
 };
 
-export function TopMistakes({ review, participantId, onJump }: Props) {
+function MomentLinks({
+  heading,
+  empty,
+  moments,
+  review,
+  participantId,
+  onJump,
+}: Props & { heading: string; empty: string; moments: Moment[] }) {
   const { match } = review;
-  const worst = mistakesOf(review.moments);
-
   return (
     <section className={styles.section}>
-      <h2 className={styles.heading}>Your biggest mistakes</h2>
-      {worst.length === 0 ? (
-        <p className={styles.empty}>No mistakes graded against you in this game.</p>
+      <h2 className={styles.heading}>{heading}</h2>
+      {moments.length === 0 ? (
+        <p className={styles.empty}>{empty}</p>
       ) : (
         <ul className={styles.list}>
-          {worst.map((m) => (
+          {moments.map((m) => (
             <li key={m.id} className={styles.item}>
               <a
                 className={styles.link}
@@ -53,5 +66,27 @@ export function TopMistakes({ review, participantId, onJump }: Props) {
         </ul>
       )}
     </section>
+  );
+}
+
+export function TopMistakes(props: Props) {
+  return (
+    <MomentLinks
+      {...props}
+      heading="Your biggest mistakes"
+      empty="No mistakes graded against you in this game."
+      moments={mistakesOf(props.review.moments)}
+    />
+  );
+}
+
+export function BestPlays(props: Props) {
+  return (
+    <MomentLinks
+      {...props}
+      heading="Your best plays"
+      empty="No good plays graded for you in this game."
+      moments={bestOf(props.review.moments)}
+    />
   );
 }

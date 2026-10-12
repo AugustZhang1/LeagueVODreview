@@ -4,11 +4,31 @@
 }
 
 .header {
+  position: relative;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
   padding: var(--space-4);
+  isolation: isolate;
+}
+
+/* The latest game's champion, faint, behind the right of the header. */
+.splash {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: -1;
+  width: 60%;
+  background-position: center 22%;
+  background-size: cover;
+  opacity: 0.25;
+  mask-image: linear-gradient(to right, transparent, #000 60%);
+  pointer-events: none;
+}
+
+.record {
+  margin-top: var(--space-2);
+  color: var(--text-2);
 }
 
 .title {

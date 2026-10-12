@@ -163,6 +163,13 @@ export interface components {
             /** T */
             t: number;
         };
+        /** DemoPlayer */
+        DemoPlayer: {
+            /** Platform */
+            platform: string;
+            /** Riot Id */
+            riot_id: string;
+        };
         /** Driver */
         Driver: {
             /** Change */
@@ -229,6 +236,8 @@ export interface components {
             cs: number;
             /** D */
             d: number;
+            /** Ddragon Version */
+            ddragon_version: string;
             /** Duration S */
             duration_s: number;
             /** K */
@@ -264,6 +273,7 @@ export interface components {
         };
         /** Health */
         Health: {
+            demo_player?: components["schemas"]["DemoPlayer"] | null;
             model: components["schemas"]["ModelInfo"];
             /**
              * Riot Key
@@ -327,6 +337,8 @@ export interface components {
             t_end: number;
             /** T Start */
             t_start: number;
+            /** Tip */
+            tip?: string | null;
             /** Title */
             title: string;
             /** Zone */

@@ -158,6 +158,10 @@ function ReviewSkeleton({ building }: { building: boolean }) {
             <Skeleton width={220} height={20} />
             <Skeleton width={110} height={18} />
           </div>
+          <div className={styles.skelRow}>
+            <Skeleton width={120} height={18} />
+            <Skeleton width={220} height={20} />
+          </div>
         </div>
       </div>
       <div className={styles.skelGraph}>

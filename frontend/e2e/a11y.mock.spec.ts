@@ -10,6 +10,9 @@ const serious = async (page: Page) => {
 };
 
 test.describe("axe finds nothing serious", () => {
+  // Entrance fades would be measured half-way; axe checks the settled page.
+  test.use({ reducedMotion: "reduce" });
+
   test("search", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("textbox", { name: "Riot ID" })).toBeVisible();
@@ -101,6 +104,9 @@ test.describe("keyboard only", () => {
       "16:50−9%",
       "16:50Lost fight 1 for 3, then ",
       "How to read this",
+      "18:55Won fight 3 for 1, then d",
+      "21:50Won fight 4 for 1+6%",
+      "08:18Took 3 Void Grubs+6%",
       "Games",
       "Previous moment",
       "Next moment",

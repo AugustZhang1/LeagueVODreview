@@ -17,7 +17,7 @@ from lolreview.features import (
     states_at,
 )
 from lolreview.model import WinModel
-from lolreview.windows import baron_pit_monster, find_windows
+from lolreview.windows import _taken, baron_pit_monster, find_windows
 
 MONSTER_KINDS = {
     "HORDE": "grubs",
@@ -35,6 +35,8 @@ REVIEW_EVENT_TYPES = (
 DRIVER_SKIP = ("tier", "minute", "soul_type")
 DRIVER_MIN = 0.01  # log-odds; smaller moves aren't worth a line
 DRIVERS_SHOWN = 3
+TIP_LEVEL_GAP = 2
+OBJECTIVE_KINDS = ("dragon", "elder", "baron", "herald", "grubs", "atakhan")
 
 
 class ReviewError(ValueError):
@@ -229,6 +231,58 @@ def _drivers(
     ]
 
 
+def _tip(
+    evs: list[schemas.GameEvent], state: GameState, me: int, my_team: int, names: dict[int, str]
+) -> str | None:
+    """A better play for one of my mistakes, from the state just before it. The first rule that
+    matches wins; no tip when none does."""
+    t = state.t_ms
+    enemy = _other(my_team)
+    team_of = {pid: p.team for pid, p in state.players.items()}
+    kills = [e for e in evs if e.kind == "kill"]
+    in_fight = {
+        pid for e in kills for pid in (e.killer, e.victim, *(e.assists or [])) if pid in team_of
+    }
+    allies = {pid for pid in in_fight if team_of[pid] == my_team}
+    enemies = in_fight - allies
+    my_death = next((e for e in kills if e.victim == me), None)
+    alive = {
+        tid: sum(1 for p in state.players.values() if p.team == tid and p.dead_until_ms <= t)
+        for tid in (my_team, enemy)
+    }
+    buff = state.teams[enemy].buff
+    if buff and not state.teams[my_team].buff:
+        secs = round((buff[1] - t) / 1000)
+        return (
+            f"Enemy had {buff[0].title()} buff for {secs} more seconds: "
+            "wait it out under your towers instead of fighting."
+        )
+    if my_death and allies == {me} and len(enemies) >= 2:
+        who = " + ".join(names.get(pid, "Someone") for pid in sorted(enemies))
+        return f"Caught alone by {who}: stay near your team, or ward ahead before walking in."
+    if len(enemies) > len(allies) >= 1:
+        return f"Fought {len(allies)}v{len(enemies)}: back off until your team can join."
+    if kills and alive[my_team] < alive[enemy]:
+        return (
+            f"Your team had {alive[my_team]} alive to their {alive[enemy]}: "
+            "wait for respawns before fighting."
+        )
+    if my_death and my_death.killer in state.players:
+        gap = state.players[my_death.killer].level - state.players[me].level
+        if gap >= TIP_LEVEL_GAP:
+            return (
+                f"{names.get(my_death.killer, 'Your killer')} was {gap} levels ahead: "
+                "avoid fighting them until you catch up."
+            )
+    taken = next((e for e in evs if e.team == "enemy" and e.kind in OBJECTIVE_KINDS), None)
+    if taken:
+        return (
+            f"Enemy took {_taken(taken)}: be at the pit with vision before it spawns, "
+            "or trade for a tower across the map."
+        )
+    return None
+
+
 def _snapshot(
     t_ms: int, state: GameState, order: list[int], my_team: int, cfg: dict
 ) -> schemas.Snapshot:
@@ -389,6 +443,10 @@ def build_review(
             for ev in evs
         )
         m_kills = [k for k in kills if t_first <= k["timestamp"] <= t_last]
+        grade = _grade(delta, cfg)
+        tip = None
+        if involves_me and grade in ("?", "??"):
+            tip = _tip(evs, states[max(0, t_first - 1)], participant_id, my_team, names)
         moments.append(
             schemas.Moment(
                 id=f"m{i}",
@@ -397,7 +455,7 @@ def build_review(
                 p_before=p_before,
                 p_after=p_after,
                 delta=delta,
-                grade=_grade(delta, cfg),
+                grade=grade,
                 title=describe.moment_title(evs, names, participant_id, [o for _, _, o in group]),
                 zone=zone,
                 involves_me=involves_me,
@@ -405,6 +463,7 @@ def build_review(
                 damage=_fight_damage(m_kills, team_of),
                 kill_gold=_kill_gold(m_kills, team_of, my_team),
                 drivers=drivers,
+                tip=tip,
             )  # fmt: skip
         )
 

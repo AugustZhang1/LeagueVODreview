@@ -83,6 +83,24 @@
         "title": "CurvePoint",
         "type": "object"
       },
+      "DemoPlayer": {
+        "properties": {
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          },
+          "riot_id": {
+            "title": "Riot Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "riot_id",
+          "platform"
+        ],
+        "title": "DemoPlayer",
+        "type": "object"
+      },
       "Driver": {
         "properties": {
           "change": {
@@ -291,6 +309,10 @@
             "title": "D",
             "type": "integer"
           },
+          "ddragon_version": {
+            "title": "Ddragon Version",
+            "type": "string"
+          },
           "duration_s": {
             "title": "Duration S",
             "type": "integer"
@@ -360,6 +382,7 @@
           "duration_s",
           "started_at",
           "patch",
+          "ddragon_version",
           "reviewed"
         ],
         "title": "GameSummary",
@@ -395,6 +418,16 @@
       },
       "Health": {
         "properties": {
+          "demo_player": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DemoPlayer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "model": {
             "$ref": "#/components/schemas/ModelInfo"
           },
@@ -543,6 +576,17 @@
           "t_start": {
             "title": "T Start",
             "type": "number"
+          },
+          "tip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tip"
           },
           "title": {
             "title": "Title",

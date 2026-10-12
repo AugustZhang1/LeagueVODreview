@@ -28,7 +28,19 @@ export function Footer() {
           Riot Games, and all associated properties are trademarks or registered trademarks of Riot
           Games, Inc.
         </p>
-        {data && <p className={styles.model}>{modelLine(data.model)}</p>}
+        <div className={styles.side}>
+          {data && <p>{modelLine(data.model)}</p>}
+          <p>
+            Built by August Zhang.{" "}
+            <a
+              href="https://github.com/AugustZhang1/LeagueVODreview"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Source on GitHub
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   );

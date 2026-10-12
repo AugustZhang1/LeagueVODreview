@@ -68,7 +68,8 @@ describe("SearchPage", () => {
     renderAt("/");
     await userEvent.type(screen.getByLabelText("Riot ID"), "nohash{Enter}");
     expect(await screen.findByRole("alert")).toHaveTextContent("Name#NA1");
-    expect(fetch).not.toHaveBeenCalled();
+    const urls = vi.mocked(fetch).mock.calls.map(([url]) => String(url));
+    expect(urls.filter((u) => u.includes("/api/player"))).toEqual([]);
   });
 
   it("looks the player up, remembers it and goes to the games", async () => {

@@ -5,6 +5,7 @@ import type { Rank } from "../api/models";
 import { Button } from "../components/Button";
 import { ErrorBox } from "../components/ErrorBox";
 import { Panel } from "../components/Panel";
+import { splashUrl } from "../lib/ddragon";
 import { GameRow, GameRowSkeleton } from "./games/GameRow";
 import { Patterns } from "./games/Patterns";
 import { platformLabel } from "./search/platforms";
@@ -34,15 +35,36 @@ export function GamesPage() {
   const failed = query.isError && !query.data;
   const refreshing = query.isRefetching && !query.isFetchingNextPage;
 
+  const played = games.filter((g) => g.result !== "remake");
+  const wins = played.filter((g) => g.result === "win").length;
+  const reviewed = played.filter((g) => g.reviewed).length;
+  const latest = played[0]?.champion;
+
   return (
     <Panel className={styles.panel}>
       <header className={styles.header}>
+        {latest && (
+          <div
+            className={styles.splash}
+            style={{ backgroundImage: `url(${splashUrl(latest)})` }}
+            aria-hidden="true"
+          />
+        )}
         <div>
           <h1 className={styles.title}>{first?.riot_id ?? `${name}#${tag}`}</h1>
           <p className={styles.sub}>
             {first && <span>{rankLine(first.rank)}</span>}
             <span className={styles.platform}>{label}</span>
           </p>
+          {played.length > 0 && (
+            <p className={styles.record}>
+              <span className="num">
+                {wins}W {played.length - wins}L
+              </span>{" "}
+              in the last {played.length} games, {reviewed} reviewed.{" "}
+              {reviewed < played.length && "Pick a game to see where it was won or lost."}
+            </p>
+          )}
         </div>
         <Button onClick={() => void query.refetch()} disabled={query.isFetching}>
           <RefreshCw size={16} aria-hidden="true" />

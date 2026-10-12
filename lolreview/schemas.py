@@ -15,9 +15,15 @@ class ModelInfo(BaseModel):
     patches: list[str] | None = None
 
 
+class DemoPlayer(BaseModel):
+    riot_id: str  # "Me#NA1"
+    platform: str  # "na1"
+
+
 class Health(BaseModel):
     riot_key: Literal["ok", "expired", "missing"]
     model: ModelInfo
+    demo_player: DemoPlayer | None = None  # set when the app serves made-up games to try
 
 
 class Rank(BaseModel):
@@ -39,6 +45,7 @@ class GameSummary(BaseModel):
     duration_s: int
     started_at: str
     patch: str
+    ddragon_version: str  # for the champion icon
     reviewed: bool
 
 
@@ -144,6 +151,7 @@ class Moment(BaseModel):
     damage: list[FightDamage] = []
     kill_gold: int = 0
     drivers: list[Driver] = []
+    tip: str | None = None  # a better play, on my mistakes when a rule fits
 
 
 class PlayerState(BaseModel):

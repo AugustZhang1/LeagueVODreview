@@ -79,6 +79,20 @@
   color: var(--text-3);
 }
 
+.tip {
+  margin-top: var(--space-2);
+  color: var(--text);
+}
+
+.tipLabel {
+  color: var(--text-3);
+}
+
+.partTag {
+  color: var(--text);
+  font-weight: 600;
+}
+
 .dealt {
   text-align: right;
 }
@@ -114,4 +128,17 @@
 
 .gold {
   margin-top: var(--space-2);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .detail {
+    animation: open 180ms ease-out;
+  }
+}
+
+@keyframes open {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }

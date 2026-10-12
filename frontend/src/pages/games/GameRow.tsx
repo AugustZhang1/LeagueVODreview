@@ -16,15 +16,15 @@ const ROLE_LABEL: Record<Role, string> = {
 
 const RESULT_LABEL = { win: "Victory", loss: "Defeat", remake: "Remake" } as const;
 
-/** The champion icon needs a Data Dragon version; the match list only has the patch. */
-const ddragonVersion = (patch: string) => `${patch}.1`;
+/** Games cached before the field existed only have the patch. */
+const ddragonVersion = (game: GameSummary) => game.ddragon_version || `${game.patch}.1`;
 
 export function GameRow({ game }: { game: GameSummary }) {
   const remake = game.result === "remake";
   const tone = game.result === "win" ? styles.win : game.result === "loss" ? styles.loss : "";
   const content = (
     <>
-      <ChampIcon version={ddragonVersion(game.patch)} champion={game.champion} size={32} />
+      <ChampIcon version={ddragonVersion(game)} champion={game.champion} size={32} />
       <span className={`${styles.result} ${tone}`}>{RESULT_LABEL[game.result]}</span>
       <span className={styles.role}>{remake || !game.role ? "" : ROLE_LABEL[game.role]}</span>
       <span className={`${styles.num} num`}>{formatKda(game.k, game.d, game.a)}</span>
@@ -34,7 +34,11 @@ export function GameRow({ game }: { game: GameSummary }) {
         {formatRelative(game.started_at)}
       </span>
       <span className={styles.check}>
-        {game.reviewed && <Check size={16} aria-label="Reviewed" role="img" />}
+        {game.reviewed ? (
+          <Check size={16} aria-label="Reviewed" role="img" />
+        ) : (
+          !remake && <span className={styles.open}>Review</span>
+        )}
       </span>
     </>
   );

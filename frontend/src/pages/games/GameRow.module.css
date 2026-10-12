@@ -1,7 +1,7 @@
 .row {
   position: relative;
   display: grid;
-  grid-template-columns: 32px 88px 88px 120px 80px 64px 1fr 24px;
+  grid-template-columns: 32px 88px 88px 120px 80px 64px 1fr 64px;
   align-items: center;
   gap: var(--space-4);
   height: 56px;
@@ -73,9 +73,35 @@
   color: var(--text-3);
 }
 
+/* "Review" shows on the row under the mouse or focus, so the list reads as clickable. */
+.open {
+  color: var(--text);
+  font-weight: 600;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms ease-out;
+}
+
+.link:hover .open,
+.link:focus-visible .open {
+  opacity: 1;
+  transform: none;
+}
+
+.link {
+  transition: background-color 120ms ease-out;
+}
+
 @media (max-width: 640px) {
   .row {
-    grid-template-columns: 32px 72px 1fr 24px;
+    grid-template-columns: 32px 72px 1fr 64px;
+  }
+
+  .open {
+    opacity: 1;
+    transform: none;
   }
 
   .row > :nth-child(3),

@@ -67,7 +67,7 @@
   padding: 0 6px;
   border-radius: var(--radius-sm);
   background: var(--ally-tint);
-  color: var(--ally);
+  color: var(--text);
   font-size: 12px;
   font-weight: 600;
 }

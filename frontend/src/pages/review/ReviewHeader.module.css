@@ -1,7 +1,31 @@
 .header {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: var(--space-4);
+  isolation: isolate;
+}
+
+/* Your champion's splash art, faint, behind the right of the header. */
+.splash {
+  position: absolute;
+  top: calc(-1 * var(--space-4));
+  right: calc(-1 * var(--space-5));
+  z-index: -1;
+  width: min(760px, 60%);
+  height: calc(100% + var(--space-4));
+  background-position: center 20%;
+  background-size: cover;
+  opacity: 0.22;
+  mask-image:
+    linear-gradient(to right, transparent, #000 45%),
+    linear-gradient(to bottom, #000 40%, transparent);
+  mask-composite: intersect;
+  pointer-events: none;
+}
+
+.header > .splash {
+  flex: none;
 }
 
 .header > img,

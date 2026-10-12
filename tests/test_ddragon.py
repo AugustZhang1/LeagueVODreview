@@ -1,7 +1,7 @@
 import pytest
 
 from lolreview.cache import Cache
-from lolreview.ddragon import DataDragon
+from lolreview.ddragon import OFFLINE_VERSION, DataDragon
 
 VERSIONS = ["26.20.1", "26.19.2", "26.19.1", "26.18.1"]
 CHAMPS = {"data": {"Fiddlesticks": {"key": "9", "id": "Fiddlesticks", "name": "Fiddlesticks"}}}
@@ -58,6 +58,6 @@ def test_offline_fallback(cache, caplog):
 def test_offline_mode_makes_no_calls(cache):
     f = Fetch()
     dd = DataDragon(cache, f, offline=True, offline_champions={1: ("A", "Annie")})
-    assert dd.version_for_patch("26.19") == "26.19.1"
+    assert dd.version_for_patch("26.19") == OFFLINE_VERSION
     assert dd.champions("x") == {1: ("A", "Annie")}
     assert f.urls == []

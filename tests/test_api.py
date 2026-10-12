@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from lolreview import api, riot
 from lolreview import app as app_mod
 from lolreview.cache import Cache
+from lolreview.ddragon import OFFLINE_VERSION
 from lolreview.demo import DemoRiot
 from lolreview.schemas import Review
 
@@ -210,7 +211,7 @@ def test_review_happy_path_and_cache(env):
     assert r.json()["match"]["match_id"] == MID
     assert r.json()["match"]["tier_used"] == "GOLD"
     assert len(env.built) == 1
-    assert env.built[0]["version"] == "26.19.1"
+    assert env.built[0]["version"] == OFFLINE_VERSION
     assert env.built[0]["champions"][103] == ("Ahri", "Ahri")
     calls = len(env.client.calls)
     r2 = c.get(f"/api/review/{MID}?p={P}")

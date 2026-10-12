@@ -37,3 +37,20 @@
   color: var(--text-2);
   white-space: pre;
 }
+
+/* A Summoner's Rift you can lean: the map tilts toward the mouse, like a board on a table. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .wrap {
+    transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+    transition:
+      transform 300ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      box-shadow 300ms ease-out;
+  }
+
+  .wrap:hover {
+    box-shadow: 0 18px 40px -18px rgb(5 8 12 / 0.9);
+    transition:
+      transform 80ms linear,
+      box-shadow 300ms ease-out;
+  }
+}
