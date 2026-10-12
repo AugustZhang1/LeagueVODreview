@@ -6,6 +6,7 @@ import { Button } from "../components/Button";
 import { ErrorBox } from "../components/ErrorBox";
 import { Panel } from "../components/Panel";
 import { GameRow, GameRowSkeleton } from "./games/GameRow";
+import { Patterns } from "./games/Patterns";
 import { platformLabel } from "./search/platforms";
 import styles from "./GamesPage.module.css";
 
@@ -48,6 +49,8 @@ export function GamesPage() {
           Refresh
         </Button>
       </header>
+
+      <Patterns games={games} />
 
       <div className={styles.body} aria-busy={loading || refreshing}>
         {failed ? (

@@ -3,6 +3,7 @@ import { ApiError, apiGet, apiPost } from "./client";
 import type {
   Health,
   ModelMetrics,
+  Patterns,
   PlayerGames,
   ReplaySeekResult,
   ReplayStatus,
@@ -58,6 +59,20 @@ export function useReview(matchId: string, p: number) {
     queryFn: ({ signal }) =>
       apiGet<Review>(`/api/review/${encodeURIComponent(matchId)}?p=${p}`, signal),
     staleTime: Infinity,
+    ...retryOptions,
+  });
+}
+
+/** Patterns over cached reviews only, so it never calls Riot. Sorted so the cache key is stable. */
+export function usePatterns(games: { match_id: string; participant_id: number }[]) {
+  const param = [...games]
+    .sort((a, b) => a.match_id.localeCompare(b.match_id))
+    .map((g) => `${encodeURIComponent(g.match_id)}:${g.participant_id}`)
+    .join(",");
+  return useQuery({
+    queryKey: ["patterns", param],
+    queryFn: ({ signal }) => apiGet<Patterns>(`/api/patterns?games=${param}`, signal),
+    enabled: games.length >= 2,
     ...retryOptions,
   });
 }

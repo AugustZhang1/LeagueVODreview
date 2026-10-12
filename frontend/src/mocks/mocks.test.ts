@@ -3,9 +3,11 @@ import openapi from "../../openapi.json";
 import { formatTime } from "../lib/format";
 import healthJson from "./health.json";
 import modelJson from "./model.json";
+import patternsJson from "./patterns.json";
 import reviewFixture from "./review.fixture.json";
 import { makeReview } from "./makeReview";
 import playerJson from "./player.json";
+import showcase from "./showcase.json";
 import { validate } from "./schemaCheck";
 
 const schema = (name: string) => ({ $ref: `#/components/schemas/${name}` });
@@ -15,6 +17,8 @@ describe("mocks match the API schema", () => {
   it("health", () => expect(check(healthJson, "Health")).toEqual([]));
   it("player", () => expect(check(playerJson, "PlayerGames")).toEqual([]));
   it("model", () => expect(check(modelJson, "ModelMetrics")).toEqual([]));
+  it("patterns", () => expect(check(patternsJson, "Patterns")).toEqual([]));
+  it("showcase patterns", () => expect(check(showcase.patterns, "Patterns")).toEqual([]));
   it("review", () => expect(check(makeReview(), "Review")).toEqual([]));
   it("backend-made review fixture", () => expect(check(reviewFixture, "Review")).toEqual([]));
   it("the checker catches mistakes", () => {

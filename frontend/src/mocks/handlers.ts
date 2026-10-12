@@ -1,7 +1,15 @@
 import { delay, http, HttpResponse } from "msw";
-import type { Health, ModelMetrics, PlayerGames, ReplayStatus, Review } from "../api/models";
+import type {
+  Health,
+  ModelMetrics,
+  Patterns,
+  PlayerGames,
+  ReplayStatus,
+  Review,
+} from "../api/models";
 import healthJson from "./health.json";
 import modelJson from "./model.json";
+import patternsJson from "./patterns.json";
 import playerJson from "./player.json";
 import reviewFixture from "./review.fixture.json";
 import showcase from "./showcase.json";
@@ -71,6 +79,7 @@ const player = (real ? showcase.player : playerJson) as PlayerGames;
 const fixture = reviewFixture as unknown as Review;
 const reviews = showcase.reviews as unknown as Record<string, Review>;
 const modelMetrics = (real ? showcase.model : modelJson) as unknown as ModelMetrics;
+const patterns = (real ? showcase.patterns : patternsJson) as Patterns;
 
 function reviewFor(matchId: string): Review {
   if (real) return reviews[matchId] ?? Object.values(reviews)[0];
@@ -136,5 +145,10 @@ export const handlers = [
     await delay(300);
     if (mode === "empty") return errorResponse("model_missing", "No trained model yet.", 404);
     return HttpResponse.json(modelMetrics);
+  }),
+
+  http.get("/api/patterns", async () => {
+    await delay(200);
+    return HttpResponse.json(patterns);
   }),
 ];

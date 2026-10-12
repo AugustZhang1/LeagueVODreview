@@ -191,3 +191,15 @@ test("a moment before 5:00 carries the early-game note", async ({ page }) => {
   await row(page, /Won fight 2 for 1/).click();
   await expect(page.getByText(note)).toHaveCount(0);
 });
+
+test("the games page summarises patterns across reviewed games", async ({ page }) => {
+  await page.goto("/p/na1/Me/NA1");
+  await expect(page.getByRole("link", { name: /Victory/ }).first()).toBeVisible();
+  const summary = page.getByText(/^Patterns in your 5 reviewed games:/);
+  await expect(summary).toBeVisible();
+
+  await summary.click();
+  await expect(page.getByRole("heading", { name: "When", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Where", exact: true })).toBeVisible();
+  await expect(page.getByText(/^4 wins, 1 loss/)).toBeVisible();
+});

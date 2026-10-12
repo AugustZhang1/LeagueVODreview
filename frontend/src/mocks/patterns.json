@@ -1,0 +1,34 @@
+{
+  "games": 5,
+  "wins": 4,
+  "grades": {
+    "!!": 4,
+    "!": 5,
+    "?": 4,
+    "??": 3
+  },
+  "by_phase": [
+    { "label": "Early game (0-14 min)", "mistakes": 2, "games": 2, "lost": -0.31 },
+    { "label": "Mid game (14-25 min)", "mistakes": 4, "games": 3, "lost": -0.42 },
+    { "label": "Late game (25+ min)", "mistakes": 1, "games": 1, "lost": -0.08 }
+  ],
+  "by_zone": [
+    { "label": "bot lane", "mistakes": 2, "games": 2, "lost": -0.27 },
+    { "label": "mid lane", "mistakes": 2, "games": 2, "lost": -0.2 },
+    { "label": "baron pit", "mistakes": 1, "games": 1, "lost": -0.14 },
+    { "label": "top lane", "mistakes": 1, "games": 1, "lost": -0.12 },
+    { "label": "top river", "mistakes": 1, "games": 1, "lost": -0.08 }
+  ],
+  "by_driver": [
+    { "label": "Gold lead", "mistakes": 3, "games": 3, "lost": -0.24 },
+    { "label": "Towers", "mistakes": 2, "games": 2, "lost": -0.17 },
+    { "label": "Baron buff", "mistakes": 1, "games": 1, "lost": -0.06 }
+  ],
+  "windows_missed": 5,
+  "windows_used": 7,
+  "missed_value": 0.21,
+  "comebacks": 2,
+  "thrown": 1,
+  "lane_gold_10": 350,
+  "lane_cs_10": 6
+}

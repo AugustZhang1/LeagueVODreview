@@ -1,0 +1,60 @@
+.patterns {
+  border-top: 1px solid var(--border);
+}
+
+.summary {
+  padding: var(--space-4);
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.body {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-4);
+  color: var(--text-2);
+}
+
+.tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+.table {
+  min-width: 0;
+}
+
+.heading {
+  margin-bottom: var(--space-1);
+  color: var(--text-3);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.table table {
+  width: 100%;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+
+.table thead th {
+  color: var(--text-3);
+  font-weight: 400;
+}
+
+.table tbody th {
+  max-width: 160px;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+  color: var(--text);
+}
