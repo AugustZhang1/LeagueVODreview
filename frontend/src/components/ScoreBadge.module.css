@@ -4,6 +4,10 @@
   gap: var(--space-2);
 }
 
+.wrapSm {
+  gap: 4px;
+}
+
 .box {
   display: inline-grid;
   place-items: center;

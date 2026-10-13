@@ -117,9 +117,9 @@
   color: var(--text-2);
 }
 
-/* a ScoreBadge sm with its MVP / ACE tag */
+/* a ScoreBadge sm with its MVP / ACE tag, and a little room before the level */
 .score {
-  width: 80px;
+  width: 84px;
 }
 
 .num {
@@ -143,8 +143,9 @@
   width: 42px;
 }
 
+/* seven 18 px icons and their margins, plus the cell's left padding */
 .items {
-  width: 168px;
+  width: 148px;
   line-height: 0;
 }
 

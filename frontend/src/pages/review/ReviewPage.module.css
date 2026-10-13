@@ -80,6 +80,13 @@
   }
 }
 
+/* with the rail beside it, a smaller minimap leaves the scoreboard room for names */
+@media (min-width: 1280px) and (max-width: 1439px) {
+  .panels {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 1023px) {
   .panels {
     grid-template-columns: minmax(0, 1fr);

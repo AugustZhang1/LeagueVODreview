@@ -32,7 +32,7 @@ export function ScoreBadge({ score, badge, rank, size = "md", label }: Props) {
   const line =
     size === "md" && rank != null ? `${label ? `${label}, ` : ""}${ordinal(rank)} of 10` : null;
   return (
-    <span className={styles.wrap}>
+    <span className={`${styles.wrap} ${size === "sm" ? styles.wrapSm : ""}`}>
       <span
         role="img"
         aria-label={value === null ? "No score" : `Score ${text} out of 10`}
