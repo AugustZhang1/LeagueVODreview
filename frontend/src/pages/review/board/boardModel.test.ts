@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeReview } from "../../../mocks/makeReview";
-import { buildHeader, buildObjectives, buildScoreboard } from "./boardModel";
+import { buildHeader, buildObjectives, buildScoreboard, formatScoreParts } from "./boardModel";
 
 const review = makeReview();
 const snap = review.snapshots[88];
@@ -126,5 +126,24 @@ describe("rows", () => {
     const done = text(s.t + 12);
     expect(done.dead).toBe(false);
     expect(done.deadText).toBeNull();
+  });
+});
+
+describe("formatScoreParts", () => {
+  it("formats all 5 parts with one decimal place", () => {
+    expect(
+      formatScoreParts({
+        gold_min: 8.9,
+        vs_lane: 8.9,
+        kp: 5.6,
+        impact: 9.1,
+        fights: 8.9,
+      }),
+    ).toBe("Gold/min 8.9 · vs lane 8.9 · KP 5.6 · Impact 9.1 · Fights 8.9");
+  });
+
+  it("returns null when parts is null or undefined", () => {
+    expect(formatScoreParts(null)).toBeNull();
+    expect(formatScoreParts(undefined)).toBeNull();
   });
 });

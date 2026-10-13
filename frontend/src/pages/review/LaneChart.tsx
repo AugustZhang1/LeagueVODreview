@@ -12,6 +12,7 @@ import {
 import type { Review } from "../../api/models";
 import { Panel } from "../../components/Panel";
 import { formatGoldDelta, formatTime } from "../../lib/format";
+import { formatImpactPoints } from "./impactCurve";
 import { diffAt, laneDiff } from "./laneDiff";
 import styles from "./LaneChart.module.css";
 
@@ -31,8 +32,10 @@ export const LaneChart = memo(function LaneChart({ review }: { review: Review })
   const duration = review.match.duration_s;
   // the last snapshot can be a few seconds past the end of the game
   const points = lane.points.filter((p) => p.t <= duration);
+  const me = review.players.find((p) => p.is_me);
+  const laneValue = me?.lane != null ? ` · ${formatImpactPoints(me.lane * 100)} at 14:00` : "";
   return (
-    <Panel title={`Lane vs ${opponent.champion_name}`}>
+    <Panel title={`Lane vs ${opponent.champion_name}${laneValue}`}>
       <div className={styles.chart}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={points} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>

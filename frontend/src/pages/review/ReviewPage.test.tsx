@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Moment } from "../../api/models";
 import { makeReview } from "../../mocks/makeReview";
 import { ReviewPage } from "./ReviewPage";
 
@@ -140,11 +141,16 @@ describe("review page", () => {
     const user = userEvent.setup();
     setup();
     const list = () => document.querySelectorAll("[data-moment]");
+    const count = (keep: (m: Moment) => boolean) => review.moments.filter(keep).length;
     expect(list()).toHaveLength(review.moments.length + review.windows.length);
-    await user.click(screen.getByRole("button", { name: "Graded" }));
-    expect(list()).toHaveLength(graded.length);
+    await user.click(screen.getByRole("button", { name: "Mistakes" }));
+    expect(count((m) => m.grade === "?" || m.grade === "??")).toBeGreaterThan(0);
+    expect(list()).toHaveLength(count((m) => m.grade === "?" || m.grade === "??"));
+    await user.click(screen.getByRole("button", { name: "Great" }));
+    expect(count((m) => m.grade === "!!" || m.grade === "!")).toBeGreaterThan(0);
+    expect(list()).toHaveLength(count((m) => m.grade === "!!" || m.grade === "!"));
     await user.click(screen.getByRole("button", { name: "Mine" }));
-    expect(list()).toHaveLength(review.moments.filter((m) => m.involves_me).length);
+    expect(list()).toHaveLength(count((m) => m.involves_me));
   });
 
   it("lists missed and used windows in time order and filters them", async () => {
@@ -166,7 +172,7 @@ describe("review page", () => {
     await user.click(screen.getByRole("button", { name: "Missed" }));
     expect(rows()).toHaveLength(missed.length);
     expect(screen.queryByLabelText("Used window")).toBeNull();
-    await user.click(screen.getByRole("button", { name: "Graded" }));
+    await user.click(screen.getByRole("button", { name: "Mistakes" }));
     expect(screen.queryByLabelText("Missed window")).toBeNull();
     expect(screen.queryByLabelText("Used window")).toBeNull();
     expect(screen.queryByText(/Baron up/)).toBeNull();
@@ -263,6 +269,8 @@ describe("review page", () => {
     expect(detail).toHaveTextContent("%");
     expect(detail).toHaveTextContent(m.zone.slice(1));
     expect(detail.querySelectorAll("li")).toHaveLength(m.events.length);
+    // the detail sits above the scrolling list, not inside it
+    expect(row.closest("ul")!.contains(detail)).toBe(false);
     expect(screen.getByTestId(`marker-${m.id}`)).toHaveAttribute("data-grown");
   });
 

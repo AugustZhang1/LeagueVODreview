@@ -17,7 +17,8 @@ test("search Me#NA1, open every game, then the model page", async ({ page }) => 
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/p\/na1\/Me\/NA1$/);
   await expect(page.getByRole("heading", { name: "Me#NA1" })).toBeVisible();
-  await expect(page.getByText("Gold III, 47 LP")).toBeVisible();
+  await expect(page.getByText("Gold III", { exact: true })).toBeVisible();
+  await expect(page.getByText("47 LP")).toBeVisible();
 
   const links = page.getByRole("link", { name: /Victory|Defeat/ });
   await expect(links).toHaveCount(3);
@@ -39,7 +40,10 @@ test("search Me#NA1, open every game, then the model page", async ({ page }) => 
     await expect(page.locator('[data-testid^="detail-"]')).toBeVisible();
     await expect.poll(() => new URL(page.url()).searchParams.get("t")).not.toBeNull();
     await page.keyboard.press("End");
-    await expect(page.getByText(/^Win chance/)).toContainText(/100%|0%/);
+    // the big reading in the chart card; the other numbers on it are never exactly 0% or 100%
+    await expect(
+      page.getByRole("region", { name: "Win chance" }).getByText(/^(100|0)%$/),
+    ).toBeVisible();
 
     const open = page.getByRole("button", { name: "Open in replay" });
     await expect(open).toBeDisabled();
@@ -53,7 +57,8 @@ test("search Me#NA1, open every game, then the model page", async ({ page }) => 
 
   await page.getByRole("link", { name: "Model", exact: true }).click();
   await expect(page.getByText(/No trained model yet/)).toBeVisible();
-  await expect(page.getByText("Placeholder model")).toBeVisible();
+  // exact: the card heading reads "Using a placeholder model"
+  await expect(page.getByText("Placeholder model", { exact: true })).toBeVisible();
   expect(problems).toEqual([]);
 });
 

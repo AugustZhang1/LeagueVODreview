@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LeagueVODreview / UI redraft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ---------- Figma chrome ---------- */
+:root{
+  --fg-chrome:#2c2c2c; --fg-chrome-2:#383838; --fg-line:#444; --fg-text:#e6e6e6; --fg-dim:#9a9a9a; --fg-sel:#0d99ff; --fg-canvas:#1e1e1e;
+  /* app tokens (from src/styles/tokens.css, lightly extended) */
+  --bg:#0e1217; --surface:#151a21; --surface-2:#1a1f27; --surface-3:#212732; --border:#2a313b; --border-soft:#222831;
+  --text:#e8e6e1; --text-2:#a3a7ad; --text-3:#858a92;
+  --ally:#3987e5; --enemy:#e66767; --you:#d4b26a;
+  --ally-tint:#3987e529; --enemy-tint:#e6676729; --you-tint:#d4b26a24;
+  --g-brill:#3fb8a5; --g-good:#3987e5; --g-miss:#e0a145; --g-blund:#e66767;
+  --r:10px; --r-sm:6px;
+  --font-text:"Barlow",system-ui,sans-serif; --font-num:"Barlow Semi Condensed","Barlow",system-ui,sans-serif;
+}
+*{box-sizing:border-box} html,body{margin:0;height:100%;overflow:hidden;background:var(--fg-canvas);font-family:Inter,system-ui,sans-serif;color:var(--fg-text);font-size:12px}
+.toolbar{position:fixed;top:0;left:0;right:0;height:44px;background:var(--fg-chrome);border-bottom:1px solid #111;display:flex;align-items:center;gap:14px;padding:0 12px;z-index:5}
+.toolbar .logo{width:22px;height:22px;border-radius:5px;background:linear-gradient(135deg,#3987e5,#3fb8a5)}
+.toolbar .file{font-weight:500}.toolbar .file span{color:var(--fg-dim)}
+.toolbar .tools{display:flex;gap:2px;margin-left:8px}
+.toolbar .tools b{width:30px;height:30px;border-radius:5px;display:grid;place-items:center;color:var(--fg-dim);font-weight:500}
+.toolbar .tools b.on{background:var(--fg-sel);color:#fff}
+.toolbar .right{margin-left:auto;display:flex;gap:10px;align-items:center;color:var(--fg-dim)}
+.toolbar .zoom{min-width:48px;text-align:right;color:var(--fg-text)}
+.toolbar button{background:var(--fg-chrome-2);border:0;color:var(--fg-text);border-radius:5px;padding:6px 10px;font:inherit;cursor:pointer}
+.panel{position:fixed;top:44px;bottom:0;width:240px;background:var(--fg-chrome);z-index:4;overflow:auto}
+.panel.left{left:0;border-right:1px solid #111}.panel.right{right:0;border-left:1px solid #111;width:300px}
+.panel h4{margin:0;padding:12px 14px 8px;font-size:11px;font-weight:600;color:var(--fg-text)}
+.panel .sub{padding:0 14px 6px;color:var(--fg-dim);font-size:11px}
+.layer{padding:7px 14px 7px 22px;cursor:pointer;display:flex;gap:8px;align-items:center;color:var(--fg-text)}
+.layer:before{content:"#";color:var(--fg-dim);font-size:11px}
+.layer:hover{background:#ffffff0d}.layer.sel{background:#0d99ff33}
+.layer.child{padding-left:40px;color:var(--fg-dim)}.layer.child:before{content:"▢"}
+.notes{padding:0 14px 16px;line-height:1.55;color:#cfcfcf}
+.notes h5{margin:14px 0 6px;font-size:11px;color:var(--fg-text)}
+.notes ul{margin:0;padding-left:16px}.notes li{margin:0 0 6px}
+.notes .kv{display:grid;grid-template-columns:90px 1fr;gap:4px 8px;color:var(--fg-dim)}
+.notes .kv b{color:var(--fg-text);font-weight:500}
+#viewport{position:fixed;top:44px;left:240px;right:300px;bottom:0;overflow:hidden;cursor:grab;
+  background-image:radial-gradient(#ffffff10 1px,transparent 1px);background-size:20px 20px}
+#viewport.drag{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transform-origin:0 0}
+.frame{position:absolute}
+.frame>.label{position:absolute;top:-26px;left:0;font-size:14px;color:var(--fg-dim);white-space:nowrap;cursor:pointer}
+.frame.sel>.label{color:var(--fg-sel)}
+.frame.sel>.app{outline:2px solid var(--fg-sel)}
+.app{width:1440px;height:900px;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-text);font-size:14px;line-height:1.4;position:relative;box-shadow:0 2px 24px #0008}
+
+/* ---------- App components ---------- */
+.app *{box-sizing:border-box}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.topbar{height:60px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;padding:0 48px;gap:32px;background:#0e1217}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px;letter-spacing:-.01em}
+.mark{width:26px;height:26px;border-radius:7px;background:var(--surface-3);border:1px solid var(--border);display:grid;place-items:center}
+.mark svg{display:block}
+.nav{display:flex;gap:4px;margin-left:8px}
+.nav a{padding:7px 12px;border-radius:var(--r-sm);color:var(--text-2);font-weight:500}
+.nav a.on{color:var(--text);background:var(--surface-2)}
+.top-search{margin-left:auto;display:flex;align-items:center;gap:8px;height:36px;width:300px;border:1px solid var(--border);border-radius:var(--r-sm);padding:0 12px;color:var(--text-3);background:var(--surface)}
+.top-search kbd{margin-left:auto;font-family:var(--font-num);font-size:11px;border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--text-3)}
+.page{padding:28px 48px}
+.card{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--r)}
+.card-h{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border-soft)}
+.card-h h3{margin:0;font-size:15px;font-weight:600}
+.muted{color:var(--text-2)}.dim{color:var(--text-3)}
+.btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:var(--r-sm);font-weight:600;border:1px solid var(--border);background:var(--surface-2);color:var(--text);white-space:nowrap}
+.btn.primary{background:var(--text);color:#0e1217;border-color:var(--text)}
+.btn.sm{height:32px;padding:0 12px;font-size:13px}
+.btn.ghost{background:transparent}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);font-size:12px;color:var(--text-2)}
+.g{display:inline-grid;place-items:center;min-width:26px;height:20px;padding:0 5px;border-radius:5px;font-family:var(--font-num);font-weight:700;font-size:12px;letter-spacing:-.02em}
+.g.bb{background:#3fb8a526;color:var(--g-brill)}.g.b{background:var(--ally-tint);color:var(--g-good)}
+.g.m{background:#e0a14526;color:var(--g-miss)}.g.mm{background:var(--enemy-tint);color:var(--g-blund)}
+.champ{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff;flex:none}
+.pos{color:var(--ally)}.neg{color:var(--enemy)}.you{color:var(--you)}
+.seg{display:inline-flex;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:2px}
+.seg span{padding:5px 10px;border-radius:4px;color:var(--text-2);font-size:13px;font-weight:500}
+.seg span.on{background:var(--surface-3);color:var(--text)}
+.bar{height:6px;border-radius:3px;background:var(--ally)}
+.footer{position:absolute;left:0;right:0;bottom:0;height:52px;border-top:1px solid var(--border-soft);display:flex;align-items:center;padding:0 48px;color:var(--text-3);font-size:12px;gap:24px}
+.footer .r{margin-left:auto}
+svg text{font-family:var(--font-num)}
+.skel{background:linear-gradient(90deg,var(--surface-2),var(--surface-3),var(--surface-2));border-radius:6px}
+
+/* Search */
+.hero{display:grid;grid-template-columns:1fr 1.05fr;gap:64px;padding:72px 96px 0;align-items:center}
+.hero h1{font-size:54px;line-height:1.05;letter-spacing:-.025em;margin:0 0 18px;font-weight:600}
+.hero p.lead{font-size:18px;color:var(--text-2);max-width:44ch;margin:0 0 32px}
+.field-l{font-size:13px;color:var(--text-2);margin-bottom:8px;font-weight:500}
+.searchbox{display:flex;height:52px;border:1px solid #3a4350;border-radius:var(--r);background:var(--surface);overflow:hidden}
+.searchbox .in{flex:1;display:flex;align-items:center;padding:0 16px;font-size:16px;color:var(--text)}
+.searchbox .in .caret{width:1px;height:20px;background:var(--text);margin-left:1px}
+.searchbox .rg{display:flex;align-items:center;gap:8px;padding:0 14px;border-left:1px solid var(--border);color:var(--text-2);font-weight:500}
+.searchbox .go{margin:5px;height:auto}
+.helper{font-size:12px;color:var(--text-3);margin-top:8px}
+.recent{display:flex;gap:8px;margin-top:22px;align-items:center;flex-wrap:wrap}
+.how{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:0;margin:72px 96px 0;border-top:1px solid var(--border-soft)}
+.how>div{padding:22px 28px 0 0}
+.how h4{margin:0 0 6px;font-size:15px;font-weight:600}
+.how p{margin:0;color:var(--text-2);max-width:36ch}
+
+/* Games */
+.profile{display:flex;align-items:center;gap:18px;margin-bottom:24px}
+.avatar{width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg,#2b3a52,#1d2633);border:1px solid var(--border);display:grid;place-items:center;font-size:22px;font-weight:700;position:relative}
+.avatar .lvl{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);font-size:11px;font-family:var(--font-num);background:var(--surface-3);border:1px solid var(--border);border-radius:999px;padding:0 6px}
+.profile h1{margin:0;font-size:28px;font-weight:600;letter-spacing:-.01em}
+.profile h1 span{color:var(--text-3);font-weight:500}
+.rank{display:flex;gap:16px;color:var(--text-2);margin-top:4px}
+.statstrip{margin-left:auto;display:flex;gap:28px;align-items:flex-end}
+.stat .k{font-size:12px;color:var(--text-3)}.stat .v{font-family:var(--font-num);font-size:22px;font-weight:600}
+.games-grid{display:grid;grid-template-columns:1fr 400px;gap:20px}
+.mrow{display:grid;grid-template-columns:4px 44px 104px 84px 1fr 80px 64px 56px 84px 84px;align-items:center;gap:12px;height:68px;padding-right:16px;border-bottom:1px solid var(--border-soft)}
+.mrow:last-child{border-bottom:0}
+.mrow .edge{height:100%;}
+.mrow .res{font-weight:600}.mrow .res small{display:block;font-weight:400;color:var(--text-3);font-size:12px}
+.mrow .kda{font-family:var(--font-num);font-weight:600;font-size:15px}
+.mrow .kda small{display:block;color:var(--text-3);font-weight:400;font-size:12px}
+.spark{display:block}
+.mrow.hl{background:var(--surface-2)}
+.score{display:flex;align-items:center;gap:8px}
+.score .s{font-family:var(--font-num);font-weight:700;font-size:20px;width:44px;height:32px;border-radius:8px;display:grid;place-items:center}
+.score small{display:block;white-space:nowrap;font-size:11px;color:var(--text-3);line-height:1.2}
+.badge{font-family:var(--font-num);font-size:11px;font-weight:700;letter-spacing:.04em;padding:1px 6px;border-radius:4px;background:var(--you-tint);color:var(--you)}
+.tag{font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;justify-self:end}
+.tag.done{color:var(--text-2);background:var(--surface-2);border:1px solid var(--border)}
+.tag.new{color:#0e1217;background:var(--text)}
+.ptile{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border-soft);border-bottom:1px solid var(--border-soft)}
+.ptile>div{background:var(--surface);padding:14px 16px}
+.ptile .v{font-family:var(--font-num);font-size:26px;font-weight:600;line-height:1.1}
+.ptile .k{color:var(--text-3);font-size:12px}
+.pblock{padding:14px 16px;border-bottom:1px solid var(--border-soft)}
+.pblock:last-child{border-bottom:0}
+.pblock h5{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--text-2)}
+.hrow{display:grid;grid-template-columns:96px 1fr 44px;gap:10px;align-items:center;height:24px;font-size:13px}
+.hrow .v{text-align:right;font-family:var(--font-num);color:var(--enemy)}
+
+/* Review */
+.rv{display:grid;grid-template-columns:1fr 380px;gap:16px;padding:16px 24px 0;height:calc(900px - 60px)}
+.rv-head{display:flex;align-items:center;gap:14px;padding:0 0 12px}
+.rv-head h1{margin:0;font-size:22px;font-weight:600}
+.rv-head h1 .w{color:var(--ally)}
+.meta{display:flex;gap:16px;color:var(--text-3);font-size:13px}.meta b{color:var(--text-2);font-weight:500}
+.wcbig{display:flex;align-items:baseline;gap:10px}
+.wcbig .v{font-family:var(--font-num);font-size:34px;font-weight:600;line-height:1}
+.chartcard{padding:14px 16px 10px}
+.scrub{display:flex;align-items:center;gap:12px;padding:6px 0 0}
+.scrub .track{flex:1;height:4px;border-radius:2px;background:var(--surface-3);position:relative}
+.scrub .track i{position:absolute;left:0;top:0;bottom:0;width:12%;background:var(--text);border-radius:2px}
+.scrub .track b{position:absolute;left:12%;top:50%;width:14px;height:14px;border-radius:50%;background:var(--text);transform:translate(-50%,-50%)}
+.ibtn{width:30px;height:30px;border-radius:var(--r-sm);border:1px solid var(--border);display:grid;place-items:center;color:var(--text-2);background:var(--surface-2)}
+.lower{display:grid;grid-template-columns:300px 1fr;gap:16px;margin-top:16px}
+.mini{width:300px;height:300px;border-radius:var(--r);overflow:hidden;background:#13202a;border:1px solid var(--border-soft);position:relative}
+.sb{font-size:13px}
+.sb-team{display:flex;gap:14px;align-items:center;padding:6px 14px;color:var(--text-2);font-size:12px}
+.sb-team b{color:var(--text);font-family:var(--font-num)}
+.sb-row{display:grid;grid-template-columns:3px 26px 1fr 78px 46px 70px 40px 50px 132px;gap:8px;align-items:center;height:28px;padding-right:14px}
+.sb-row .c{width:24px;height:24px;border-radius:6px;font-size:10px}
+.sb-row .n{font-family:var(--font-num)}
+.sb-row .sc{display:flex;align-items:center;gap:5px}
+.sb-row .sc .s{font-family:var(--font-num);font-weight:700;font-size:13px;width:32px;height:20px;border-radius:5px;display:grid;place-items:center}
+.sb-row .badge{font-size:10px;padding:0 4px}
+.items{display:flex;gap:2px}.items i{width:20px;height:20px;border-radius:4px;background:var(--surface-3)}
+.rail{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.rail .tabs{padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border-soft)}
+.mo{display:grid;grid-template-columns:44px minmax(0,1fr) 40px;gap:8px;align-items:center;padding:9px 14px;font-size:13px;border-bottom:1px solid var(--border-soft)}
+.mo .t{font-family:var(--font-num);color:var(--text-2)}
+.mo .d{font-family:var(--font-num);text-align:right;font-weight:600}
+.mo.on{background:var(--surface-2);box-shadow:inset 3px 0 0 var(--you)}
+.detail{padding:14px;border-bottom:1px solid var(--border-soft);background:var(--surface-2)}
+.detail h4{margin:4px 0 8px;font-size:16px;font-weight:600}
+.tip{margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--you-tint);border:1px solid #d4b26a40;font-size:13px}
+.tip b{color:var(--you)}
+.why{display:grid;grid-template-columns:90px 1fr;gap:6px 10px;align-items:center;font-size:12px;color:var(--text-2);margin-top:10px}
+
+/* Model */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--border-soft);border-radius:var(--r);background:var(--surface);margin:20px 0}
+.kpis>div{padding:16px 20px;border-right:1px solid var(--border-soft)}.kpis>div:last-child{border:0}
+.kpis .v{font-family:var(--font-num);font-size:30px;font-weight:600}
+.kpis .k{color:var(--text-3);font-size:13px}
+.mgrid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+table.t th{font-weight:500;color:var(--text-3);text-align:right;padding:8px 16px}
+table.t th:first-child,table.t td:first-child{text-align:left}
+table.t td{padding:8px 16px;text-align:right;font-family:var(--font-num)}
+table.t tr.me td{background:var(--you-tint)}
+table.t tr.me td:first-child{box-shadow:inset 3px 0 0 var(--you)}
+
+/* Foundations */
+.fd{padding:40px 56px;display:grid;grid-template-columns:1fr 1fr;gap:28px 48px}
+.fd h2{font-size:13px;color:var(--text-3);font-weight:600;margin:0 0 12px}
+.sw{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.sw div{height:64px;border-radius:8px;border:1px solid var(--border);padding:6px 8px;display:flex;flex-direction:column;justify-content:flex-end;font-size:11px;font-family:var(--font-num)}
+.type div{display:flex;align-items:baseline;gap:16px;padding:6px 0;border-bottom:1px solid var(--border-soft)}
+.type div span:first-child{width:90px;color:var(--text-3);font-size:12px;flex:none}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+/* States */
+.states{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding:24px 48px}
+.st{padding:28px;min-height:280px;display:flex;flex-direction:column;gap:10px}
+.st h3{margin:0;font-size:18px;font-weight:600}
+.banner{display:flex;align-items:center;gap:12px;margin:0;padding:10px 48px;background:#e0a14518;border-bottom:1px solid #e0a14540;color:#ecc584;font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="logo"></div>
+  <div class="file"><span>LeagueVODreview /</span> UI redraft</div>
+  <div class="tools"><b class="on">▲</b><b>#</b><b>▢</b><b>T</b><b>✋</b></div>
+  <div class="right">
+    <span>Drag to pan, scroll to zoom, click a layer to jump</span>
+    <button id="fit">Zoom to fit</button>
+    <span class="zoom" id="zoomv">100%</span>
+  </div>
+</div>
+
+<div class="panel left">
+  <h4>Pages</h4>
+  <div class="sub">Redraft v1 (Oct 2026)</div>
+  <h4>Layers</h4>
+  <div id="layers"></div>
+</div>
+
+<div class="panel right">
+  <h4 id="n-title">Design notes</h4>
+  <div class="notes" id="notes"></div>
+</div>
+
+<div id="viewport"><div id="world">
+
+<!-- ================= FOUNDATIONS ================= -->
+<div class="frame" data-id="foundations" data-name="00 Foundations" style="left:0;top:0">
+<div class="label">00 Foundations</div>
+<div class="app">
+  <div class="fd">
+    <div>
+      <h2>Surfaces</h2>
+      <div class="sw">
+        <div style="background:#0e1217;color:#a3a7ad">bg<br>#0e1217</div>
+        <div style="background:#151a21;color:#a3a7ad">surface<br>#151a21</div>
+        <div style="background:#1a1f27;color:#a3a7ad">surface-2<br>#1a1f27</div>
+        <div style="background:#212732;color:#a3a7ad">surface-3<br>#212732</div>
+        <div style="background:#2a313b;color:#e8e6e1">border<br>#2a313b</div>
+        <div style="background:#e8e6e1;color:#0e1217">text<br>#e8e6e1</div>
+      </div>
+      <h2 style="margin-top:22px">Meaning (never decorative)</h2>
+      <div class="sw">
+        <div style="background:#3987e5;color:#0e1217">ally / gain<br>#3987e5</div>
+        <div style="background:#e66767;color:#0e1217">enemy / loss<br>#e66767</div>
+        <div style="background:#d4b26a;color:#0e1217">you<br>#d4b26a</div>
+        <div style="background:#3fb8a5;color:#0e1217">!! great<br>#3fb8a5</div>
+        <div style="background:#e0a145;color:#0e1217">? mistake<br>#e0a145</div>
+        <div style="background:#e66767;color:#0e1217">?? blunder<br>#e66767</div>
+      </div>
+      <h2 style="margin-top:22px">Grades</h2>
+      <div class="row">
+        <span class="g bb">!!</span><span class="muted">Great play</span>
+        <span class="g b" style="margin-left:14px">!</span><span class="muted">Good</span>
+        <span class="g m" style="margin-left:14px">?</span><span class="muted">Mistake</span>
+        <span class="g mm" style="margin-left:14px">??</span><span class="muted">Blunder</span>
+      </div>
+      <p class="dim" style="margin:8px 0 0;font-size:13px">Today ! and !! share blue, ? and ?? share red. Splitting them makes good-vs-great and mistake-vs-blunder readable at a glance.</p>
+    </div>
+    <div>
+      <h2>Type: Barlow (text), Barlow Semi Condensed (numbers)</h2>
+      <div class="type">
+        <div><span>Display 54</span><span style="font-size:40px;font-weight:600;letter-spacing:-.02em">Find the turning point</span></div>
+        <div><span>Title 28</span><span style="font-size:28px;font-weight:600">Victory as Ahri</span></div>
+        <div><span>Section 15</span><span style="font-size:15px;font-weight:600">Scoreboard at 16:50</span></div>
+        <div><span>Body 14</span><span>Lost fight 1 for 3, then enemy took Baron.</span></div>
+        <div><span>Meta 12</span><span class="dim" style="font-size:12px">Patch 26.19, 2 weeks ago</span></div>
+        <div><span>Number 34</span><span class="num" style="font-size:34px;font-weight:600">55% <span class="neg" style="font-size:20px">-9%</span></span></div>
+      </div>
+      <h2 style="margin-top:22px">Controls</h2>
+      <div class="row">
+        <span class="btn primary">Find games</span>
+        <span class="btn">Refresh</span>
+        <span class="btn ghost">Cancel</span>
+        <span class="btn sm">Review</span>
+        <span class="seg"><span class="on">All</span><span>Mistakes</span><span>Great</span><span>Mine</span></span>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <span class="chip">Me#NA1</span><span class="chip">Faker#KR1</span>
+        <span class="tag done">Reviewed</span><span class="tag new">Review</span>
+      </div>
+      <h2 style="margin-top:22px">Shape and spacing</h2>
+      <p class="muted" style="margin:0;font-size:13px">Radius: 10 for cards, 6 for controls, full for chips/tags. Spacing on a 4px grid: 4, 8, 12, 16, 24, 32, 48. Page gutters 48 (24 on Review to give the chart room).</p>
+    </div>
+  </div>
+</div></div>
+
+<!-- ================= SEARCH ================= -->
+<div class="frame" data-id="search" data-name="01 Search" style="left:1560px;top:0">
+<div class="label">01 Search / 1440</div>
+<div class="app">
+  <div class="topbar">
+    <div class="brand"><div class="mark"><svg width="14" height="14" viewBox="0 0 14 14"><polyline points="1,10 5,7 8,9 13,2" fill="none" stroke="#e8e6e1" stroke-width="2" stroke-linejoin="round"/></svg></div>LeagueVODreview</div>
+    <div class="nav"><a class="on">Search</a><a>Model</a></div>
+  </div>
+  <div class="hero">
+    <div>
+      <h1>Find the moments that decided your game.</h1>
+      <p class="lead">Every fight, objective and death in your ranked games, graded by how much it moved your team's chance to win.</p>
+      <div class="field-l">Riot ID</div>
+      <div class="searchbox">
+        <div class="in">Hide on bush<span class="dim">#KR1</span><span class="caret"></span></div>
+        <div class="rg">NA <span class="dim">▾</span></div>
+        <span class="btn primary go">Find games</span>
+      </div>
+      <div class="helper">Name and tag, as shown in the League client.</div>
+      <div class="recent"><span class="dim" style="font-size:13px;margin-right:4px">Recent</span><span class="chip">Me#NA1</span><span class="chip">Doublelift#NA1</span><span class="chip">Try a saved game</span></div>
+    </div>
+    <div class="card" style="padding:18px 18px 12px">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px">
+        <span style="font-weight:600">Example: Victory as Ahri</span><span class="dim" style="font-size:13px">31:05</span>
+        <span class="num" style="margin-left:auto;font-size:22px;font-weight:600">76%</span><span class="dim" style="font-size:12px">at 16:30</span>
+      </div>
+      <svg class="wc" data-curve="hero" width="536" height="270"></svg>
+      <div style="display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;font-size:13px;margin-top:6px;align-items:center">
+        <span class="g mm">??</span><span>16:50 Lost fight 1 for 3, then enemy took Baron</span><span class="num neg">-9%</span>
+        <span class="g bb">!!</span><span>21:50 Won fight 4 for 1</span><span class="num pos">+6%</span>
+      </div>
+    </div>
+  </div>
+  <div class="how">
+    <div><h4>Search your Riot ID</h4><p>We pull your last 20 ranked games from Riot. Nothing to install.</p></div>
+    <div><h4>Pick a game</h4><p>Reviewed games open instantly. New ones take about a minute.</p></div>
+    <div><h4>Read the moments</h4><p>See what swung the game, why, and what the better play was.</p></div>
+  </div>
+  <div class="footer"><span>LeagueVODreview isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties.</span><span class="r">How the model works</span></div>
+</div></div>
+
+<!-- ================= GAMES ================= -->
+<div class="frame" data-id="games" data-name="02 Games" style="left:3120px;top:0">
+<div class="label">02 Games / 1440</div>
+<div class="app">
+  <div class="topbar">
+    <div class="brand"><div class="mark"><svg width="14" height="14" viewBox="0 0 14 14"><polyline points="1,10 5,7 8,9 13,2" fill="none" stroke="#e8e6e1" stroke-width="2" stroke-linejoin="round"/></svg></div>LeagueVODreview</div>
+    <div class="nav"><a>Search</a><a>Model</a></div>
+    <div class="top-search">Search a Riot ID <kbd>/</kbd></div>
+  </div>
+  <div class="page">
+    <div class="profile">
+      <div class="avatar">M<span class="lvl">212</span></div>
+      <div>
+        <h1>Me <span>#NA1</span></h1>
+        <div class="rank"><span><b style="color:var(--you);font-weight:600">Gold III</b> 47 LP</span><span>NA</span><span>Updated 2 min ago</span></div>
+      </div>
+      <div class="statstrip">
+        <div class="stat"><div class="k">Last 20</div><div class="v">11W <span class="dim">8L</span></div></div>
+        <div class="stat"><div class="k">Avg score</div><div class="v">6.7 <span class="dim" style="font-size:14px">/ 10</span></div></div>
+        <div class="stat"><div class="k">Reviewed</div><div class="v">4</div></div>
+        <span class="btn sm">Refresh</span>
+      </div>
+    </div>
+    <div class="games-grid">
+      <div class="card">
+        <div class="card-h"><h3>Ranked games</h3><span class="seg" style="margin-left:auto"><span class="on">All</span><span>Reviewed</span><span>Not yet</span></span></div>
+        <div id="matches"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Your patterns</h3><span class="dim" style="font-size:13px;margin-left:auto">from 4 reviewed games</span></div>
+        <div class="ptile">
+          <div><div class="v">1.8</div><div class="k">mistakes a game</div></div>
+          <div><div class="v neg">-14%</div><div class="k">lost to missed windows</div></div>
+          <div><div class="v">1</div><div class="k">comeback</div></div>
+          <div><div class="v">1</div><div class="k">thrown lead</div></div>
+        </div>
+        <div class="pblock"><h5>When you lose win chance</h5>
+          <div class="hrow"><span>Early (0-14)</span><div class="bar" style="width:22%;background:var(--enemy)"></div><span class="v">-6%</span></div>
+          <div class="hrow"><span>Mid (14-25)</span><div class="bar" style="width:78%;background:var(--enemy)"></div><span class="v">-21%</span></div>
+          <div class="hrow"><span>Late (25+)</span><div class="bar" style="width:40%;background:var(--enemy)"></div><span class="v">-11%</span></div>
+        </div>
+        <div class="pblock"><h5>Where</h5>
+          <div class="hrow"><span>River</span><div class="bar" style="width:70%;background:var(--enemy)"></div><span class="v">-18%</span></div>
+          <div class="hrow"><span>Enemy jungle</span><div class="bar" style="width:46%;background:var(--enemy)"></div><span class="v">-12%</span></div>
+          <div class="hrow"><span>Mid lane</span><div class="bar" style="width:18%;background:var(--enemy)"></div><span class="v">-5%</span></div>
+        </div>
+        <div class="pblock"><h5>Lane at 10:00 vs your opponent</h5>
+          <div style="display:flex;gap:28px"><div><span class="num pos" style="font-size:22px;font-weight:600">+340</span> <span class="dim">gold</span></div><div><span class="num pos" style="font-size:22px;font-weight:600">+6</span> <span class="dim">CS</span></div></div>
+          <p class="dim" style="margin:8px 0 0;font-size:13px">You win lane, then give it back in mid-game river fights.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ================= REVIEW ================= -->
+<div class="frame" data-id="review" data-name="03 Review" style="left:0;top:1080px">
+<div class="label">03 Review / 1440 (moment selected)</div>
+<div class="app">
+  <div class="topbar">
+    <div class="brand"><div class="mark"><svg width="14" height="14" viewBox="0 0 14 14"><polyline points="1,10 5,7 8,9 13,2" fill="none" stroke="#e8e6e1" stroke-width="2" stroke-linejoin="round"/></svg></div>LeagueVODreview</div>
+    <div class="nav"><a>Search</a><a>Model</a></div>
+    <div class="top-search">Search a Riot ID <kbd>/</kbd></div>
+  </div>
+  <div class="rv">
+    <div style="min-width:0">
+      <div class="rv-head">
+        <span class="ibtn">‹</span>
+        <div class="champ" style="background:#5b3b8c;width:42px;height:42px">Ah</div>
+        <div>
+          <h1><span class="w">Victory</span> as Ahri</h1>
+          <div class="meta"><span><b>Mid</b></span><span><b class="num">9/0/7</b></span><span><b class="num">31:05</b></span><span>Patch 26.19</span><span>2 weeks ago</span></div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+          <div class="score" style="margin-right:18px"><span class="s" style="background:#3fb8a526;color:var(--g-brill)">8.3</span><span><span class="badge">MVP</span><small>Score, 1st of 10</small></span></div>
+          <span class="dim" style="font-size:12px;margin-right:4px">Your grades</span>
+          <span class="g bb">!! 1</span><span class="g b">! 4</span><span class="g m">? 1</span><span class="g mm">?? 0</span>
+        </div>
+      </div>
+      <div class="card chartcard">
+        <div style="display:flex;align-items:flex-end;gap:16px">
+          <div><div class="dim" style="font-size:12px">Win chance at 16:50</div><div class="wcbig"><span class="v">67%</span><span class="num neg" style="font-size:18px;font-weight:600">-9%</span><span class="muted" style="font-size:14px">Ahead</span></div></div>
+          <div style="margin-left:auto;display:flex;gap:14px;font-size:12px" class="dim">
+            <span><span class="g bb">!!</span> great</span><span><span class="g b">!</span> good</span><span><span class="g m">?</span> mistake</span><span><span class="g mm">??</span> blunder</span>
+            <span style="color:var(--text-2)">How to read this</span>
+          </div>
+        </div>
+        <svg class="wc" data-curve="review" width="960" height="190"></svg>
+        <div class="scrub"><span class="ibtn">▶</span><span class="ibtn">‹</span><span class="ibtn">›</span><div class="track"><i style="width:54%"></i><b style="left:54%"></b></div><span class="num" style="font-size:16px;font-weight:600">16:50</span></div>
+      </div>
+      <div class="lower">
+        <div class="mini" id="minimap"></div>
+        <div class="card sb">
+          <div class="card-h" style="padding:10px 14px"><h3>Scoreboard at 16:50</h3><span class="dim" style="margin-left:auto;font-size:12px">Dragon <b class="num" style="color:var(--text)">1:21</b>&nbsp;&nbsp; Baron <b class="num" style="color:var(--text)">up</b></span></div>
+          <div id="scoreboard"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card rail">
+      <div class="tabs"><h3 style="margin:0;font-size:15px">Moments</h3><span class="seg" style="margin-left:auto"><span class="on">All</span><span>Mistakes</span><span>Great</span><span>Mine</span></span></div>
+      <div class="detail">
+        <div style="display:flex;gap:8px;align-items:center"><span class="g mm">??</span><span class="num muted">16:50</span><span class="dim" style="font-size:12px">Baron pit</span><span class="num neg" style="margin-left:auto;font-weight:600">76% to 67%</span></div>
+        <h4>Lost fight 1 for 3, then enemy took Baron</h4>
+        <div class="why">
+          <span>Players alive</span><div class="bar" style="width:92%;background:var(--enemy)"></div>
+          <span>Baron</span><div class="bar" style="width:64%;background:var(--enemy)"></div>
+          <span>Gold lead</span><div class="bar" style="width:22%;background:var(--enemy)"></div>
+        </div>
+        <div class="tip"><b>Better play:</b> you were 2 deaths ahead with Baron up in 40s. Group mid and shove instead of checking pit alone; fighting 4v5 at pit gave them Baron.</div>
+        <div style="display:flex;gap:10px;margin-top:12px;font-size:12px" class="dim"><span>Your share of damage <b class="num you">31%</b></span><span>Died first</span></div>
+      </div>
+      <div id="moments" style="overflow:hidden"></div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ================= MODEL ================= -->
+<div class="frame" data-id="model" data-name="04 Model" style="left:1560px;top:1080px">
+<div class="label">04 Model / 1440</div>
+<div class="app">
+  <div class="topbar">
+    <div class="brand"><div class="mark"><svg width="14" height="14" viewBox="0 0 14 14"><polyline points="1,10 5,7 8,9 13,2" fill="none" stroke="#e8e6e1" stroke-width="2" stroke-linejoin="round"/></svg></div>LeagueVODreview</div>
+    <div class="nav"><a>Search</a><a class="on">Model</a></div>
+    <div class="top-search">Search a Riot ID <kbd>/</kbd></div>
+  </div>
+  <div class="page" style="padding-top:32px">
+    <h1 style="margin:0;font-size:28px;font-weight:600">How much to trust the numbers</h1>
+    <p class="muted" style="margin:8px 0 0;max-width:70ch;font-size:15px">The win chance comes from a model trained on real ranked games. Here is how often it's right, and whether its percentages mean what they say.</p>
+    <div class="kpis">
+      <div><div class="v">1,998</div><div class="k">games, patches 26.18 to 26.19</div></div>
+      <div><div class="v">90%</div><div class="k">picks the winner at 10:00</div></div>
+      <div><div class="v">65% <span class="dim" style="font-size:18px">→ 61%</span></div><div class="k">says 65%, teams won 61%</div></div>
+      <div><div class="v">0.242</div><div class="k">log loss (baseline 0.238)</div></div>
+    </div>
+    <div class="mgrid">
+      <div class="card"><div class="card-h"><h3>Accuracy by minute</h3><span class="dim" style="margin-left:auto;font-size:12px">solid: model &nbsp; dashed: baseline</span></div><svg id="acc" width="690" height="250"></svg></div>
+      <div class="card"><div class="card-h"><h3>Calibration</h3><span class="dim" style="margin-left:auto;font-size:12px">on the line = honest</span></div><svg id="cal" width="560" height="250"></svg></div>
+      <div class="card"><div class="card-h"><h3>By tier</h3></div>
+        <table class="t"><thead><tr><th>Tier</th><th>Test games</th><th>Accuracy</th><th>Log loss</th></tr></thead><tbody>
+        <tr><td>Silver</td><td>55</td><td>94.0%</td><td>0.141</td></tr>
+        <tr class="me"><td>Gold <span class="you" style="font-family:var(--font-text);font-size:12px">&nbsp;your tier</span></td><td>53</td><td>92.3%</td><td>0.217</td></tr>
+        <tr><td>Platinum</td><td>41</td><td>89.2%</td><td>0.320</td></tr>
+        <tr><td>Emerald</td><td>43</td><td>94.4%</td><td>0.154</td></tr>
+        <tr><td>Diamond</td><td>51</td><td>83.2%</td><td>0.412</td></tr>
+        </tbody></table></div>
+      <div class="card"><div class="card-h"><h3>What it looks at</h3><span class="dim" style="margin-left:auto;font-size:12px">share of total gain</span></div>
+        <div style="padding:12px 16px" id="feat"></div></div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ================= STATES ================= -->
+<div class="frame" data-id="states" data-name="05 States" style="left:3120px;top:1080px">
+<div class="label">05 States: loading, empty, errors</div>
+<div class="app">
+  <div class="topbar">
+    <div class="brand"><div class="mark"><svg width="14" height="14" viewBox="0 0 14 14"><polyline points="1,10 5,7 8,9 13,2" fill="none" stroke="#e8e6e1" stroke-width="2" stroke-linejoin="round"/></svg></div>LeagueVODreview</div>
+    <div class="nav"><a>Search</a><a>Model</a></div>
+  </div>
+  <div class="banner"><b>Riot API key expired.</b> Searches and new reviews are paused. Reviewed games still open.</div>
+  <div class="states">
+    <div class="card st">
+      <span class="dim" style="font-size:12px">Games: loading</span>
+      <div style="display:flex;gap:14px;align-items:center"><div class="skel" style="width:56px;height:56px;border-radius:12px"></div><div style="flex:1"><div class="skel" style="height:18px;width:60%"></div><div class="skel" style="height:12px;width:35%;margin-top:8px"></div></div></div>
+      <div class="skel" style="height:52px;margin-top:12px"></div><div class="skel" style="height:52px"></div><div class="skel" style="height:52px"></div>
+    </div>
+    <div class="card st">
+      <span class="dim" style="font-size:12px">Review: analysing a new game</span>
+      <h3>Reviewing your game</h3>
+      <p class="muted" style="margin:0">Reading the timeline and grading 214 moments. This takes about a minute the first time.</p>
+      <div style="height:6px;border-radius:3px;background:var(--surface-3);margin-top:8px"><div style="width:62%;height:100%;border-radius:3px;background:var(--text)"></div></div>
+      <div class="dim" style="font-size:12px">Grading fights, 62%</div>
+      <div class="skel" style="height:110px;margin-top:auto"></div>
+    </div>
+    <div class="card st">
+      <span class="dim" style="font-size:12px">Games: player not found</span>
+      <h3>No player called Mee#NA1</h3>
+      <p class="muted" style="margin:0">Check the tag after the #, and that the region is right. Tags are case sensitive for some regions.</p>
+      <div class="searchbox" style="height:44px;margin-top:8px"><div class="in" style="font-size:14px">Mee#NA1</div><div class="rg">NA ▾</div></div>
+      <div class="row" style="margin-top:4px"><span class="btn sm primary">Search again</span><span class="btn sm ghost">Try a saved game</span></div>
+    </div>
+    <div class="card st">
+      <span class="dim" style="font-size:12px">Games: no ranked games</span>
+      <h3>No ranked games this season</h3>
+      <p class="muted" style="margin:0">Reviews work on ranked solo and flex. Play one and hit Refresh.</p>
+      <div class="row" style="margin-top:auto"><span class="btn sm">Refresh</span></div>
+    </div>
+    <div class="card st">
+      <span class="dim" style="font-size:12px">Games: rate limited</span>
+      <h3>Riot asked us to slow down</h3>
+      <p class="muted" style="margin:0">Trying again in <b class="num" style="color:var(--text)">0:42</b>. You don't need to refresh.</p>
+      <div style="height:6px;border-radius:3px;background:var(--surface-3);margin-top:auto"><div style="width:30%;height:100%;border-radius:3px;background:var(--g-miss)"></div></div>
+    </div>
+    <div class="card st">
+      <span class="dim" style="font-size:12px">Model: none trained yet</span>
+      <h3>Using a placeholder model</h3>
+      <p class="muted" style="margin:0">Win chances are rough until a model is trained. Reviews still show every moment; treat the percentages loosely.</p>
+      <span class="chip" style="margin-top:auto;align-self:flex-start">Placeholder model</span>
+    </div>
+  </div>
+</div></div>
+
+</div></div>
+
+<script>
+/* ---------- content generators ---------- */
+const $ = s => document.querySelector(s);
+const ns = 'http://www.w3.org/2000/svg';
+
+const curves = {
+  review: [[0,50],[2,50],[3.6,52],[5,52],[5.8,56],[7,57],[8.3,60],[10,61],[11,59],[12,62],[13.5,64],[15,66],[16.4,76],[16.85,67],[17.5,64],[18.2,66],[18.9,71],[20,72],[21.2,74],[21.85,80],[23,84],[25,88],[27,91],[29,95],[31,99]],
+  hero:   [[0,50],[3,51],[5.8,56],[8.3,60],[12,62],[15,66],[16.4,76],[16.85,67],[18.9,71],[21.85,80],[25,88],[31,99]],
+};
+const marks = {
+  review: [[5.8,'b'],[8.3,'b'],[16.85,'mm'],[18.9,'b'],[21.85,'bb'],[11,'m']],
+  hero: [[16.85,'mm'],[21.85,'bb']],
+};
+const gcol = {bb:'#3fb8a5',b:'#3987e5',m:'#e0a145',mm:'#e66767'};
+const glyph = {bb:'!!',b:'!',m:'?',mm:'??'};
+
+function winChart(svg){
+  const key = svg.dataset.curve, pts = curves[key], W = +svg.getAttribute('width'), H = +svg.getAttribute('height');
+  const L=34, R=8, T=14, B=24, x = m => L + m/31*(W-L-R), y = p => T + (100-p)/100*(H-T-B);
+  let d = pts.map((p,i)=>(i?'L':'M')+x(p[0]).toFixed(1)+','+y(p[1]).toFixed(1)).join('');
+  let area = d + `L${x(31)},${y(50)}L${x(0)},${y(50)}Z`;
+  let s = '';
+  s += `<defs><clipPath id="up-${key}"><rect x="0" y="0" width="${W}" height="${y(50)}"/></clipPath><clipPath id="dn-${key}"><rect x="0" y="${y(50)}" width="${W}" height="${H}"/></clipPath></defs>`;
+  [0,50,100].forEach(p=>{ s+=`<line x1="${L}" x2="${W-R}" y1="${y(p)}" y2="${y(p)}" stroke="${p==50?'#3a4350':'#222831'}" ${p==50?'stroke-dasharray="3 4"':''}/><text x="${L-8}" y="${y(p)+4}" fill="#858a92" font-size="11" text-anchor="end">${p}</text>`;});
+  [0,5,10,15,20,25,30].forEach(m=> s+=`<text x="${x(m)}" y="${H-6}" fill="#858a92" font-size="11" text-anchor="middle">${m}:00</text>`);
+  s += `<path d="${area}" fill="#3987e533" clip-path="url(#up-${key})"/><path d="${area}" fill="#e6676733" clip-path="url(#dn-${key})"/>`;
+  if(key==='review'){ s+=`<rect x="${x(16.4)}" y="${T}" width="${x(16.85)-x(16.4)+6}" height="${H-T-B}" fill="#e6676718"/><line x1="${x(16.85)}" x2="${x(16.85)}" y1="${T}" y2="${H-B}" stroke="#e8e6e1" stroke-width="1"/>`; }
+  s += `<path d="${d}" fill="none" stroke="#e8e6e1" stroke-width="2" stroke-linejoin="round"/>`;
+  const at = m => { for(let i=1;i<pts.length;i++) if(pts[i][0]>=m){const a=pts[i-1],b=pts[i];return a[1]+(b[1]-a[1])*(m-a[0])/(b[0]-a[0]||1);} return 99; };
+  marks[key].forEach(([m,g])=>{ const cx=x(m), cy=y(at(m)); const w = glyph[g].length>1?22:16;
+    s+=`<rect x="${cx-w/2}" y="${cy-22}" width="${w}" height="16" rx="4" fill="#0e1217" stroke="${gcol[g]}"/><text x="${cx}" y="${cy-10}" fill="${gcol[g]}" font-size="11" font-weight="700" text-anchor="middle">${glyph[g]}</text><circle cx="${cx}" cy="${cy}" r="3.5" fill="#0e1217" stroke="${gcol[g]}" stroke-width="2"/>`; });
+  svg.innerHTML = s;
+}
+document.querySelectorAll('svg.wc').forEach(winChart);
+
+function spark(vals,color){ const w=90,h=26; const d=vals.map((v,i)=>(i?'L':'M')+(i/(vals.length-1)*w).toFixed(1)+','+(h-v/100*h).toFixed(1)).join('');
+  return `<svg class="spark" width="${w}" height="${h}"><line x1="0" x2="${w}" y1="${h/2}" y2="${h/2}" stroke="#2a313b" stroke-dasharray="2 3"/><path d="${d}" fill="none" stroke="${color}" stroke-width="1.5"/></svg>`; }
+const matches = [
+  ['Ah','#5b3b8c','Victory','Mid','9/0/7','4.9 KDA','233 CS','31:05','4 days ago',[50,56,61,66,76,67,72,80,90,99],'done',[1,4,1,0],8.3,'MVP',1],
+  ['Fi','#7b4a2a','Defeat','Jungle','2/6/3','0.8 KDA','216 CS','38:05','2 days ago',[50,47,52,58,49,40,44,30,18,2],'done',[0,2,3,2],3.9,null,9],
+  ['Jn','#2a5f7b','Victory','Bottom','3/0/12','15.0 KDA','180 CS','24:30','4 days ago',[50,54,58,63,70,78,88,97],'done',[0,5,0,0],7.1,null,3],
+  ['Vi','#7b2a4a','Defeat','Jungle','4/5/9','2.6 KDA','168 CS','29:12','5 days ago',[50,52,47,44,49,38,33,20,6],'done',[1,3,2,0],7.4,'ACE',2],
+  ['Ah','#5b3b8c','Victory','Mid','7/3/6','4.3 KDA','241 CS','33:40','6 days ago',null,'new'],
+  ['Th','#3e4a3a','Remake','Support','0/0/0','','0 CS','3:10','2 days ago',null,'none'],
+];
+const scoreStyle = v => v>=8 ? 'background:#3fb8a526;color:var(--g-brill)' : v>=6 ? 'background:var(--ally-tint);color:var(--ally)' : v>=4 ? 'background:var(--surface-3);color:var(--text)' : 'background:var(--enemy-tint);color:var(--enemy)';
+const ord = n => n + (n==1?'st':n==2?'nd':n==3?'rd':'th');
+$('#matches').innerHTML = matches.map((m,i)=>{
+  const win = m[2]==='Victory', col = m[2]==='Remake' ? 'transparent' : (win?'var(--ally)':'var(--enemy)');
+  const grades = m[11] ? `<span style="display:flex;gap:3px">${m[11][0]?'<span class="g bb">!!'+m[11][0]+'</span>':''}${m[11][2]?'<span class="g m">?'+m[11][2]+'</span>':''}${m[11][3]?'<span class="g mm">??'+m[11][3]+'</span>':''}</span>` : '';
+  return `<div class="mrow ${i==0?'hl':''}" style="${m[2]==='Remake'?'opacity:.55':''}">
+    <div class="edge" style="background:${col}"></div>
+    <div class="champ" style="background:${m[1]}">${m[0]}</div>
+    <div class="res" style="color:${m[2]==='Remake'?'var(--text-2)':col}">${m[2]}<small>${m[3]}</small></div>
+    <div class="score">${m[12]!=null?`<span class="s" style="${scoreStyle(m[12])}">${m[12].toFixed(1)}</span><span>${m[13]?`<span class="badge">${m[13]}</span>`:''}<small>${ord(m[14])} of 10</small></span>`:`<span class="s dim" style="background:var(--surface-2);font-size:15px">-</span>`}</div>
+    <div>${m[9]?spark(m[9],win?'#3987e5':'#e66767'):'<span class="dim" style="font-size:12px">Not reviewed yet</span>'}</div>
+    <div class="kda">${m[4]}<small>${m[5]}</small></div>
+    <div class="num muted">${m[6]}</div>
+    <div class="num muted">${m[7]}</div>
+    <div>${grades}</div>
+    ${m[10]==='done'?'<span class="tag done">Reviewed</span>':m[10]==='new'?'<span class="tag new">Review</span>':'<span></span>'}
+  </div>`; }).join('');
+
+const sbr = (team,rows)=>`<div class="sb-team"><b style="color:${team=='Ally'?'var(--ally)':'var(--enemy)'};font-family:var(--font-text)">${team}</b><span>Kills <b>${rows.k}</b></span><span>Gold <b>${rows.g}</b></span><span>Towers <b>${rows.t}</b></span>${rows.lead?`<span style="margin-left:auto" class="num pos">${rows.lead}</span>`:''}</div>`+
+  rows.p.map(p=>`<div class="sb-row" style="${p[5]?'background:var(--you-tint)':''}"><span style="height:100%;background:${p[5]?'var(--you)':'transparent'}"></span><span class="champ c" style="background:${p[1]}">${p[0]}</span><span>${p[2]}${p[5]?' <span class="dim" style="font-size:11px">you</span>':''}</span><span class="sc"><span class="s" style="${scoreStyle(p[8])}">${p[8].toFixed(1)}</span>${p[9]?`<span class="badge">${p[9]}</span>`:''}</span><span class="n dim">${p[6]}</span><span class="n">${p[3]}</span><span class="n dim">${p[7]}</span><span class="n">${p[4]}</span><span class="items"><i></i><i></i><i></i><i></i><i></i><i style="background:#2a313b"></i></span></div>`).join('');
+$('#scoreboard').innerHTML =
+  sbr('Ally',{k:14,g:'28.1k',t:4,lead:'+2.4k',p:[['Or','#5a5a5a','Ornn','2/1/5','5.6k',0,'Lv12','142',6.1],['Vi','#7b2a4a','Vi','3/2/6','5.4k',0,'Lv12','118',6.8],['Ah','#5b3b8c','Ahri','6/0/4','6.9k',1,'Lv13','161',8.3,'MVP'],['Ks','#5b2a7b','Kai\'Sa','3/1/3','6.1k',0,'Lv12','154',7.0],['Ra','#2a5f7b','Rakan','0/2/9','4.1k',0,'Lv10','22',5.9]]})+
+  sbr('Enemy',{k:6,g:'25.7k',t:2,p:[['Da','#6b2020','Darius','2/3/1','5.1k',0,'Lv12','131',5.2],['Lv','#2a4a7b','Lee Sin','1/3/3','4.9k',0,'Lv11','96',4.4],['Sy','#4a2a6b','Syndra','2/4/1','5.6k',0,'Lv12','149',5.6],['Jx','#7b6a2a','Jinx','1/2/2','6.0k',0,'Lv12','160',6.0,'ACE'],['Th','#3e4a3a','Thresh','0/2/4','4.1k',0,'Lv10','20',3.8]]});
+
+$('#moments').innerHTML = [
+  ['08:18','b','Took 3 Void Grubs','+4%'],
+  ['11:02','m','Died in enemy jungle without vision','-3%'],
+  ['16:50','mm','Lost fight 1 for 3, then enemy took Baron','-9%',1],
+  ['18:55','b','Won fight 3 for 1, destroyed mid tower','+9%'],
+  ['21:50','bb','Won fight 4 for 1, took Baron','+6%'],
+  ['24:10','b','Took Elder Dragon','+4%'],
+  ['27:30','b','Destroyed inhibitor','+3%'],
+].map(m=>`<div class="mo ${m[4]?'on':''}"><span class="t">${m[0]}</span><span style="display:flex;gap:8px;align-items:center"><span class="g ${m[1]}">${glyph[m[1]]}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m[2]}</span></span><span class="d ${m[3][0]=='+'?'pos':'neg'}">${m[3]}</span></div>`).join('');
+
+/* minimap */
+(()=>{ const el=$('#minimap'); let s=`<svg width="300" height="300"><rect width="300" height="300" fill="#16242c"/><path d="M0,300 L300,0" stroke="#22343f" stroke-width="40"/><path d="M20,280 L20,20 L280,20" stroke="#1d2e38" stroke-width="18" fill="none"/><path d="M20,280 L280,280 L280,20" stroke="#1d2e38" stroke-width="18" fill="none"/><ellipse cx="108" cy="92" rx="18" ry="14" fill="#e6676720" stroke="#e66767" stroke-dasharray="3 3"/><text x="108" y="70" fill="#e66767" font-size="10" text-anchor="middle">Baron</text>`;
+  const a=[[130,150],[150,170],[118,112],[205,240],[230,250]], e=[[100,95],[118,82],[92,108],[60,60],[150,120]];
+  a.forEach((p,i)=> s+=`<circle cx="${p[0]}" cy="${p[1]}" r="9" fill="#0e1217" stroke="${i==2?'#d4b26a':'#3987e5'}" stroke-width="2.5"/>`);
+  e.forEach(p=> s+=`<circle cx="${p[0]}" cy="${p[1]}" r="9" fill="#0e1217" stroke="#e66767" stroke-width="2.5"/>`);
+  s+=`<line x1="118" y1="112" x2="104" y2="98" stroke="#e66767" stroke-width="1.5"/><text x="10" y="290" fill="#858a92" font-size="11">16:50</text></svg>`; el.innerHTML=s; })();
+
+/* model charts */
+(()=>{ const svg=$('#acc'), W=690,H=250,L=48,R=20,T=16,B=36; const cats=['0-5','5-10','10-15','15-20','20-25','25-30','30-35','35-40'];
+  const m=[89.8,89.7,90.3,90.5,90.7,89.7,89.2,88.0], b=[89.4,90.1,90.7,90.8,91.0,90.0,89.8,89.4];
+  const x=i=>L+i/(cats.length-1)*(W-L-R), y=v=>T+(95-v)/10*(H-T-B); let s='';
+  [85,90,95].forEach(v=>s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#222831"/><text x="${L-8}" y="${y(v)+4}" fill="#858a92" font-size="11" text-anchor="end">${v}%</text>`);
+  cats.forEach((c,i)=>s+=`<text x="${x(i)}" y="${H-12}" fill="#858a92" font-size="11" text-anchor="middle">${c}</text>`);
+  const p=a=>a.map((v,i)=>(i?'L':'M')+x(i)+','+y(v)).join('');
+  s+=`<path d="${p(b)}" fill="none" stroke="#858a92" stroke-dasharray="4 4" stroke-width="1.5"/><path d="${p(m)}" fill="none" stroke="#e8e6e1" stroke-width="2"/>`;
+  m.forEach((v,i)=>s+=`<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="#e8e6e1"/>`); svg.innerHTML=s; })();
+(()=>{ const svg=$('#cal'), W=560,H=250,L=48,R=24,T=16,B=36; const pts=[[2,1],[15,16],[25,26],[35,28],[45,43],[55,50],[65,61],[75,72],[85,83],[97,98]];
+  const x=v=>L+v/100*(W-L-R), y=v=>T+(100-v)/100*(H-T-B); let s='';
+  [0,50,100].forEach(v=>{s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#222831"/><text x="${L-8}" y="${y(v)+4}" fill="#858a92" font-size="11" text-anchor="end">${v}%</text><text x="${x(v)}" y="${H-12}" fill="#858a92" font-size="11" text-anchor="middle">${v}%</text>`;});
+  s+=`<line x1="${x(0)}" y1="${y(0)}" x2="${x(100)}" y2="${y(100)}" stroke="#3a4350" stroke-dasharray="4 4"/>`;
+  pts.forEach(p=>s+=`<circle cx="${x(p[0])}" cy="${y(p[1])}" r="${p[0]==65?6:4}" fill="${p[0]==65?'#d4b26a':'#e8e6e1'}"/>`);
+  s+=`<text x="${x(65)+10}" y="${y(61)+16}" fill="#d4b26a" font-size="12">says 65%, won 61%</text>`; svg.innerHTML=s; })();
+$('#feat').innerHTML=[['Gold lead',89.0],['Tier',2.2],['Dragon soul type',2.1],['Game minute',2.1],['CS lead',1.2],['Blue dragons',1.1],['Kill lead',0.9]].map(f=>`<div class="hrow" style="grid-template-columns:130px 1fr 48px;height:26px"><span class="muted">${f[0]}</span><div class="bar" style="width:${Math.max(1.2,f[1])}%;background:var(--text-2)"></div><span class="num" style="text-align:right">${f[1]}%</span></div>`).join('')+'<p class="dim" style="font-size:12px;margin:10px 0 0">Gold lead dominates. Fights and objectives move win chance mostly through the gold they swing.</p>';
+
+/* ---------- notes per frame ---------- */
+const notes = {
+  foundations: `<p>Keeps today's tokens (dark #0e1217, Barlow + Barlow Semi Condensed, ally blue / enemy red / you gold). Adds one surface step and splits grade colours.</p>
+    <h5>Changes</h5><ul><li>Grades get 4 distinct colours: !! teal, ! blue, ? amber, ?? red.</li><li>Radius moves 8 to 10 for cards so panels read softer next to dense tables.</li><li>Primary button stays off-white on dark (current style), now the only filled CTA per screen.</li></ul>`,
+  search: `<h5>Current problems</h5><ul><li>Centered title + one input floats in an empty screen; nothing shows what a review looks like.</li><li>Placeholder used as the only label.</li></ul>
+    <h5>Redraft</h5><ul><li>Split hero: promise + search on the left, a real win-chance graph (existing SampleGraph) on the right.</li><li>Visible "Riot ID" label, helper text, recent searches + "Try a saved game" for the demo.</li><li>Three plain steps under the hero so first-time users know a new game takes about a minute.</li></ul>
+    <h5>Build notes</h5><div class="kv"><b>Reuses</b><span>SampleGraph, platforms.ts, storage.ts (recent)</span><b>New</b><span>Recent chips, steps row</span></div>`,
+  games: `<h5>Current problems</h5><ul><li>Profile header is small; page is mostly empty below 4 rows.</li><li>Patterns hides behind a collapsed &lt;details&gt; sentence.</li><li>A checkmark is the only sign a game is reviewed.</li></ul>
+    <h5>Redraft</h5><ul><li>Two columns: games list left, Patterns always open on the right.</li><li>Each reviewed row shows a win-chance sparkline and grade counts, so you can spot thrown games without opening them.</li><li>Each reviewed row leads with your player score (0-10, same score as the Review scoreboard), coloured by band, with MVP / ACE and your rank among the 10 players. Average score sits in the header. Unreviewed games show a dash because the score needs the review's impact numbers.</li><li>"Reviewed" vs "Review" tag replaces the checkmark; filter tabs for All / Reviewed / Not yet.</li><li>Patterns leads with 4 numbers, then When / Where bars, then lane at 10:00 with a one-line takeaway.</li><li>Compact Riot ID search in the top bar on every page except Search.</li></ul>
+    <h5>Data needed</h5><div class="kv"><b>Sparkline</b><span>a few win-chance points per cached review (GameSummary)</span><b>Grade counts</b><span>from cached review</span></div>`,
+  review: `<h5>Current problems</h5><ul><li>Header crams 3 rows: grade chips for you and team, biggest swing, mistakes, best plays, how-to-read.</li><li>Moments panel scrolls inside a short card; detail is cut off.</li><li>Grade chips use only 2 colours.</li></ul>
+    <h5>Redraft</h5><ul><li>Header is one line: back, champion, result, meta, your grade counts.</li><li>Chart card owns the current win chance + delta for the scrubbed time; grade glyphs sit on the curve; the legend replaces "How to read this".</li><li>Right rail is full height: selected moment on top (why bars, Better play tip, your damage share), filtered list below. "Biggest mistakes / best plays" become the Mistakes / Great tabs, so they no longer need their own header rows.</li><li>Your player score (with MVP / ACE and rank) sits in the header, matching the Games list. The scoreboard shows every player's score, coloured by the same bands.</li><li>Scoreboard gets level + CS columns and highlights your row in gold; minimap shows the selected moment.</li></ul>
+    <h5>Narrow (&lt; 1100)</h5><ul><li>Rail drops under the chart; minimap and scoreboard stack.</li></ul>`,
+  model: `<h5>Current problems</h5><ul><li>Key numbers are buried in a paragraph.</li><li>Feature names are raw ("gold diff", "soul type").</li></ul>
+    <h5>Redraft</h5><ul><li>4 KPI tiles pulled out of the intro sentence.</li><li>Calibration highlights the 65% point the copy talks about, in gold.</li><li>Your tier row highlighted; tables trimmed to 5 rows with the rest behind "Numbers".</li><li>Readable feature names and a one-line takeaway.</li></ul>`,
+  states: `<p>Every page needs these; today some are plain text.</p><ul><li>Skeletons match final layout (no spinners).</li><li>New-review progress tells the user it takes about a minute the first time.</li><li>Not found keeps the input filled so the typo is easy to fix.</li><li>Rate limit counts down instead of asking for a refresh.</li><li>Expired key is a slim amber banner (HealthBanner) and says what still works.</li></ul>`,
+};
+
+/* ---------- canvas: pan / zoom / layers ---------- */
+const vp=$('#viewport'), world=$('#world'); let s=.3, tx=40, ty=60;
+const apply=()=>{world.style.transform=`translate(${tx}px,${ty}px) scale(${s})`; $('#zoomv').textContent=Math.round(s*100)+'%';};
+const frames=[...document.querySelectorAll('.frame')];
+function fitTo(x,y,w,h,pad=60){ const W=vp.clientWidth, H=vp.clientHeight; s=Math.min((W-pad*2)/w,(H-pad*2)/h); tx=(W-w*s)/2-x*s; ty=(H-h*s)/2-y*s; apply(); }
+function fitAll(){ fitTo(0,-30,1560*2+1440,1080+900+30); select(null); }
+function select(id){ frames.forEach(f=>f.classList.toggle('sel',f.dataset.id===id)); document.querySelectorAll('.layer').forEach(l=>l.classList.toggle('sel',l.dataset.id===id));
+  $('#n-title').textContent = id ? frames.find(f=>f.dataset.id===id).dataset.name : 'Design notes';
+  $('#notes').innerHTML = id ? notes[id] : `<p>Six frames: foundations, the four pages users can reach (Search, Games, Review, Model) and their empty / loading / error states.</p><p>Direction: keep the current brand (dark, Barlow, blue vs red, gold for you) and fix hierarchy. Each page gets one clear focal point, and nothing important hides behind a collapsed toggle.</p><p>Click a frame or layer for what changed and why.</p>`; }
+$('#layers').innerHTML = frames.map(f=>`<div class="layer" data-id="${f.dataset.id}">${f.dataset.name}</div>`).join('');
+document.querySelectorAll('.layer').forEach(l=>l.onclick=()=>{ const f=frames.find(f=>f.dataset.id===l.dataset.id); fitTo(parseFloat(f.style.left),parseFloat(f.style.top)-30,1440,930,30); select(l.dataset.id); });
+frames.forEach(f=>f.querySelector('.label').onclick=e=>{e.stopPropagation(); fitTo(parseFloat(f.style.left),parseFloat(f.style.top)-30,1440,930,30); select(f.dataset.id);});
+let drag=null, moved=false;
+vp.onmousedown=e=>{drag=[e.clientX-tx,e.clientY-ty]; moved=false; vp.classList.add('drag');};
+window.onmousemove=e=>{ if(!drag) return; moved=true; tx=e.clientX-drag[0]; ty=e.clientY-drag[1]; apply(); };
+window.onmouseup=e=>{ vp.classList.remove('drag'); if(drag && !moved){ const f=e.target.closest('.frame'); select(f?f.dataset.id:null);} drag=null; };
+vp.onwheel=e=>{ e.preventDefault(); const r=vp.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+  if(e.ctrlKey||e.metaKey||Math.abs(e.deltaY)>=Math.abs(e.deltaX)){ const k=Math.exp(-e.deltaY*0.0015), ns=Math.min(2,Math.max(.08,s*k)); tx=mx-(mx-tx)*ns/s; ty=my-(my-ty)*ns/s; s=ns; } else { tx-=e.deltaX; }
+  apply(); };
+$('#fit').onclick=fitAll;
+window.onresize=fitAll; fitAll();
+</script>
+</body>
+</html>

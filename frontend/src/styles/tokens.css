@@ -2,17 +2,36 @@
   --bg: #0e1217;
   --surface: #151a21;
   --surface-2: #1a1f27;
+  --surface-3: #212732;
   --border: #2a313b;
+  --border-soft: #222831;
   --text: #e8e6e1;
   --text-2: #a3a7ad;
   --text-3: #858a92;
   --ally: #3987e5;
   --enemy: #e66767;
   --you: #d4b26a;
+  --you-tint: #d4b26a24;
   --ally-tint: #3987e529;
   --enemy-tint: #e6676729;
   --ally-fill: #3987e547;
   --enemy-fill: #e6676747;
+
+  /* Grades: teal great, blue good, amber mistake, red blunder. */
+  --grade-great: #3fb8a5;
+  --grade-good: #3987e5;
+  --grade-mistake: #e0a145;
+  --grade-blunder: #e66767;
+  --grade-great-tint: #3fb8a526;
+  --grade-good-tint: #3987e526;
+  --grade-mistake-tint: #e0a14526;
+  --grade-blunder-tint: #e6676726;
+  /* Badge text on those tints (and on your row's gold tint): the grade colour, lifted until it
+     reaches 4.5:1 on the worst case, the tint over --you-tint over --surface. */
+  --grade-great-text: #46c0ad;
+  --grade-good-text: #76aced;
+  --grade-mistake-text: #e1a44c;
+  --grade-blunder-text: #ed9191;
 
   --space-1: 4px;
   --space-2: 8px;
@@ -23,13 +42,13 @@
   --space-7: 48px;
 
   --radius-sm: 6px;
-  --radius-md: 8px;
+  --radius-md: 10px;
 
   --font-text: "Barlow", system-ui, sans-serif;
   --font-num: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
 
   --page-max: 1280px;
-  --topbar-h: 56px;
+  --topbar-h: 60px;
 
   color-scheme: dark;
 }

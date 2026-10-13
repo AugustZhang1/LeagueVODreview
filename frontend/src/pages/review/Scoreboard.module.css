@@ -8,7 +8,7 @@
   align-items: baseline;
   justify-content: flex-end;
   gap: var(--space-1) var(--space-3);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .team + .team {
@@ -22,28 +22,19 @@
   gap: var(--space-1) var(--space-3);
   padding-bottom: var(--space-1);
   border-bottom: 1px solid var(--border);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .teamName {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   font-weight: 600;
 }
 
-.mark {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-}
-
 .ally {
-  background: var(--ally);
+  color: var(--ally);
 }
 
 .enemy {
-  background: var(--enemy);
+  color: var(--enemy);
 }
 
 .pair {
@@ -56,7 +47,6 @@
 
 .lead {
   margin-left: auto;
-  color: var(--text);
 }
 
 .table {
@@ -64,9 +54,10 @@
   table-layout: fixed;
 }
 
+/* 28 px rows, so both teams fit under the header without scrolling */
 .row {
   height: 28px;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .row td {
@@ -79,13 +70,18 @@
   box-shadow: inset 3px 0 0 transparent;
 }
 
+/* your row: gold tint and a gold bar on its left edge */
+.me {
+  background: var(--you-tint);
+}
+
 .me td:first-child {
   box-shadow: inset 3px 0 0 var(--you);
 }
 
 /* dimmed by color rather than opacity, so the text keeps its contrast */
 .dead td {
-  color: var(--text-3);
+  color: var(--text-2);
 }
 
 .dead .champ,
@@ -99,35 +95,56 @@
 }
 
 .name {
+  color: var(--text);
+}
+
+.nameInner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.nameText {
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 12px;
+  white-space: nowrap;
+}
+
+.you {
+  flex-shrink: 0;
+  font-size: 11px;
   color: var(--text-2);
+}
+
+/* a ScoreBadge sm with its MVP / ACE tag */
+.score {
+  width: 80px;
 }
 
 .num {
   text-align: right;
-  font-size: 14px;
 }
 
-.row td:nth-child(3) {
+.row .level {
   width: 46px;
+  padding-left: 0;
 }
 
 .kda {
   width: 62px;
 }
 
-.row td:nth-child(5) {
-  width: 36px;
+.cs {
+  width: 34px;
 }
 
 .gold {
-  width: 44px;
+  width: 42px;
 }
 
 .items {
-  width: 162px;
+  width: 168px;
   line-height: 0;
 }
 
@@ -136,7 +153,7 @@
 }
 
 .items > *:nth-child(6) {
-  margin-right: 8px;
+  margin-right: 4px;
 }
 
 .items > *:last-child {
@@ -144,6 +161,6 @@
 }
 
 .dead .deadText {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-2);
 }

@@ -1,0 +1,77 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.box {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-num);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.md {
+  width: 44px;
+  height: 32px;
+  font-size: 20px;
+}
+
+.sm {
+  width: 32px;
+  height: 20px;
+  font-size: 13px;
+}
+
+.great {
+  background: var(--grade-great-tint);
+  color: var(--grade-great-text);
+}
+
+.good {
+  background: var(--ally-tint);
+  color: var(--grade-good-text);
+}
+
+.neutral {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.blunder {
+  background: var(--enemy-tint);
+  color: var(--grade-blunder-text);
+}
+
+.none {
+  background: var(--surface-2);
+  color: var(--text-3);
+}
+
+.side {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+}
+
+.tag {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--you-tint);
+  color: var(--you);
+  font-family: var(--font-num);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.line {
+  color: var(--text-3);
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}

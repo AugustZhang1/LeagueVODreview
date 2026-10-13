@@ -2,6 +2,17 @@
 
 Reviews a ranked solo League of Legends game by scoring the win chance every few seconds, grouping kills and objectives into moments, and grading each one. A crawler collects training games, a model learns win chance from them, and a local web app shows the review. See `Overview.md` for the idea and design.
 
+**Live:** https://augustzhang1.github.io/LeagueVODreview/
+
+What a review shows:
+
+- A win-chance graph for the whole game, with every fight, objective and tower graded `!!` great, `!` good, `?` mistake or `??` blunder by how much it moved your team's chance to win
+- Your biggest mistakes and best plays, why each moment swung (the model's top drivers), your share of each fight's damage, and a "Better play" tip on your mistakes
+- A minimap and scoreboard at any moment, missed objective windows, a lane gold/CS chart and notes
+- Patterns across your reviewed games: when, where and why you lose win chance
+
+The model is LightGBM, trained on about 60,000 ranked games from Challenger to Silver; its accuracy by game minute, rank and calibration is on the site's Model page.
+
 ## Layout
 
 - `lolreview/` the Python package (Riot client, features, model, review, API)

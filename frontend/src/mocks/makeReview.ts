@@ -8,9 +8,11 @@ import type {
   Objectives,
   ObjectiveWindow,
   Player,
+  PlayerCredit,
   PlayerState,
   Review,
   Role,
+  ScoreParts,
   Side,
   Snapshot,
   TeamState,
@@ -674,6 +676,49 @@ export function makeReview(matchId = "NA1_5300000001", participantId = 4): Revie
     return { damage: [...tally.values()].sort((a, b) => b.dealt - a.dealt), gold };
   };
 
+  const creditOf = (evs: GameEvent[], delta: number): PlayerCredit[] => {
+    const val = round4(delta);
+    if (val === 0) return [];
+    const absVal = Math.abs(val);
+    const allyIds = ROSTER.filter((r) => sideOf(r.ref) === "ally").map((r) => r.id);
+    const enemyIds = ROSTER.filter((r) => sideOf(r.ref) === "enemy").map((r) => r.id);
+    const [gainIds, loseIds] = val > 0 ? [allyIds, enemyIds] : [enemyIds, allyIds];
+
+    const killersAndAssists = [
+      ...new Set(
+        evs
+          .filter((e) => gainIds.includes(e.killer ?? -1))
+          .flatMap((e) => [e.killer!, ...(e.assists ?? [])].filter((id) => gainIds.includes(id))),
+      ),
+    ];
+    const gainParticipants = killersAndAssists.length > 0 ? killersAndAssists : gainIds;
+    const gainShares = gainParticipants.map((id, idx) => {
+      if (idx === gainParticipants.length - 1) {
+        const prev = round4(absVal / gainParticipants.length) * (gainParticipants.length - 1);
+        return { participant_id: id, share: round4(absVal - prev) };
+      }
+      return { participant_id: id, share: round4(absVal / gainParticipants.length) };
+    });
+
+    const victims = [
+      ...new Set(
+        evs
+          .filter((e) => e.kind === "kill" && loseIds.includes(e.victim ?? -1))
+          .map((e) => e.victim!),
+      ),
+    ];
+    const loseParticipants = victims.length > 0 ? victims : loseIds;
+    const loseShares = loseParticipants.map((id, idx) => {
+      if (idx === loseParticipants.length - 1) {
+        const prev = round4(-absVal / loseParticipants.length) * (loseParticipants.length - 1);
+        return { participant_id: id, share: round4(-absVal - prev) };
+      }
+      return { participant_id: id, share: round4(-absVal / loseParticipants.length) };
+    });
+
+    return [...gainShares, ...loseShares];
+  };
+
   const moments: Moment[] = SPECS.map((spec, i) => {
     const s = spans[i];
     const fight = fightOf(specEvents[i]);
@@ -695,6 +740,7 @@ export function makeReview(matchId = "NA1_5300000001", participantId = 4): Revie
       events: specEvents[i],
       damage: fight.damage,
       kill_gold: fight.gold,
+      credit: creditOf(specEvents[i], delta),
       drivers: (WHY[id] ?? []).map(([label, share]) => ({
         label,
         change: Math.round(share * Z_SCALE * spec.z * 1000) / 1000,
@@ -863,15 +909,128 @@ export function makeReview(matchId = "NA1_5300000001", participantId = 4): Revie
     });
   }
 
-  const players: Player[] = ROSTER.map((r) => ({
-    participant_id: r.id,
-    riot_id: r.riotId,
-    champion: r.champion,
-    champion_name: r.name,
-    role: r.role,
-    team: sideOf(r.ref),
-    is_me: r.id === me.id,
-  }));
+  const PLAYER_SCORES: Record<
+    number,
+    {
+      score_parts: ScoreParts;
+      badge: "mvp" | "ace" | null;
+      lane: number;
+      lane_gold: number;
+      lane_cs: number;
+      lane_level: number;
+    }
+  > = {
+    1: {
+      score_parts: { gold_min: 6.8, vs_lane: 7.5, kp: 6.0, impact: 7.0, fights: 7.8 },
+      badge: null,
+      lane: 0.021,
+      lane_gold: 320,
+      lane_cs: 8,
+      lane_level: 0,
+    },
+    2: {
+      score_parts: { gold_min: 7.5, vs_lane: 8.0, kp: 8.5, impact: 8.2, fights: 8.0 },
+      badge: null,
+      lane: 0.035,
+      lane_gold: 450,
+      lane_cs: 10,
+      lane_level: 1,
+    },
+    3: {
+      score_parts: { gold_min: 9.1, vs_lane: 8.5, kp: 5.8, impact: 8.9, fights: 8.6 },
+      badge: null,
+      lane: 0.041,
+      lane_gold: 510,
+      lane_cs: 12,
+      lane_level: 0,
+    },
+    4: {
+      score_parts: { gold_min: 8.9, vs_lane: 8.9, kp: 5.6, impact: 9.1, fights: 8.9 },
+      badge: "mvp",
+      lane: 0.062,
+      lane_gold: 680,
+      lane_cs: 14,
+      lane_level: 1,
+    },
+    5: {
+      score_parts: { gold_min: 5.2, vs_lane: 7.1, kp: 9.0, impact: 8.0, fights: 7.5 },
+      badge: null,
+      lane: 0.015,
+      lane_gold: 180,
+      lane_cs: 0,
+      lane_level: 0,
+    },
+    6: {
+      score_parts: { gold_min: 5.8, vs_lane: 4.5, kp: 5.0, impact: 5.2, fights: 6.0 },
+      badge: null,
+      lane: -0.021,
+      lane_gold: -320,
+      lane_cs: -8,
+      lane_level: 0,
+    },
+    7: {
+      score_parts: { gold_min: 6.2, vs_lane: 5.5, kp: 6.8, impact: 5.9, fights: 6.2 },
+      badge: null,
+      lane: -0.035,
+      lane_gold: -450,
+      lane_cs: -10,
+      lane_level: -1,
+    },
+    8: {
+      score_parts: { gold_min: 8.2, vs_lane: 6.5, kp: 8.0, impact: 7.8, fights: 8.5 },
+      badge: "ace",
+      lane: -0.062,
+      lane_gold: -680,
+      lane_cs: -14,
+      lane_level: -1,
+    },
+    9: {
+      score_parts: { gold_min: 7.0, vs_lane: 6.0, kp: 6.5, impact: 6.7, fights: 7.1 },
+      badge: null,
+      lane: -0.041,
+      lane_gold: -510,
+      lane_cs: -12,
+      lane_level: 0,
+    },
+    10: {
+      score_parts: { gold_min: 4.5, vs_lane: 5.0, kp: 7.2, impact: 6.0, fights: 5.8 },
+      badge: null,
+      lane: -0.015,
+      lane_gold: -180,
+      lane_cs: 0,
+      lane_level: 0,
+    },
+  };
+
+  const players: Player[] = ROSTER.map((r) => {
+    const s = PLAYER_SCORES[r.id];
+    const impact = round4(
+      moments.reduce((sum, m) => {
+        const c = m.credit.find((cr) => cr.participant_id === r.id);
+        return sum + (c ? c.share : 0);
+      }, 0),
+    );
+    return {
+      participant_id: r.id,
+      riot_id: r.riotId,
+      champion: r.champion,
+      champion_name: r.name,
+      role: r.role,
+      team: sideOf(r.ref),
+      is_me: r.id === me.id,
+      score: scoreOf(s.score_parts),
+      score_parts: s.score_parts,
+      badge: s.badge,
+      impact,
+      lane: s.lane,
+      lane_gold: s.lane_gold,
+      lane_cs: s.lane_cs,
+      lane_level: s.lane_level,
+    };
+  });
+
+  const allyImpact = players.filter((p) => p.team === "ally").reduce((sum, p) => sum + p.impact, 0);
+  const between_fights = round4(1 - pAt(spans[0].start) - allyImpact);
 
   const count = (list: Moment[]): GradeCounts => {
     const c: GradeCounts = { "!!": 0, "!": 0, "?": 0, "??": 0 };
@@ -925,6 +1084,7 @@ export function makeReview(matchId = "NA1_5300000001", participantId = 4): Revie
   );
 
   return {
+    between_fights,
     match: {
       match_id: matchId,
       platform: "NA",
@@ -952,6 +1112,12 @@ export function makeReview(matchId = "NA1_5300000001", participantId = 4): Revie
       biggest_id: biggest.id,
     },
   };
+}
+
+/** Score from the parts with the spec's weights (ScoreBuild.md 3d), one decimal. */
+function scoreOf(p: ScoreParts): number {
+  const sum = 0.25 * p.gold_min + 0.25 * p.vs_lane + 0.2 * p.kp + 0.2 * p.impact + 0.1 * p.fights;
+  return Math.round(sum * 10) / 10;
 }
 
 function round4(n: number) {

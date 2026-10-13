@@ -1,35 +1,39 @@
+/*
+ * Areas, top to bottom: header, chart card, moments rail, minimap and scoreboard, extras.
+ * From 1280px the rail is a full-height column on the right; below that it drops under the chart.
+ */
 .page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.panels {
   display: grid;
-  grid-template-columns: 360px minmax(0, 1fr) 360px;
-  gap: var(--space-4);
-  align-items: start;
-  margin-top: var(--space-2);
-}
-
-.extras {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
-  align-items: start;
-  margin-top: var(--space-2);
-}
-
-.minimap,
-.scoreboard,
-.moments {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "head"
+    "chart"
+    "moments"
+    "panels"
+    "extras";
+  gap: var(--space-3);
   min-width: 0;
+}
+
+.head {
+  grid-area: head;
+  min-width: 0;
+}
+
+.chart {
+  grid-area: chart;
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  background: var(--surface);
 }
 
 .moments {
   position: relative;
-  align-self: stretch;
-  min-height: 400px;
+  grid-area: moments;
+  min-width: 0;
+  height: 480px;
 }
 
 .moments > * {
@@ -37,14 +41,42 @@
   inset: 0;
 }
 
-@media (max-width: 1279px) {
-  .panels {
-    grid-template-columns: 360px minmax(0, 1fr);
+.panels {
+  display: grid;
+  grid-area: panels;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+  min-width: 0;
+}
+
+.minimap,
+.scoreboard {
+  min-width: 0;
+}
+
+.extras {
+  display: grid;
+  grid-area: extras;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+  min-width: 0;
+}
+
+@media (min-width: 1280px) {
+  .page {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-areas:
+      "head    moments"
+      "chart   moments"
+      "panels  moments"
+      "extras  extras";
   }
 
   .moments {
-    grid-column: 1 / -1;
-    height: 400px;
+    height: auto;
+    align-self: stretch;
   }
 }
 
@@ -64,26 +96,38 @@
 
 .skelHeader {
   display: flex;
-  gap: var(--space-4);
-}
-
-.skelHeaderText {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.skelRow {
-  display: flex;
   align-items: center;
   gap: var(--space-3);
 }
 
-.skelChecks {
+.skelHeaderText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.skelTitleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.skelSummary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.skelReading {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  margin-top: var(--space-3);
+  gap: 4px;
+  margin-bottom: var(--space-2);
 }
 
 .skelGraph {
@@ -97,6 +141,23 @@
   align-items: center;
   justify-content: center;
   color: var(--text-2);
+}
+
+.skelMinimap {
+  position: relative;
+  aspect-ratio: 1;
+}
+
+.skelMinimap > * {
+  position: absolute;
+  inset: 0;
+}
+
+.skelChecks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
 }
 
 .skelMoments {

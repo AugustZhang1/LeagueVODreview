@@ -230,6 +230,8 @@ export interface components {
         GameSummary: {
             /** A */
             a: number;
+            /** Badge */
+            badge?: ("mvp" | "ace") | null;
             /** Champion */
             champion: string;
             /** Cs */
@@ -240,6 +242,7 @@ export interface components {
             ddragon_version: string;
             /** Duration S */
             duration_s: number;
+            grades?: components["schemas"]["GradeCounts"] | null;
             /** K */
             k: number;
             /** Match Id */
@@ -257,6 +260,12 @@ export interface components {
             reviewed: boolean;
             /** Role */
             role: ("TOP" | "JUNGLE" | "MIDDLE" | "BOTTOM" | "UTILITY") | null;
+            /** Score */
+            score?: number | null;
+            /** Score Rank */
+            score_rank?: number | null;
+            /** Spark */
+            spark?: number[] | null;
             /** Started At */
             started_at: string;
         };
@@ -304,6 +313,11 @@ export interface components {
         };
         /** Moment */
         Moment: {
+            /**
+             * Credit
+             * @default []
+             */
+            credit: components["schemas"]["PlayerCredit"][];
             /**
              * Damage
              * @default []
@@ -426,12 +440,27 @@ export interface components {
         };
         /** Player */
         Player: {
+            /** Badge */
+            badge?: ("mvp" | "ace") | null;
             /** Champion */
             champion: string;
             /** Champion Name */
             champion_name: string;
+            /**
+             * Impact
+             * @default 0
+             */
+            impact: number;
             /** Is Me */
             is_me: boolean;
+            /** Lane */
+            lane?: number | null;
+            /** Lane Cs */
+            lane_cs?: number | null;
+            /** Lane Gold */
+            lane_gold?: number | null;
+            /** Lane Level */
+            lane_level?: number | null;
             /** Participant Id */
             participant_id: number;
             /** Riot Id */
@@ -441,11 +470,21 @@ export interface components {
              * @enum {string}
              */
             role: "TOP" | "JUNGLE" | "MIDDLE" | "BOTTOM" | "UTILITY";
+            /** Score */
+            score?: number | null;
+            score_parts?: components["schemas"]["ScoreParts"] | null;
             /**
              * Team
              * @enum {string}
              */
             team: "ally" | "enemy";
+        };
+        /** PlayerCredit */
+        PlayerCredit: {
+            /** Participant Id */
+            participant_id: number;
+            /** Share */
+            share: number;
         };
         /** PlayerGames */
         PlayerGames: {
@@ -536,6 +575,11 @@ export interface components {
         };
         /** Review */
         Review: {
+            /**
+             * Between Fights
+             * @default 0
+             */
+            between_fights: number;
             /** Buildings */
             buildings: components["schemas"]["Building"][];
             /** Curve */
@@ -597,6 +641,22 @@ export interface components {
             kind: "trained" | "stub";
             /** Version */
             version: string;
+        };
+        /**
+         * ScoreParts
+         * @description Each 0-10: the player's rank among the game's 10 players on that part.
+         */
+        ScoreParts: {
+            /** Fights */
+            fights: number;
+            /** Gold Min */
+            gold_min: number;
+            /** Impact */
+            impact: number;
+            /** Kp */
+            kp: number;
+            /** Vs Lane */
+            vs_lane: number;
         };
         /** Snapshot */
         Snapshot: {

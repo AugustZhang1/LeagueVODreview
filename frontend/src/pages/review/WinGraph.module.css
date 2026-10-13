@@ -2,27 +2,37 @@
   min-width: 0;
 }
 
-.label {
+/* the chart card's header: the current reading on the left, the grade legend and "How to read this" on the right */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.current {
+  min-width: 0;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.reading {
   display: flex;
   align-items: baseline;
   gap: var(--space-2);
-  height: 24px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text);
+  margin-top: 2px;
 }
 
 .value {
-  font-size: 20px;
-  font-weight: 600;
   min-width: 3ch;
-}
-
-.labelRow {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-4);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .word {
@@ -32,35 +42,20 @@
   font-weight: 500;
 }
 
-/* Tug of war: your team's share in blue, theirs in red. The number and word carry it too. */
-.tug {
-  display: inline-flex;
-  align-self: center;
-  width: 96px;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--enemy);
-  overflow: hidden;
-}
-
-.tugAlly {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: var(--ally);
-  transform-origin: left;
-}
-
-.storyLabel {
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  margin-left: auto;
   color: var(--text-3);
+  font-size: 12px;
 }
 
-.story {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text-2);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .stage {
@@ -81,7 +76,6 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  background: var(--surface-2);
 }
 
 .band {
@@ -96,33 +90,51 @@
   border: 1px dashed var(--text-3);
 }
 
+/* A grade marker: a dot on the curve with the grade's glyph in a tag above it. */
 .marker {
   position: absolute;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  outline: 2px solid var(--surface);
+  width: 0;
+  height: 0;
+}
+
+.dot {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 8px;
+  height: 8px;
   box-sizing: border-box;
+  border: 2px solid var(--grade);
+  border-radius: 50%;
+  background: var(--bg);
 }
 
-.filled.good {
-  background: var(--ally);
+.tag {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  box-sizing: border-box;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  transform: translateX(-50%);
+  border: 1px solid var(--grade);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--grade);
+  font-family: var(--font-num);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+  white-space: nowrap;
 }
 
-.filled.bad {
-  background: var(--enemy);
-}
-
-.ring {
-  background: var(--surface);
-  border: 2px solid;
-}
-
-.ring.good {
-  border-color: var(--ally);
-}
-
-.ring.bad {
-  border-color: var(--enemy);
+.grown .dot {
+  top: -6px;
+  left: -6px;
+  width: 12px;
+  height: 12px;
 }
 
 .now {
@@ -181,17 +193,4 @@
   gap: var(--space-2);
   margin-top: var(--space-1);
   color: var(--text-2);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .marker {
-    animation: pop 0.3s cubic-bezier(0.3, 1.6, 0.5, 1) 0.5s backwards;
-  }
-}
-
-@keyframes pop {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0);
-  }
 }

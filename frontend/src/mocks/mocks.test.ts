@@ -21,6 +21,16 @@ describe("mocks match the API schema", () => {
   it("showcase patterns", () => expect(check(showcase.patterns, "Patterns")).toEqual([]));
   it("review", () => expect(check(makeReview(), "Review")).toEqual([]));
   it("backend-made review fixture", () => expect(check(reviewFixture, "Review")).toEqual([]));
+  it("showcase reviews", () => {
+    expect(Object.values(showcase.reviews).flatMap((r) => check(r, "Review"))).toEqual([]);
+  });
+  it("every player in the fixture and the showcase has a score and score parts", () => {
+    const reviews = [reviewFixture, ...Object.values(showcase.reviews)];
+    const unscored = reviews.flatMap((r) =>
+      r.players.filter((p) => p.score == null || p.score_parts == null).map((p) => p.riot_id),
+    );
+    expect(unscored).toEqual([]);
+  });
   it("the checker catches mistakes", () => {
     expect(
       check({ riot_key: "nope", model: { kind: "trained", version: "1" } }, "Health"),

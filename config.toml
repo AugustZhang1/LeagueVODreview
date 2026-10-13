@@ -64,6 +64,19 @@ good = 0.05
 mistake = -0.05
 blunder = -0.10
 
+# Player Score: five parts, each 0-10 by rank among the game's 10 players, weighted.
+# Gold/min, KP and fight share are compared with the role's usual (medians from 390 players).
+[scores]
+weight_gold_min = 0.25
+weight_vs_lane = 0.25
+weight_kp = 0.20
+weight_impact = 0.20
+weight_fights = 0.10
+lane_at_s = 840
+gold_min = { TOP = 418, JUNGLE = 451, MIDDLE = 421, BOTTOM = 486, UTILITY = 340 }
+kp = { TOP = 0.29, JUNGLE = 0.43, MIDDLE = 0.36, BOTTOM = 0.51, UTILITY = 0.52 }
+fight_share = { TOP = 0.22, JUNGLE = 0.19, MIDDLE = 0.19, BOTTOM = 0.20, UTILITY = 0.14 }
+
 # Missed windows: the enemy is weak when its jungler, or min_dead of them, have at
 # least jungler_dead_s left to respawn; a window is listed when its best option is worth min_value.
 [windows]

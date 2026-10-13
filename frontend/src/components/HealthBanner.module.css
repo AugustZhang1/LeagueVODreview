@@ -1,12 +1,17 @@
 .banner {
   flex: none;
-  background: var(--surface);
-  border-left: 3px solid var(--enemy);
+  background: #e0a14518;
+  border-bottom: 1px solid #e0a14540;
+  color: #ecc584;
+  font-size: 13px;
 }
 
 .inner {
   max-width: var(--page-max);
   margin: 0 auto;
-  padding: var(--space-3) var(--space-5) var(--space-3) calc(var(--space-5) - 3px);
-  color: var(--text);
+  padding: 10px var(--space-5);
+}
+
+.lead {
+  font-weight: 600;
 }

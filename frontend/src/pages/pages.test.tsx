@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -9,7 +9,7 @@ import playerJson from "../mocks/player.json";
 import { GamesPage } from "./GamesPage";
 import { ModelPage } from "./ModelPage";
 import { SearchPage } from "./SearchPage";
-import { readMetrics } from "./model/metrics";
+import { featureName, readMetrics } from "./model/metrics";
 import { parseRiotId } from "./search/storage";
 
 function json(body: unknown, status = 200) {
@@ -101,6 +101,25 @@ describe("SearchPage", () => {
     renderAt("/");
     expect(screen.getByRole("link", { name: "Me#NA1" })).toHaveAttribute("href", "/p/na1/Me/NA1");
   });
+
+  it("says how to write the Riot ID and shows the example's two biggest moments", () => {
+    renderAt("/");
+    expect(screen.getByLabelText("Riot ID")).toBeInTheDocument();
+    expect(screen.getByText("Name and tag, as shown in the League client.")).toBeInTheDocument();
+    const moments = screen.getByRole("list", { name: "Biggest moments in the example" });
+    expect(within(moments).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(moments).getByText("16:41")).toBeInTheDocument();
+    expect(within(moments).getByText("26:43")).toBeInTheDocument();
+  });
+
+  it("links the sample player the server offers", async () => {
+    mockFetch({ "/api/health": () => json(healthJson) });
+    renderAt("/");
+    expect(await screen.findByRole("link", { name: "Try a sample player Me#NA1" })).toHaveAttribute(
+      "href",
+      "/p/na1/Me/NA1",
+    );
+  });
 });
 
 describe("GamesPage", () => {
@@ -110,8 +129,52 @@ describe("GamesPage", () => {
     const links = await screen.findAllByRole("link");
     expect(links[0]).toHaveAttribute("href", "/review/NA1_5300000001?p=4");
     expect(screen.getByText("Remake").closest("a")).toBeNull();
-    expect(screen.getByText("Gold III, 47 LP")).toBeInTheDocument();
+    expect(screen.getByText("Gold III")).toBeInTheDocument();
+    expect(screen.getByText("47 LP")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Load 10 more" })).toBeInTheDocument();
+  });
+
+  it("shows the score for reviewed games and a dash for the rest", async () => {
+    mockFetch({ "/api/player": () => json(playerJson) });
+    renderAt("/p/na1/Me/NA1");
+    await screen.findAllByRole("link");
+    // 5 reviewed games; the 19 others and the remake have no score
+    expect(screen.getAllByRole("img", { name: "Score 5.6 out of 10" })).toHaveLength(5);
+    expect(screen.getAllByText("5th of 10")).toHaveLength(5);
+    expect(screen.getAllByRole("img", { name: "No score" })).toHaveLength(20);
+  });
+
+  it("filters the games to reviewed or not yet", async () => {
+    mockFetch({ "/api/player": () => json(playerJson) });
+    renderAt("/p/na1/Me/NA1");
+    await screen.findAllByRole("link");
+    expect(screen.getAllByRole("link")).toHaveLength(24);
+
+    await userEvent.click(screen.getByRole("button", { name: "Reviewed" }));
+    expect(screen.getAllByRole("link")).toHaveLength(5);
+    expect(screen.getByRole("button", { name: "Reviewed", pressed: true })).toBeInTheDocument();
+
+    // a remake can't be reviewed, so it isn't "Not yet"
+    await userEvent.click(screen.getByRole("button", { name: "Not yet" }));
+    expect(screen.getAllByRole("link")).toHaveLength(19);
+  });
+
+  it("shows the average score of the games that have one", async () => {
+    mockFetch({ "/api/player": () => json(playerJson) });
+    renderAt("/p/na1/Me/NA1");
+    await screen.findAllByRole("link");
+    expect(screen.getByText("Avg score").parentElement).toHaveTextContent("5.6 / 10");
+    expect(screen.getByText("Last 24 games").parentElement).toHaveTextContent("16W 8L");
+  });
+
+  it("leaves the average out when no game has a score", async () => {
+    mockFetch({
+      "/api/player": () =>
+        json({ ...playerJson, games: playerJson.games.filter((g) => !g.reviewed) }),
+    });
+    renderAt("/p/na1/Me/NA1");
+    await screen.findAllByRole("link");
+    expect(screen.queryByText("Avg score")).toBeNull();
   });
 
   it("shows the empty state", async () => {
@@ -134,22 +197,51 @@ describe("GamesPage", () => {
 });
 
 describe("ModelPage", () => {
-  it("writes the summary in words", async () => {
+  it("shows the four headline numbers", async () => {
     mockFetch({ "/api/model": () => json(modelJson), "/api/health": () => json(healthJson) });
     renderAt("/model");
-    expect(await screen.findByText(/1,998/)).toBeInTheDocument();
-    expect(screen.getByText("Accuracy by minute")).toBeInTheDocument();
+    expect(await screen.findByText("1,998")).toBeInTheDocument();
+    expect(screen.getByText("games trained on, patches 26.18 to 26.19")).toBeInTheDocument();
+    expect(screen.getByText("90%")).toBeInTheDocument();
+    expect(screen.getByText("65% → 61%")).toBeInTheDocument();
+    expect(screen.getByText("says 65%, teams won 61%")).toBeInTheDocument();
+    expect(screen.getByText("0.242")).toBeInTheDocument();
+    expect(screen.getByText("log loss (baseline 0.238)")).toBeInTheDocument();
+  });
+
+  it("shows the charts, the tier table and the features", async () => {
+    mockFetch({ "/api/model": () => json(modelJson), "/api/health": () => json(healthJson) });
+    renderAt("/model");
+    expect(await screen.findByText("Accuracy by minute")).toBeInTheDocument();
+    expect(screen.getByText("Calibration")).toBeInTheDocument();
+    expect(screen.getByText("What it looks at")).toBeInTheDocument();
+    expect(
+      screen.getByText("Gold lead carries 89% of the model's total gain."),
+    ).toBeInTheDocument();
     expect(screen.getAllByText("Numbers")).toHaveLength(3);
     expect(screen.getByText("your tier")).toBeInTheDocument();
   });
 
-  it("shows the no-model panel", async () => {
+  it("shows the placeholder panel when no model is trained", async () => {
     mockFetch({
       "/api/model": () => json({ error: { code: "model_missing", message: "" } }, 404),
       "/api/health": () => json(healthJson),
     });
     renderAt("/model");
-    expect(await screen.findByText(/No trained model yet/)).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Using a placeholder model" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/No trained model yet/)).toBeInTheDocument();
+  });
+});
+
+describe("featureName", () => {
+  it("names the known features and humanises the rest", () => {
+    expect(featureName("gold_diff")).toBe("Gold lead");
+    expect(featureName("soul_type")).toBe("Dragon soul type");
+    expect(featureName("minute")).toBe("Game minute");
+    expect(featureName("new_thing_diff")).toBe("New thing lead");
+    expect(featureName("some_flag")).toBe("Some flag");
   });
 });
 

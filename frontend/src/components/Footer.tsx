@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useHealth } from "../api/queries";
 import { formatMonthDay } from "../lib/format";
 import styles from "./Footer.module.css";
@@ -30,15 +31,18 @@ export function Footer() {
         </p>
         <div className={styles.side}>
           {data && <p>{modelLine(data.model)}</p>}
-          <p>
-            Built by August Zhang.{" "}
-            <a
-              href="https://github.com/AugustZhang1/LeagueVODreview"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Source on GitHub
-            </a>
+          <p className={styles.links}>
+            <Link to="/model">How the model works</Link>
+            <span>
+              Built by August Zhang.{" "}
+              <a
+                href="https://github.com/AugustZhang1/LeagueVODreview"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Source on GitHub
+              </a>
+            </span>
           </p>
         </div>
       </div>

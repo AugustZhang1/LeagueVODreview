@@ -32,6 +32,15 @@ class Rank(BaseModel):
     lp: int
 
 
+class GradeCounts(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    great: int = Field(alias="!!")
+    good: int = Field(alias="!")
+    mistake: int = Field(alias="?")
+    blunder: int = Field(alias="??")
+
+
 class GameSummary(BaseModel):
     match_id: str
     participant_id: int
@@ -47,6 +56,12 @@ class GameSummary(BaseModel):
     patch: str
     ddragon_version: str  # for the champion icon
     reviewed: bool
+    # Only set for reviewed games, from the cached review
+    score: float | None = None  # the player's 0-10 score
+    badge: Literal["mvp", "ace"] | None = None
+    score_rank: int | None = None  # 1-10 among the game's 10 players by score
+    grades: GradeCounts | None = None  # the player's own grade counts
+    spark: list[float] | None = None  # ~12 win-chance values (0-100, their team), oldest first
 
 
 class PlayerGames(BaseModel):
@@ -79,6 +94,16 @@ class ReviewMatch(BaseModel):
     patch_in_training: bool
 
 
+class ScoreParts(BaseModel):
+    """Each 0-10: the player's rank among the game's 10 players on that part."""
+
+    gold_min: float
+    vs_lane: float
+    kp: float
+    impact: float
+    fights: float
+
+
 class Player(BaseModel):
     participant_id: int
     riot_id: str
@@ -87,6 +112,14 @@ class Player(BaseModel):
     role: Role
     team: Side
     is_me: bool
+    score: float | None = None  # 0-10, the weighted ScoreParts
+    score_parts: ScoreParts | None = None
+    badge: Literal["mvp", "ace"] | None = None  # best on the winning / losing team
+    impact: float = 0.0  # win chance added (+) or cost (-) their own team in moments
+    lane: float | None = None  # win chance their lead over the same-role enemy at 14:00 was worth
+    lane_gold: int | None = None  # leads over the same-role enemy at 14:00, their own view
+    lane_cs: int | None = None
+    lane_level: int | None = None
 
 
 class Building(BaseModel):
@@ -136,6 +169,11 @@ class Driver(BaseModel):
     change: float  # in log-odds, after minus before the moment; positive helped your team
 
 
+class PlayerCredit(BaseModel):
+    participant_id: int
+    share: float  # win chance this player added (+) or cost (-) their own team in the moment
+
+
 class Moment(BaseModel):
     id: str
     t_start: float
@@ -152,6 +190,7 @@ class Moment(BaseModel):
     kill_gold: int = 0
     drivers: list[Driver] = []
     tip: str | None = None  # a better play, on my mistakes when a rule fits
+    credit: list[PlayerCredit] = []
 
 
 class PlayerState(BaseModel):
@@ -216,15 +255,6 @@ class Snapshot(BaseModel):
     objectives: Objectives | None = None
 
 
-class GradeCounts(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    great: int = Field(alias="!!")
-    good: int = Field(alias="!")
-    mistake: int = Field(alias="?")
-    blunder: int = Field(alias="??")
-
-
 class Summary(BaseModel):
     me: GradeCounts
     team: GradeCounts
@@ -259,6 +289,7 @@ class Review(BaseModel):
     snapshots: list[Snapshot]
     summary: Summary
     windows: list[ObjectiveWindow] = []
+    between_fights: float = 0.0  # my team's win chance that moved between moments, nobody's alone
 
 
 class PatternRow(BaseModel):

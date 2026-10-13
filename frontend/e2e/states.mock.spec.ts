@@ -10,9 +10,9 @@ test.describe("key expired", () => {
     await page.goto("/?mock=key_expired");
     const banner = page.getByRole("alert").filter({ hasText: "Riot API key expired" });
     await expect(banner).toContainText("Paste a new one after RIOT_API_KEY= in .env");
-    // the text is a text color; only the bar is red
-    await expect(banner.locator("p")).toHaveCSS("color", "rgb(232, 230, 225)");
-    await expect(banner).toHaveCSS("border-left-width", "3px");
+    // a slim amber banner: amber text on a faint tint, with no bar down its left edge
+    await expect(banner.locator("p")).toHaveCSS("color", "rgb(236, 197, 132)");
+    await expect(banner).toHaveCSS("border-left-width", "0px");
     await search(page);
     await expect(page.getByRole("alert").last()).toContainText("Riot API key expired");
     await page.getByRole("link", { name: "Model", exact: true }).click();

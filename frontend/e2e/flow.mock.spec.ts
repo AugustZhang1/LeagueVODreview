@@ -8,7 +8,9 @@ test("search, games, review, next moment, model", async ({ page }) => {
 
   await expect(page).toHaveURL(/\/p\/na1\/Me\/NA1$/);
   await expect(page.getByRole("heading", { name: "Me#NA1" })).toBeVisible();
-  await expect(page.getByText("Gold III, 47 LP")).toBeVisible();
+  // the tier and the LP are separate elements now
+  await expect(page.getByText("Gold III", { exact: true })).toBeVisible();
+  await expect(page.getByText("47 LP")).toBeVisible();
   const rows = page.getByRole("link", { name: /Victory|Defeat/ });
   await expect(rows).toHaveCount(9);
   await page.getByRole("button", { name: "Load 10 more" }).click();
@@ -34,7 +36,8 @@ test("search, games, review, next moment, model", async ({ page }) => {
   await page.getByRole("link", { name: "Model", exact: true }).click();
   await expect(page.getByRole("heading", { name: "How much to trust the numbers" })).toBeVisible();
   await expect(page.getByText("Accuracy by minute")).toBeVisible();
-  await expect(page.getByText(/^Trained /)).toContainText("1,998");
+  // the numbers are KPI tiles now, not a "Trained …" sentence
+  await expect(page.getByText("1,998", { exact: true })).toBeVisible();
 });
 
 test("reload and back keep the moment", async ({ page }) => {

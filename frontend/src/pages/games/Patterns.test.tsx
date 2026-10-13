@@ -32,6 +32,9 @@ function renderPatterns(list: GameSummary[], data: unknown = patternsJson) {
   );
 }
 
+/** The number above a tile's label, e.g. tile("comebacks") is "2". */
+const tile = (label: string) => screen.getByText(label).previousElementSibling;
+
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Patterns", () => {
@@ -41,48 +44,54 @@ describe("Patterns", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("asks for the reviewed games in match id order and sums up the summary", async () => {
+  it("asks for the reviewed games in match id order and shows the tiles", async () => {
     renderPatterns(games(5));
-    expect(
-      await screen.findByText(
-        "Patterns in your 5 reviewed games: 1.4 mistakes a game, most win chance lost in mid game",
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("from 5 reviewed games")).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/patterns?games=NA1_1:4,NA1_2:4,NA1_3:4,NA1_4:4,NA1_5:4"),
       expect.anything(),
     );
-    expect(
-      screen.getByText(
-        "4 wins, 1 loss · 2 comebacks · 1 thrown lead · Missed windows: 5 (worth ~+21% in total), used 7",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Bot lane")).toBeInTheDocument();
+    // (4 "?" + 3 "??") over 5 games
+    expect(tile("mistakes a game")).toHaveTextContent("1.4");
+    expect(tile("win chance left in missed windows")).toHaveTextContent("21%");
+    expect(tile("comebacks")).toHaveTextContent("2");
+    expect(tile("thrown lead")).toHaveTextContent("1");
   });
 
-  it("hides a table with no mistakes", async () => {
+  it("shows each breakdown with its losses and sizes the bars against the biggest", async () => {
+    renderPatterns(games(5));
+    expect(await screen.findByText("When you lose win chance")).toBeInTheDocument();
+    expect(screen.getByText("Where")).toBeInTheDocument();
+    expect(screen.getByText("Why")).toBeInTheDocument();
+    expect(screen.getByText("−42%")).toBeInTheDocument();
+    expect(screen.getByText("Bot lane")).toBeInTheDocument();
+    // "Mid game" lost the most win chance, so its bar is full width.
+    expect(screen.getByText("Early game")).toBeInTheDocument();
+    expect(screen.getByText("Mid game").nextElementSibling).toHaveStyle({ width: "100%" });
+  });
+
+  it("hides a breakdown with no mistakes", async () => {
     renderPatterns(games(5), { ...patternsJson, by_driver: [] });
-    expect(await screen.findByText("When")).toBeInTheDocument();
+    expect(await screen.findByText("Where")).toBeInTheDocument();
     expect(screen.queryByText("Why")).toBeNull();
   });
 
-  it("shows the lane line only when there is one", async () => {
+  it("shows the lane block only when there is one", async () => {
     renderPatterns(games(5), { ...patternsJson, lane_gold_10: null, lane_cs_10: null });
-    await screen.findByText("When");
-    expect(screen.queryByText(/At 10:00/)).toBeNull();
+    await screen.findByText("Where");
+    expect(screen.queryByText(/Lane at 10:00/)).toBeNull();
   });
 
-  it("leaves out windows when there were none", async () => {
-    renderPatterns(games(5), { ...patternsJson, windows_missed: 0, windows_used: 0 });
-    expect(
-      await screen.findByText("4 wins, 1 loss · 2 comebacks · 1 thrown lead"),
-    ).toBeInTheDocument();
-  });
-
-  it("shows the lane line with the average", async () => {
+  it("shows the lane gold and CS with signs", async () => {
     renderPatterns(games(5));
-    expect(
-      await screen.findByText("At 10:00 vs your lane opponent: +350 gold, +6 CS (average)"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Lane at 10:00 vs your opponent")).toBeInTheDocument();
+    expect(screen.getByText("+350")).toBeInTheDocument();
+    expect(screen.getByText("+6")).toBeInTheDocument();
+  });
+
+  it("uses the singular for one comeback", async () => {
+    renderPatterns(games(5), { ...patternsJson, comebacks: 1 });
+    expect(await screen.findByText("comeback")).toBeInTheDocument();
+    expect(tile("comeback")).toHaveTextContent("1");
   });
 });

@@ -2,7 +2,8 @@ import { Fragment, type ReactNode } from "react";
 import type { GameEvent, Moment, Player, Review } from "../../api/models";
 import { ChampIcon } from "../../components/ChampIcon";
 import { Delta } from "../../components/Delta";
-import { formatWinChance } from "../../lib/format";
+import { GradeBadge } from "../../components/GradeBadge";
+import { formatTime, formatWinChance } from "../../lib/format";
 import { capitalize } from "./curve";
 import styles from "./MomentDetail.module.css";
 
@@ -76,20 +77,29 @@ export function MomentDetail({ moment, review }: { moment: Moment; review: Revie
     else if (share < LOW_SHARE) partTag = "Low damage";
   }
 
+  const me = review.players.find((p) => p.is_me);
+  const myCredit = me
+    ? moment.credit?.find((c) => c.participant_id === me.participant_id)
+    : undefined;
+  const myShare = myCredit?.share;
+
+  const whole = Math.round(moment.delta * 100);
+  const tone = whole > 0 ? styles.up : whole < 0 ? styles.down : "";
+
   return (
     <div className={styles.detail} data-testid={`detail-${moment.id}`}>
-      <p className={styles.change}>
-        <span className="num">
-          {formatWinChance(moment.p_before)} to {formatWinChance(moment.p_after)}
+      <div className={styles.head}>
+        {moment.grade && <GradeBadge grade={moment.grade} />}
+        <span className={`${styles.time} num`}>{formatTime(moment.t_end)}</span>
+        {moment.zone && <span className={styles.where}>{capitalize(moment.zone)}</span>}
+        <span className={styles.change}>
+          <span className={`${styles.shift} ${tone} num`}>
+            {formatWinChance(moment.p_before)} to {formatWinChance(moment.p_after)}
+          </span>
+          <Delta value={moment.delta} />
         </span>
-        <Delta value={moment.delta} />
-      </p>
-      <p className={styles.where}>{capitalize(moment.zone)}</p>
-      {moment.tip && (
-        <p className={styles.tip} data-testid="tip">
-          <span className={styles.tipLabel}>Better play</span> {moment.tip}
-        </p>
-      )}
+      </div>
+      <h3 className={styles.title}>{moment.title}</h3>
       {drivers.length > 0 && (
         <div className={styles.why}>
           <h4 className={styles.heading}>Why</h4>
@@ -111,6 +121,20 @@ export function MomentDetail({ moment, review }: { moment: Moment; review: Revie
             ))}
           </div>
         </div>
+      )}
+      {moment.tip && (
+        <p className={styles.tip} data-testid="tip">
+          <span className={styles.tipLabel}>Better play:</span> {moment.tip}
+        </p>
+      )}
+      {myShare != null && Math.round(myShare * 1000) !== 0 && (
+        <p className={styles.share} data-testid="your-share">
+          Your share:{" "}
+          <span className={`${styles.shareDelta} ${myShare > 0 ? styles.up : styles.down} num`}>
+            {myShare > 0 ? "+" : "−"}
+            {Math.abs(myShare * 100).toFixed(1)}%
+          </span>
+        </p>
       )}
       {moment.t_end < 300 && (
         <p className={styles.early}>Early game: the model is least sure in the first 5 minutes.</p>

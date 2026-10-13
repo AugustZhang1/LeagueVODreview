@@ -31,6 +31,7 @@ from lolreview.schemas import (
     ModelInfo,
     ModelMetrics,
     Patterns,
+    Player,
     PlayerGames,
     Rank,
     ReplaySeek,
@@ -45,7 +46,8 @@ DEV_ORIGIN = "http://localhost:5173"
 DEFAULT_TIER = "SILVER"
 DEMO_REPLAY_REASON = "Replays aren't available in demo mode"
 PATTERNS_MAX_GAMES = 50
-REVIEW_FORMAT = 5  # bump when the Review JSON gains fields, so older cached reviews are rebuilt
+SPARK_POINTS = 12
+REVIEW_FORMAT = 6  # bump when the Review JSON gains fields, so older cached reviews are rebuilt
 
 
 class ApiError(Exception):
@@ -163,6 +165,42 @@ ROLES = {"TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"}
 
 def _real_role(position: str | None) -> str | None:
     return position if position in ROLES else None
+
+
+def _spark(review: Review) -> list[float] | None:
+    """Win chance (0-100, the reviewed player's team) at evenly spaced times, first to last."""
+    if not review.curve:
+        return None
+    end = review.curve[-1].t
+    times = [end * i / (SPARK_POINTS - 1) for i in range(SPARK_POINTS)]
+    return [round(min(review.curve, key=lambda pt: abs(pt.t - t)).p * 100, 1) for t in times]
+
+
+def _score_rank(players: list[Player], participant_id: int) -> int | None:
+    """Place by score, best first, ties by lower participant_id; None while a score is missing."""
+    if any(p.score is None for p in players):
+        return None
+    order = sorted(players, key=lambda p: (-p.score, p.participant_id))
+    return [p.participant_id for p in order].index(participant_id) + 1
+
+
+def _review_fields(cache: Cache, match_id: str, participant_id: int, version: str) -> dict:
+    """Score, badge, rank, grades and spark of a reviewed game, read from its cached review."""
+    try:
+        review = Review.model_validate(cache.get_review(match_id, participant_id, version))
+    except ValueError:  # includes pydantic's ValidationError
+        log.warning("cached review of %s no longer validates; leaving its score out", match_id)
+        return {}
+    me = next((p for p in review.players if p.participant_id == participant_id), None)
+    if me is None:
+        return {}
+    return {
+        "score": me.score,
+        "badge": me.badge,
+        "score_rank": _score_rank(review.players, participant_id),
+        "grades": review.summary.me,
+        "spark": _spark(review),
+    }
 
 
 class _Context:
@@ -400,7 +438,10 @@ def create_app(
         for match_id in ids:
             s = c.summary(cluster, match_id, puuid)
             reviewed = c.cache.has_review(match_id, s["participant_id"], version)
-            games.append(GameSummary(**s, reviewed=reviewed))
+            fields = {}
+            if reviewed:
+                fields = _review_fields(c.cache, match_id, s["participant_id"], version)
+            games.append(GameSummary(**s, reviewed=reviewed, **fields))
         game_name = account.get("gameName", name)
         tag_line = account.get("tagLine", tag)
         return PlayerGames(

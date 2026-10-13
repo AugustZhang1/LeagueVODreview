@@ -20,20 +20,29 @@ export function WindowDetail({
   );
   return (
     <div className={styles.detail} data-testid={`detail-${w.id}`}>
-      <p className={styles.change}>{w.reason}</p>
-      <h4 className={styles.heading}>Available</h4>
-      <ul className={styles.events}>
-        {w.options.map((o) => (
-          <li key={o.what} className={styles.event}>
-            <span>{capitalize(o.what)}</span>
-            <span className="num">{formatDelta(o.value)}</span>
-          </li>
-        ))}
-      </ul>
+      <div className={styles.head}>
+        <span className={`${styles.time} num`}>
+          {formatTime(w.t_start)}–{formatTime(w.t_end)}
+        </span>
+        <span className={`${styles.worth} num`}>worth ~{formatDelta(w.value)}</span>
+      </div>
+      <h3 className={styles.title}>{w.title}</h3>
+      <p className={styles.note}>{w.reason}</p>
+      <div className={styles.block}>
+        <h4 className={styles.heading}>Available</h4>
+        <ul className={styles.events}>
+          {w.options.map((o) => (
+            <li key={o.what} className={styles.event}>
+              <span>{capitalize(o.what)}</span>
+              <span className="num">{formatDelta(o.value)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
       {w.used ? (
-        <p className={styles.where}>Your team took: {taken.join(", ")}</p>
+        <p className={styles.note}>Your team took: {taken.join(", ")}</p>
       ) : (
-        <>
+        <div className={styles.block}>
           <h4 className={styles.heading}>What happened instead</h4>
           {instead.length > 0 ? (
             <ul className={styles.events}>
@@ -46,9 +55,9 @@ export function WindowDetail({
               ))}
             </ul>
           ) : (
-            <p className={styles.where}>Your team didn't take an objective or tower in time.</p>
+            <p className={styles.note}>Your team didn't take an objective or tower in time.</p>
           )}
-        </>
+        </div>
       )}
     </div>
   );

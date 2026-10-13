@@ -498,3 +498,60 @@ def test_patterns_counts_only_cached_reviews(env):
     assert r.json()["games"] == 1  # the uncached and malformed entries are skipped
     assert len(env.built) == 1  # nothing built
     assert len(env.client.calls) == calls  # no Riot call
+
+
+def scored_review(match_id, p):
+    """minimal_review with ten scored players, a three-point curve and grades for participant p."""
+    data = minimal_review(match_id, p, "GOLD", FakeModel(), None).model_dump(
+        mode="json", by_alias=True
+    )
+    scores = {1: 7.6, 2: 7.0, 3: 8.3, 4: 7.0, 5: 5.8, 6: 4.3, 7: 3.7, 8: 3.8, 9: 1.7, 10: 2.1}
+    data["players"] = [
+        {
+            "participant_id": pid, "riot_id": f"Player{pid}#NA1", "champion": "Ahri",
+            "champion_name": "Ahri", "role": "MIDDLE", "team": "ally" if pid <= 5 else "enemy",
+            "is_me": pid == p, "score": score, "badge": "ace" if pid == p else None,
+        }
+        for pid, score in scores.items()
+    ]  # fmt: skip
+    data["curve"] = [{"t": 0, "p": 0.5}, {"t": 900, "p": 0.25}, {"t": 1865, "p": 1}]
+    data["summary"]["me"] = {"!!": 1, "!": 4, "?": 1, "??": 0}
+    return data
+
+
+def test_reviewed_game_shows_score_rank_grades_and_spark(env, monkeypatch):
+    monkeypatch.setattr(
+        api,
+        "_build_review",
+        lambda match, timeline, p, *rest: Review.model_validate(
+            scored_review(match["metadata"]["matchId"], p)
+        ),
+    )
+    c = env.make()
+    assert c.get(f"/api/review/{MID}?p={P}").status_code == 200
+    games = c.get("/api/player/na1/Me/NA1").json()["games"]
+    reviewed = next(g for g in games if g["match_id"] == MID)
+    assert reviewed["score"] == 7.0
+    assert reviewed["badge"] == "ace"
+    assert reviewed["score_rank"] == 4  # tied with participant 2 at 7.0; the lower id is ahead
+    assert reviewed["grades"] == {"!!": 1, "!": 4, "?": 1, "??": 0}
+    assert len(reviewed["spark"]) == 12
+    assert reviewed["spark"][0] == 50.0 and reviewed["spark"][-1] == 100.0
+    unreviewed = [g for g in games if g["match_id"] != MID]
+    assert len(unreviewed) == 3
+    for g in unreviewed:
+        assert g["score"] is None and g["badge"] is None and g["score_rank"] is None
+        assert g["grades"] is None and g["spark"] is None
+
+
+def test_unreadable_cached_review_leaves_score_out(env):
+    c = env.make()
+    assert c.get(f"/api/review/{MID}?p={P}").status_code == 200
+    broken = Cache(env.tmp / "c.db")
+    broken.put_review(MID, P, f"{env.model.version}+r{api.REVIEW_FORMAT}", {"not": "a review"})
+    broken.close()
+    r = c.get("/api/player/na1/Me/NA1")
+    assert r.status_code == 200
+    game = next(g for g in r.json()["games"] if g["match_id"] == MID)
+    assert game["reviewed"] is True
+    assert game["score"] is None and game["spark"] is None and game["grades"] is None

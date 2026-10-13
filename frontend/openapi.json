@@ -297,6 +297,21 @@
             "title": "A",
             "type": "integer"
           },
+          "badge": {
+            "anyOf": [
+              {
+                "enum": [
+                  "mvp",
+                  "ace"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Badge"
+          },
           "champion": {
             "title": "Champion",
             "type": "string"
@@ -316,6 +331,16 @@
           "duration_s": {
             "title": "Duration S",
             "type": "integer"
+          },
+          "grades": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GradeCounts"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "k": {
             "title": "K",
@@ -363,6 +388,42 @@
               }
             ],
             "title": "Role"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "score_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Rank"
+          },
+          "spark": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spark"
           },
           "started_at": {
             "title": "Started At",
@@ -504,6 +565,14 @@
       },
       "Moment": {
         "properties": {
+          "credit": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PlayerCredit"
+            },
+            "title": "Credit",
+            "type": "array"
+          },
           "damage": {
             "default": [],
             "items": {
@@ -835,6 +904,21 @@
       },
       "Player": {
         "properties": {
+          "badge": {
+            "anyOf": [
+              {
+                "enum": [
+                  "mvp",
+                  "ace"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Badge"
+          },
           "champion": {
             "title": "Champion",
             "type": "string"
@@ -843,9 +927,58 @@
             "title": "Champion Name",
             "type": "string"
           },
+          "impact": {
+            "default": 0.0,
+            "title": "Impact",
+            "type": "number"
+          },
           "is_me": {
             "title": "Is Me",
             "type": "boolean"
+          },
+          "lane": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lane"
+          },
+          "lane_cs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lane Cs"
+          },
+          "lane_gold": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lane Gold"
+          },
+          "lane_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lane Level"
           },
           "participant_id": {
             "title": "Participant Id",
@@ -866,6 +999,27 @@
             "title": "Role",
             "type": "string"
           },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "score_parts": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScoreParts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "team": {
             "enum": [
               "ally",
@@ -885,6 +1039,24 @@
           "is_me"
         ],
         "title": "Player",
+        "type": "object"
+      },
+      "PlayerCredit": {
+        "properties": {
+          "participant_id": {
+            "title": "Participant Id",
+            "type": "integer"
+          },
+          "share": {
+            "title": "Share",
+            "type": "number"
+          }
+        },
+        "required": [
+          "participant_id",
+          "share"
+        ],
+        "title": "PlayerCredit",
         "type": "object"
       },
       "PlayerGames": {
@@ -1161,6 +1333,11 @@
       },
       "Review": {
         "properties": {
+          "between_fights": {
+            "default": 0.0,
+            "title": "Between Fights",
+            "type": "number"
+          },
           "buildings": {
             "items": {
               "$ref": "#/components/schemas/Building"
@@ -1330,6 +1507,40 @@
           "version"
         ],
         "title": "ReviewModel",
+        "type": "object"
+      },
+      "ScoreParts": {
+        "description": "Each 0-10: the player's rank among the game's 10 players on that part.",
+        "properties": {
+          "fights": {
+            "title": "Fights",
+            "type": "number"
+          },
+          "gold_min": {
+            "title": "Gold Min",
+            "type": "number"
+          },
+          "impact": {
+            "title": "Impact",
+            "type": "number"
+          },
+          "kp": {
+            "title": "Kp",
+            "type": "number"
+          },
+          "vs_lane": {
+            "title": "Vs Lane",
+            "type": "number"
+          }
+        },
+        "required": [
+          "gold_min",
+          "vs_lane",
+          "kp",
+          "impact",
+          "fights"
+        ],
+        "title": "ScoreParts",
         "type": "object"
       },
       "Snapshot": {

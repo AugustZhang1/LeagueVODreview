@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import bisect
 import math
 from datetime import UTC, datetime
+from typing import Literal
 
 from lolreview import describe, map_data, schemas
 from lolreview.config import load_config
@@ -343,7 +345,8 @@ def _players(
                 taken.add(role)
         free = [r for r in ROLES if r not in taken]
         for p in mates:
-            roles.setdefault(p["participantId"], free.pop(0) if free else "MIDDLE")
+            if p["participantId"] not in roles:
+                roles[p["participantId"]] = free.pop(0) if free else "MIDDLE"
         for p in sorted(mates, key=lambda p: ROLES.index(roles[p["participantId"]])):
             pid = p["participantId"]
             ddragon, display = champions.get(p["championId"], (p["championName"],) * 2)
@@ -360,6 +363,374 @@ def _players(
                     is_me=pid == my_pid,
                 )  # fmt: skip
             )
+    return out
+
+
+def _moment_values(
+    moments: list[schemas.Moment],
+    states: dict[int, GameState],
+    p_at,
+    result: float,
+) -> tuple[list[float], float]:
+    """Each moment's win chance once its dead are back (no later than the next moment), and what
+    moved between moments, which is the team's. Together they add up to the game's result."""
+    values: list[float] = []
+    between: float = 0.0
+    n = len(moments)
+    for i, moment in enumerate(moments):
+        t_last = int(round(moment.t_end * 1000))
+        p_before = moment.p_before
+
+        if i == n - 1:
+            value = moment.delta
+        else:
+            next_first = int(round(moments[i + 1].t_start * 1000))
+            victims = [e.victim for e in moment.events if e.kind == "kill" and e.victim is not None]
+            state_after = states.get(t_last + 1)
+            if victims and state_after:
+                back = max(
+                    (
+                        state_after.players[v].dead_until_ms
+                        for v in victims
+                        if v in state_after.players
+                    ),
+                    default=t_last + 1,
+                )
+            else:
+                back = t_last + 1
+
+            end = min(next_first - 1, max(t_last + 1, back))
+            if end > t_last + 1:
+                value = round(p_at(end) - p_before, 4)
+            else:
+                value = moment.delta
+            between += p_at(next_first - 1) - p_before - value
+
+        values.append(value)
+    if moments:  # whatever moved after the last moment, to the result
+        between += result - moments[-1].p_before - values[-1]
+    return values, between
+
+
+def _moment_credit(
+    moment: schemas.Moment,
+    value: float,
+    team_of: dict[int, int],
+    my_team: int,
+) -> list[schemas.PlayerCredit]:
+    if abs(value) < 1e-9:
+        return []
+
+    val = abs(value)
+    gain_team = my_team if value > 0 else _other(my_team)
+    lose_team = _other(gain_team)
+
+    gaining_pids = [pid for pid, tid in team_of.items() if tid == gain_team]
+    losing_pids = [pid for pid, tid in team_of.items() if tid == lose_team]
+
+    died = {e.victim for e in moment.events if e.kind == "kill" and e.victim is not None}
+    damage_by_pid = {d.participant_id: d for d in moment.damage}
+    dealt = {p: damage_by_pid[p].dealt if p in damage_by_pid else 0 for p in gaining_pids}
+    taken = {
+        p: (damage_by_pid[p].taken if p in damage_by_pid else 0) if p not in died else 0
+        for p in gaining_pids
+    }
+
+    gain_side = "ally" if gain_team == my_team else "enemy"
+    part = set()
+    for e in moment.events:
+        if e.team == gain_side:
+            if e.killer is not None and e.killer in gaining_pids:
+                part.add(e.killer)
+            for a in e.assists or []:
+                if a in gaining_pids:
+                    part.add(a)
+
+    has_kill = any(e.kind == "kill" for e in moment.events)
+    sum_dealt = sum(dealt.values())
+    sum_taken = sum(taken.values())
+
+    weights_gain: dict[int, float] = {}
+    if has_kill and (sum_dealt > 0 or len(part) > 0):
+        active_factors = []
+        if sum_dealt > 0:
+            active_factors.append(("dealt", 0.5))
+        if sum_taken > 0:
+            active_factors.append(("taken", 0.25))
+        if len(part) > 0:
+            active_factors.append(("part", 0.25))
+
+        total_factor = sum(f for _, f in active_factors)
+        norm_factors = {name: f / total_factor for name, f in active_factors}
+
+        for p in gaining_pids:
+            w = 0.0
+            if "dealt" in norm_factors:
+                w += norm_factors["dealt"] * (dealt[p] / sum_dealt)
+            if "taken" in norm_factors:
+                w += norm_factors["taken"] * (taken[p] / sum_taken)
+            if "part" in norm_factors:
+                w += norm_factors["part"] * (1.0 / len(part) if p in part else 0.0)
+            weights_gain[p] = w
+    elif len(part) > 0:
+        for p in gaining_pids:
+            weights_gain[p] = 1.0 / len(part) if p in part else 0.0
+    else:
+        for p in gaining_pids:
+            weights_gain[p] = 1.0 / len(gaining_pids) if gaining_pids else 0.0
+
+    death_counts = {p: 0 for p in losing_pids}
+    for e in moment.events:
+        if e.kind == "kill" and e.victim in death_counts:
+            death_counts[e.victim] += 1
+    total_deaths = sum(death_counts.values())
+
+    weights_lose: dict[int, float] = {}
+    if total_deaths > 0:
+        for p in losing_pids:
+            weights_lose[p] = death_counts[p] / total_deaths
+    else:
+        for p in losing_pids:
+            weights_lose[p] = 1.0 / len(losing_pids) if losing_pids else 0.0
+
+    credits: list[schemas.PlayerCredit] = []
+    for p in gaining_pids:
+        raw_share = weights_gain[p] * val
+        share = round(raw_share, 4)
+        if share != 0:
+            credits.append(schemas.PlayerCredit(participant_id=p, share=share))
+
+    for p in losing_pids:
+        raw_share = -weights_lose[p] * val
+        share = round(raw_share, 4)
+        if share != 0:
+            credits.append(schemas.PlayerCredit(participant_id=p, share=share))
+
+    credits.sort(key=lambda c: c.participant_id)
+    return credits
+
+
+def _lane_scores(
+    states: dict[int, GameState],
+    players: list[schemas.Player],
+    tier: str,
+    model: WinModel,
+    cfg: dict,
+    end_ms: int,
+) -> dict[int, dict[str, float | int | None]]:
+    empty_lane = {"lane": None, "lane_gold": None, "lane_cs": None, "lane_level": None}
+    res: dict[int, dict[str, float | int | None]] = {
+        p.participant_id: dict(empty_lane) for p in players
+    }
+
+    lane_at_s = cfg.get("scores", {}).get("lane_at_s", 840)
+    t = int(lane_at_s * 1000)
+    if t >= end_ms or t not in states:
+        return res
+
+    state_t = states[t]
+    role_pairs: dict[str, tuple[schemas.Player, schemas.Player]] = {}
+    for role in ROLES:
+        blue_p = [
+            p
+            for p in players
+            if p.role == role
+            and p.participant_id in state_t.players
+            and state_t.players[p.participant_id].team == BLUE
+        ]
+        red_p = [
+            p
+            for p in players
+            if p.role == role
+            and p.participant_id in state_t.players
+            and state_t.players[p.participant_id].team == RED
+        ]
+        if len(blue_p) == 1 and len(red_p) == 1:
+            role_pairs[role] = (blue_p[0], red_p[0])
+
+    if not role_pairs:
+        return res
+
+    base_row = feature_row(state_t, tier)
+    rows: list[dict] = []
+    pairs_order: list[tuple[str, int, int, float, float, float]] = []
+
+    for role, (bp, rp) in role_pairs.items():
+        b_st = state_t.players[bp.participant_id]
+        r_st = state_t.players[rp.participant_id]
+        lead_gold = b_st.gold - r_st.gold
+        lead_cs = b_st.cs - r_st.cs
+        lead_level = b_st.level - r_st.level
+
+        row = dict(base_row)
+        row["gold_diff"] -= lead_gold
+        row["level_diff"] -= lead_level
+        if role != "UTILITY":
+            row["cs_diff"] -= lead_cs
+
+        rows.append(row)
+        pairs_order.append(
+            (role, bp.participant_id, rp.participant_id, lead_gold, lead_cs, lead_level)
+        )
+
+    probs = model.predict([base_row, *rows])
+    base_prob = probs[0]
+    for k, (_, b_pid, r_pid, lg, lcs, llvl) in enumerate(pairs_order, start=1):
+        lane_blue = base_prob - probs[k]
+        res[b_pid] = {
+            "lane": round(lane_blue, 4),
+            "lane_gold": int(round(lg)),
+            "lane_cs": int(round(lcs)),
+            "lane_level": int(round(llvl)),
+        }
+        res[r_pid] = {
+            "lane": round(-lane_blue, 4),
+            "lane_gold": int(round(-lg)),
+            "lane_cs": int(round(-lcs)),
+            "lane_level": int(round(-llvl)),
+        }
+
+    return res
+
+
+def _points(values: list[float]) -> list[float]:
+    n = len(values)
+    if n <= 1:
+        return [5.0] * n
+    res: list[float] = []
+    for v in values:
+        below = sum(1 for x in values if x < v)
+        equal = sum(1 for x in values if x == v)
+        pts = 10.0 * (below + (equal - 1) / 2.0) / (n - 1)
+        res.append(pts)
+    return res
+
+
+def _scores(
+    players: list[schemas.Player],
+    info: dict,
+    moments: list[schemas.Moment],
+    cfg: dict,
+) -> dict[int, tuple[float, schemas.ScoreParts, Literal["mvp", "ace"] | None]]:
+    scores_cfg = cfg.get("scores", {})
+    minutes = info["gameDuration"] / 60.0
+    participant_by_id = {p["participantId"]: p for p in info["participants"]}
+
+    team_kills: dict[int, int] = {BLUE: 0, RED: 0}
+    for p in info["participants"]:
+        team_kills[p["teamId"]] = team_kills.get(p["teamId"], 0) + p["kills"]
+
+    kill_moments = [m for m in moments if any(e.kind == "kill" for e in m.events)]
+    dealt_sums: dict[int, int] = {p.participant_id: 0 for p in players}
+    taken_sums: dict[int, int] = {p.participant_id: 0 for p in players}
+
+    for m in kill_moments:
+        victims = {e.victim for e in m.events if e.kind == "kill" and e.victim is not None}
+        for d in m.damage:
+            pid = d.participant_id
+            if pid in dealt_sums:
+                dealt_sums[pid] += d.dealt
+                if pid not in victims:
+                    taken_sums[pid] += d.taken
+
+    team_fd: dict[int, int] = {BLUE: 0, RED: 0}
+    team_ft: dict[int, int] = {BLUE: 0, RED: 0}
+    for p in players:
+        tid = participant_by_id[p.participant_id]["teamId"]
+        team_fd[tid] = team_fd.get(tid, 0) + dealt_sums[p.participant_id]
+        team_ft[tid] = team_ft.get(tid, 0) + taken_sums[p.participant_id]
+
+    gold_min_vals: dict[int, float] = {}
+    kp_vals: dict[int, float] = {}
+    fights_vals: dict[int, float] = {}
+    impact_vals: dict[int, float] = {}
+    lane_gold_vals: dict[int, float] = {}
+    gpm_diff_vals: dict[int, float] = {}
+
+    for p in players:
+        pid = p.participant_id
+        p_info = participant_by_id[pid]
+        role = p.role
+        tid = p_info["teamId"]
+
+        norm_gold = scores_cfg["gold_min"][role]
+        gold_min_vals[pid] = (p_info["goldEarned"] / minutes) / norm_gold
+
+        norm_kp = scores_cfg["kp"][role]
+        kp_frac = (p_info["kills"] + p_info["assists"]) / max(1, team_kills.get(tid, 1))
+        kp_vals[pid] = kp_frac / norm_kp
+
+        norm_fights = scores_cfg["fight_share"][role]
+        share = 0.5 * dealt_sums[pid] / max(1, team_fd.get(tid, 1)) + 0.5 * taken_sums[pid] / max(
+            1, team_ft.get(tid, 1)
+        )
+        fights_vals[pid] = share / norm_fights
+
+        impact_vals[pid] = p.impact
+
+        lane_gold_vals[pid] = float(p.lane_gold if p.lane_gold is not None else 0)
+        enemy = next(
+            (
+                other
+                for other in players
+                if participant_by_id[other.participant_id]["teamId"] != tid and other.role == p.role
+            ),
+            None,
+        )
+        if enemy is not None:
+            enemy_info = participant_by_id[enemy.participant_id]
+            gpm_diff_vals[pid] = (p_info["goldEarned"] - enemy_info["goldEarned"]) / minutes
+        else:
+            gpm_diff_vals[pid] = 0.0
+
+    pids = [p.participant_id for p in players]
+    pts_gold_min = _points([gold_min_vals[pid] for pid in pids])
+    pts_kp = _points([kp_vals[pid] for pid in pids])
+    pts_fights = _points([fights_vals[pid] for pid in pids])
+    pts_impact = _points([impact_vals[pid] for pid in pids])
+    pts_lane_gold = _points([lane_gold_vals[pid] for pid in pids])
+    pts_gpm_diff = _points([gpm_diff_vals[pid] for pid in pids])
+
+    pts_vs_lane = [(lg + gd) / 2.0 for lg, gd in zip(pts_lane_gold, pts_gpm_diff, strict=True)]
+
+    w_gpm = scores_cfg["weight_gold_min"]
+    w_vs_lane = scores_cfg["weight_vs_lane"]
+    w_kp = scores_cfg["weight_kp"]
+    w_impact = scores_cfg["weight_impact"]
+    w_fights = scores_cfg["weight_fights"]
+
+    calculated_scores: dict[int, tuple[float, schemas.ScoreParts]] = {}
+    for idx, pid in enumerate(pids):
+        parts = schemas.ScoreParts(
+            gold_min=round(pts_gold_min[idx], 1),
+            vs_lane=round(pts_vs_lane[idx], 1),
+            kp=round(pts_kp[idx], 1),
+            impact=round(pts_impact[idx], 1),
+            fights=round(pts_fights[idx], 1),
+        )
+        score_val = (
+            w_gpm * parts.gold_min
+            + w_vs_lane * parts.vs_lane
+            + w_kp * parts.kp
+            + w_impact * parts.impact
+            + w_fights * parts.fights
+        )
+        score = round(score_val, 1)
+        score = max(0.0, min(10.0, score))
+        calculated_scores[pid] = (score, parts)
+
+    winning_pids = [pid for pid in pids if participant_by_id[pid]["win"]]
+    losing_pids = [pid for pid in pids if not participant_by_id[pid]["win"]]
+
+    mvp_pid = max(winning_pids, key=lambda pid: (calculated_scores[pid][0], -pid))
+    ace_pid = max(losing_pids, key=lambda pid: (calculated_scores[pid][0], -pid))
+
+    out: dict[int, tuple[float, schemas.ScoreParts, Literal["mvp", "ace"] | None]] = {}
+    for pid in pids:
+        sc, parts = calculated_scores[pid]
+        badge = "mvp" if pid == mvp_pid else ("ace" if pid == ace_pid else None)
+        out[pid] = (sc, parts, badge)
+
     return out
 
 
@@ -410,7 +781,10 @@ def build_review(
     curve.append(schemas.CurvePoint(t=end_ms / 1000, p=1.0 if won else 0.0))
 
     def p_at(t: int) -> float:
-        return (1.0 if won else 0.0) if t > end_ms else p[t]
+        if t > end_ms:
+            return 1.0 if won else 0.0
+        idx = bisect.bisect_right(times, t) - 1
+        return p[times[max(0, idx)]]
 
     kills = sorted(
         (
@@ -467,7 +841,43 @@ def build_review(
             )  # fmt: skip
         )
 
+    values, between = _moment_values(moments, states, p_at, 1.0 if won else 0.0)
+    for m, val in zip(moments, values, strict=True):
+        m.credit = _moment_credit(m, val, team_of, my_team)
+
     players = _players(info, champions, participant_id, my_team)
+    lane_data = _lane_scores(states, players, tier, model, cfg, end_ms)
+    impact_by_pid = {
+        p.participant_id: round(
+            sum(c.share for m in moments for c in m.credit if c.participant_id == p.participant_id),
+            4,
+        )
+        for p in players
+    }
+    players = [
+        p.model_copy(
+            update={
+                "impact": impact_by_pid[p.participant_id],
+                "lane": lane_data[p.participant_id]["lane"],
+                "lane_gold": lane_data[p.participant_id]["lane_gold"],
+                "lane_cs": lane_data[p.participant_id]["lane_cs"],
+                "lane_level": lane_data[p.participant_id]["lane_level"],
+            }
+        )
+        for p in players
+    ]
+    scores_by_pid = _scores(players, info, moments, cfg)
+    players = [
+        p.model_copy(
+            update={
+                "score": scores_by_pid[p.participant_id][0],
+                "score_parts": scores_by_pid[p.participant_id][1],
+                "badge": scores_by_pid[p.participant_id][2],
+            }
+        )
+        for p in players
+    ]
+
     order = [pl.participant_id for pl in players]
     snapshots = [_snapshot(t, states[t], order, my_team, cfg) for t in grid]
 
@@ -507,7 +917,12 @@ def build_review(
         )
         for b in map_data.BUILDINGS.values()
     ]
+    between_fights = round(between, 4)
+    if between_fights == 0.0:
+        between_fights = 0.0
+
     return schemas.Review(
         match=review_match, players=players, buildings=buildings, curve=curve,
         moments=moments, snapshots=snapshots, summary=summary, windows=windows,
+        between_fights=between_fights,
     )  # fmt: skip

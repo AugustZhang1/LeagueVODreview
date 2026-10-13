@@ -36,6 +36,15 @@ export function HowToRead() {
           gone up by taking the best option. "Used" rows are the same, when your team took something
           in time.
         </li>
+        <li>
+          Score is 0–10 from gold per minute, how you did against your lane opponent, kill
+          participation, win-chance impact and teamfight damage, each against your role; MVP and ACE
+          are the best on the winning and losing team.
+        </li>
+        <li>
+          Impact is the win chance you added or cost in fights and objectives; a death costs what it
+          actually set the team back.
+        </li>
         <li>The model is least sure in the first 5 minutes.</li>
       </ul>
     </details>

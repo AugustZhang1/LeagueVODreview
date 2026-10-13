@@ -1,16 +1,45 @@
-.panel {
+/* The rail is a panel, but its rows and detail run edge to edge, so it has no padding of its own. */
+.rail {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding-bottom: var(--space-2);
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.head {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.heading {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* the five filters fit the 380 px rail on one line */
+.head button {
+  padding: 0 6px;
+  white-space: nowrap;
+  font-size: 13px;
 }
 
 .list {
   position: relative;
-  flex: 1;
+  flex: 1 1 0;
   min-height: 0;
-  margin: 0 calc(var(--space-2) * -1);
+  margin: 0;
   padding: 0;
   overflow-y: auto;
   list-style: none;
@@ -21,15 +50,17 @@
 }
 
 .row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 38px 44px minmax(0, 1fr) 48px;
   align-items: center;
-  gap: var(--space-2);
+  column-gap: var(--space-2);
   width: 100%;
-  height: 40px;
-  padding: 0 var(--space-2);
+  min-height: 36px;
+  padding: 0 var(--space-4);
   border: 0;
-  border-radius: var(--radius-sm);
   background: transparent;
+  color: var(--text);
+  font-size: 13px;
   text-align: left;
 }
 
@@ -38,14 +69,23 @@
   background: var(--surface-2);
 }
 
+/* the gold bar marks the selected row, as on the scoreboard */
+.selected {
+  box-shadow: inset 3px 0 0 var(--you);
+}
+
 .row:focus-visible {
   outline-offset: -2px;
 }
 
+.time {
+  color: var(--text-2);
+}
+
 .badge {
-  display: inline-flex;
-  flex: none;
-  width: 36px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
 }
 
 .miss {
@@ -72,47 +112,33 @@
   font-weight: 600;
 }
 
-.worth {
-  color: var(--text-3);
-  white-space: nowrap;
-}
-
-.time {
-  flex: none;
-  width: 5ch;
-  color: var(--text-2);
-}
-
-/* a window's "12:31–13:02" */
-.time.range {
-  width: auto;
-  white-space: nowrap;
-}
-
 .title {
-  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* the gold dot on moments you were in */
 .you {
-  flex: none;
+  display: inline-block;
   width: 6px;
   height: 6px;
+  margin-right: 6px;
   border-radius: 50%;
   background: var(--you);
+  vertical-align: middle;
 }
 
-.row > :last-child {
-  flex: none;
-  margin-left: auto;
-  min-width: 4ch;
+/* a window's worth, as a muted signed number */
+.value {
+  color: var(--text-3);
+  text-align: right;
 }
 
 .empty {
-  padding: var(--space-5) 0;
-  text-align: center;
+  margin: 0;
+  padding: var(--space-5) var(--space-4);
   color: var(--text-2);
+  text-align: center;
 }

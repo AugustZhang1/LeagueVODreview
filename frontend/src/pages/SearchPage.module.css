@@ -1,51 +1,52 @@
 .page {
   display: grid;
-  gap: 72px;
-  padding: 56px 0 var(--space-7);
+  gap: var(--space-7);
+  padding: var(--space-7) 0 var(--space-6);
 }
 
+/* Promise and search on the left, the example review on the right. */
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
   align-items: center;
-  gap: 56px;
+  gap: var(--space-7);
 }
 
 .headline {
-  max-width: 17ch;
-  font-family: var(--font-num);
-  font-size: 52px;
+  margin: 0;
+  font-size: 54px;
   font-weight: 600;
   line-height: 1.05;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
 }
 
-.tagline {
-  max-width: 46ch;
-  margin-top: var(--space-4);
+.lead {
+  max-width: 44ch;
+  margin: var(--space-4) 0 var(--space-6);
   color: var(--text-2);
-  font-size: 17px;
+  font-size: 18px;
   line-height: 1.5;
 }
 
 .form {
-  margin-top: var(--space-6);
+  margin: 0;
 }
 
 .label {
   display: block;
   margin-bottom: var(--space-2);
   color: var(--text-2);
+  font-size: 13px;
   font-weight: 500;
 }
 
 .group {
   display: flex;
-  height: 48px;
+  height: 52px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--surface);
-  transition: border-color 150ms ease-out;
 }
 
 .group:focus-within {
@@ -63,11 +64,7 @@
 .input {
   flex: 1;
   min-width: 0;
-  padding: 0 var(--space-3);
-}
-
-.input::placeholder {
-  color: var(--text-3);
+  padding: 0 var(--space-4);
 }
 
 .input:focus-visible,
@@ -86,199 +83,118 @@
   background: var(--surface);
 }
 
-.submit {
+/* Specific enough to beat the shared primary button's own height. */
+.group .submit {
+  height: 42px;
   min-width: 140px;
-  height: 100%;
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.message {
+  min-height: 20px;
+  margin-top: var(--space-2);
+  font-size: 13px;
+}
+
+.helper {
+  color: var(--text-3);
 }
 
 .error {
-  min-height: 20px;
-  margin-top: var(--space-2);
   color: var(--enemy);
 }
 
-.after {
-  display: grid;
-  gap: var(--space-3);
-  justify-items: start;
-}
-
-/* Gold: the sample player is "you" for a minute. */
-.sample {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  color: var(--you);
-  font-weight: 600;
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 4px;
-}
-
-.sample:hover {
-  color: var(--text);
-}
-
-.sampleId {
-  color: var(--text-2);
-  font-weight: 400;
+.recent:empty {
+  display: none;
 }
 
 .recent {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4);
-  color: var(--text-2);
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
 }
 
-.recentLabel {
-  color: var(--text-3);
-}
-
-.recent a:hover {
-  color: var(--text);
-  text-decoration: underline;
-}
-
-.sectionTitle {
-  font-family: var(--font-num);
-  font-size: 26px;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.grades {
-  padding-top: var(--space-6);
-  border-top: 1px solid var(--border);
-}
-
-.gradeList {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-5);
-  margin: var(--space-5) 0 0;
-}
-
-.grade dt {
+.recentList {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
 }
 
-.gradeName {
+.recentLabel {
+  margin-right: var(--space-1);
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  color: var(--text);
+}
+
+.sampleId {
+  margin-left: var(--space-1);
+  color: var(--text);
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border-soft);
+  list-style: none;
+}
+
+.steps li {
+  padding: var(--space-5) var(--space-6) 0 0;
+}
+
+.stepTitle {
+  margin: 0 0 var(--space-2);
   font-size: 16px;
   font-weight: 600;
 }
 
-.grade dd {
-  margin: var(--space-2) 0 0;
-  color: var(--text-2);
-}
-
-.how {
-  display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
-  gap: 56px;
-  align-items: start;
-}
-
-.howText {
-  display: grid;
-  gap: var(--space-3);
-  max-width: 62ch;
-  color: var(--text-2);
-  font-size: 15px;
-  line-height: 1.55;
-}
-
-.howText .sectionTitle {
-  margin-bottom: var(--space-1);
-  color: var(--text);
-}
-
-.links {
-  display: flex;
-  gap: var(--space-5);
-}
-
-.links a {
-  color: var(--text);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.links a:hover {
-  color: var(--ally);
-}
-
-.stats {
-  display: grid;
-  gap: var(--space-5);
+.stepText {
+  max-width: 36ch;
   margin: 0;
-  padding-left: var(--space-5);
-  border-left: 1px solid var(--border);
+  color: var(--text-2);
 }
 
-.stats dt {
-  color: var(--text-3);
-}
-
-.stats dd {
-  margin: 2px 0 0;
-  font-size: 30px;
-  font-weight: 600;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .intro > * {
-    animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
-  }
-
-  .intro > :nth-child(2) {
-    animation-delay: 0.06s;
-  }
-
-  .intro > :nth-child(3) {
-    animation-delay: 0.12s;
-  }
-
-  .intro > :nth-child(4) {
-    animation-delay: 0.18s;
-  }
-}
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-@media (max-width: 960px) {
-  .page {
-    gap: var(--space-7);
-    padding-top: var(--space-6);
-  }
-
-  .hero,
-  .how {
+@media (max-width: 1023px) {
+  .hero {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-6);
   }
 
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .steps li {
+    padding: var(--space-4) 0 0;
+  }
+}
+
+@media (max-width: 640px) {
   .headline {
     font-size: 40px;
-  }
-
-  .gradeList {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .stats {
-    padding: var(--space-5) 0 0;
-    border-top: 1px solid var(--border);
-    border-left: 0;
   }
 }
 
@@ -290,20 +206,15 @@
 
   .input {
     flex-basis: calc(100% - 76px);
-    height: 48px;
+    height: 50px;
   }
 
   .select {
-    height: 48px;
+    height: 50px;
   }
 
-  .submit {
-    flex-basis: 100%;
-    height: 48px;
-    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-  }
-
-  .gradeList {
-    grid-template-columns: minmax(0, 1fr);
+  .group .submit {
+    flex: 1 1 auto;
+    margin: 0 4px 4px;
   }
 }

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../../components/ChampIcon", () => ({ ChampIcon: () => null }));
@@ -88,11 +88,34 @@ describe("MomentDetail your part", () => {
   });
 });
 
+describe("MomentDetail header", () => {
+  it("shows the grade, time, zone and win chance change above the title", () => {
+    const moment = withFight({
+      grade: "??",
+      t_end: 1000,
+      zone: "baron pit",
+      p_before: 0.76,
+      p_after: 0.67,
+      delta: -0.09,
+      title: "Lost fight at Baron",
+    });
+    render(<MomentDetail moment={moment} review={review} />);
+    const detail = screen.getByTestId(`detail-${moment.id}`);
+    expect(within(detail).getByRole("img", { name: "Blunder" })).toBeInTheDocument();
+    expect(within(detail).getByText("16:40")).toBeInTheDocument();
+    expect(within(detail).getByText("Baron pit")).toBeInTheDocument();
+    expect(within(detail).getByText("76% to 67%")).toBeInTheDocument();
+    expect(within(detail).getByRole("heading", { level: 3 })).toHaveTextContent(
+      "Lost fight at Baron",
+    );
+  });
+});
+
 describe("MomentDetail better play", () => {
   it("shows the tip when there is one", () => {
     const tip = "Fought 2v3: back off until your team can join.";
     const { rerender } = render(<MomentDetail moment={withFight({ tip })} review={review} />);
-    expect(screen.getByTestId("tip")).toHaveTextContent(`Better play ${tip}`);
+    expect(screen.getByTestId("tip")).toHaveTextContent(`Better play: ${tip}`);
     rerender(<MomentDetail moment={withFight({ tip: null })} review={review} />);
     expect(screen.queryByTestId("tip")).not.toBeInTheDocument();
   });
@@ -137,5 +160,57 @@ describe("MomentDetail why", () => {
     const dragon = review.moments.find((m) => m.id === "m02")!;
     render(<MomentDetail moment={dragon} review={review} />);
     expect(screen.getByText("Your dragons")).toBeInTheDocument();
+  });
+});
+
+describe("MomentDetail credit share", () => {
+  it("renders negative share formatted with minus sign", () => {
+    const moment = withFight({
+      credit: [
+        { participant_id: me.participant_id, share: -0.042 },
+        { participant_id: ally.participant_id, share: 0.1 },
+      ],
+    });
+    render(<MomentDetail moment={moment} review={review} />);
+    expect(screen.getByTestId("your-share")).toHaveTextContent("Your share: −4.2%");
+  });
+
+  it("renders positive share formatted with plus sign", () => {
+    const moment = withFight({
+      credit: [{ participant_id: me.participant_id, share: 0.062 }],
+    });
+    render(<MomentDetail moment={moment} review={review} />);
+    expect(screen.getByTestId("your-share")).toHaveTextContent("Your share: +6.2%");
+  });
+
+  it("hides share line when it rounds to 0.0%", () => {
+    render(
+      <MomentDetail
+        moment={withFight({ credit: [{ participant_id: me.participant_id, share: 0.0003 }] })}
+        review={review}
+      />,
+    );
+    expect(screen.queryByTestId("your-share")).not.toBeInTheDocument();
+  });
+
+  it("hides share line when share is zero or credit is missing", () => {
+    const { rerender } = render(
+      <MomentDetail
+        moment={withFight({ credit: [{ participant_id: me.participant_id, share: 0 }] })}
+        review={review}
+      />,
+    );
+    expect(screen.queryByTestId("your-share")).not.toBeInTheDocument();
+
+    rerender(<MomentDetail moment={withFight({ credit: [] })} review={review} />);
+    expect(screen.queryByTestId("your-share")).not.toBeInTheDocument();
+
+    rerender(
+      <MomentDetail
+        moment={withFight({ credit: undefined } as unknown as Partial<Moment>)}
+        review={review}
+      />,
+    );
+    expect(screen.queryByTestId("your-share")).not.toBeInTheDocument();
   });
 });

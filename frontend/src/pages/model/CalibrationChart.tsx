@@ -1,5 +1,7 @@
 import {
   CartesianGrid,
+  Cell,
+  ReferenceDot,
   ReferenceLine,
   ResponsiveContainer,
   Scatter,
@@ -40,13 +42,10 @@ export function CalibrationChart({
   nearest70: CalibrationRow | null;
 }) {
   return (
-    <Panel title="Calibration">
-      {nearest70 && (
-        <p className={styles.caption}>
-          When the model says {pct(nearest70.predicted)}, teams won {pct(nearest70.actual)} of the
-          time.
-        </p>
-      )}
+    <Panel
+      title="Calibration"
+      actions={<span className={styles.legend}>on the line = honest</span>}
+    >
       <div className={styles.chart}>
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
@@ -90,7 +89,27 @@ export function CalibrationChart({
               ifOverflow="visible"
             />
             <Tooltip content={<Tip />} cursor={false} isAnimationActive={false} />
-            <Scatter data={rows} fill="var(--text)" isAnimationActive={false} />
+            <Scatter data={rows} fill="var(--text)" isAnimationActive={false}>
+              {rows.map((r) => (
+                <Cell key={r.predicted} fill={r === nearest70 ? "var(--you)" : "var(--text)"} />
+              ))}
+            </Scatter>
+            {nearest70 && (
+              <ReferenceDot
+                x={nearest70.predicted}
+                y={nearest70.actual}
+                r={8}
+                fill="none"
+                stroke="var(--you)"
+                strokeWidth={2}
+                label={{
+                  value: `says ${pct(nearest70.predicted)}, won ${pct(nearest70.actual)}`,
+                  position: "right",
+                  fill: "var(--text-2)",
+                  fontSize: 12,
+                }}
+              />
+            )}
           </ScatterChart>
         </ResponsiveContainer>
       </div>

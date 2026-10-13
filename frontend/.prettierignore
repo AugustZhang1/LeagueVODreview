@@ -8,3 +8,4 @@ screenshots
 src/mocks/review.fixture.json
 src/mocks/showcase.json
 .e2e-dist
+design

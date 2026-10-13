@@ -36,12 +36,14 @@ test("How to read this opens and explains the grades", async ({ page }) => {
   await expect(page.getByText("The model is least sure in the first 5 minutes.")).toBeVisible();
 });
 
-test("Your biggest mistakes links jump to the moment", async ({ page }) => {
+test("the Mistakes filter lists the mistakes and jumps to the moment", async ({ page }) => {
+  // The header's "Your biggest mistakes" links were removed; the Mistakes filter replaces them.
   await openReview(page);
-  const mistakes = panel(page, "Your biggest mistakes");
-  await expect(mistakes.getByRole("listitem")).toHaveCount(1);
+  const moments = panel(page, "Moments");
+  await moments.getByRole("button", { name: "Mistakes", exact: true }).click();
+  await expect(row(page, /Won fight 2 for 1/)).toHaveCount(0);
 
-  await mistakes.getByRole("link", { name: /Lost fight 1 for 3/ }).click();
+  await row(page, /Lost fight 1 for 3/).click();
   await expect(page.getByRole("slider", { name: "Game time" })).toHaveValue("1011");
   await expect(page.getByTestId("detail-m13")).toBeVisible();
   await expect.poll(() => new URL(page.url()).searchParams.get("t")).toBe("1011");
@@ -49,7 +51,6 @@ test("Your biggest mistakes links jump to the moment", async ({ page }) => {
 
 test("no comeback or thrown-lead fact when the curve never dipped under 20%", async ({ page }) => {
   await openReview(page);
-  await expect(page.getByText("Biggest swing")).toBeVisible();
   await expect(page.getByText("Comeback", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Thrown lead", { exact: true })).toHaveCount(0);
 });
@@ -192,14 +193,16 @@ test("a moment before 5:00 carries the early-game note", async ({ page }) => {
   await expect(page.getByText(note)).toHaveCount(0);
 });
 
-test("the games page summarises patterns across reviewed games", async ({ page }) => {
+test("the games page shows your patterns across reviewed games", async ({ page }) => {
   await page.goto("/p/na1/Me/NA1");
   await expect(page.getByRole("link", { name: /Victory/ }).first()).toBeVisible();
-  const summary = page.getByText(/^Patterns in your 5 reviewed games:/);
-  await expect(summary).toBeVisible();
+  // always open now, not a collapsed <details>
+  await expect(page.getByRole("heading", { name: "Your patterns", exact: true })).toBeVisible();
+  await expect(page.getByText("from 5 reviewed games")).toBeVisible();
 
-  await summary.click();
-  await expect(page.getByRole("heading", { name: "When", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "When you lose win chance", exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Where", exact: true })).toBeVisible();
-  await expect(page.getByText(/^4 wins, 1 loss/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Why", exact: true })).toBeVisible();
 });

@@ -4,25 +4,15 @@ import { useId, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiGet } from "../api/client";
 import type { PlayerGames } from "../api/models";
-import { useHealth, useModel } from "../api/queries";
+import { useHealth } from "../api/queries";
 import { Button } from "../components/Button";
-import { GradeBadge } from "../components/GradeBadge";
 import { describeError } from "../lib/errors";
-import { GRADES, gradeName, type Grade } from "../lib/grades";
-import { readMetrics } from "./model/metrics";
 import { PLATFORMS, platformLabel } from "./search/platforms";
 import { SampleGraph } from "./search/SampleGraph";
 import { addRecent, parseRiotId, readPlatform, readRecent, savePlatform } from "./search/storage";
 import styles from "./SearchPage.module.css";
 
-const REPO_URL = "https://github.com/AugustZhang1/LeagueVODreview";
-
-const GRADE_MEANING: Record<Grade, string> = {
-  "!!": "Raised your team's win chance by 10% or more.",
-  "!": "Raised it by 5% to 10%.",
-  "?": "Cost 5% to 10%.",
-  "??": "Cost 10% or more.",
-};
+const HELPER = "Name and tag, as shown in the League client.";
 
 const gamesPath = (platform: string, name: string, tag: string) =>
   `/p/${platform}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`;
@@ -30,15 +20,13 @@ const gamesPath = (platform: string, name: string, tag: string) =>
 export function SearchPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const errorId = useId();
+  const messageId = useId();
   const [riotId, setRiotId] = useState("");
   const [platform, setPlatform] = useState(readPlatform);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [recent] = useState(readRecent);
   const sample = useHealth().data?.demo_player;
-  const model = useModel();
-  const view = model.data ? readMetrics(model.data) : null;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -72,10 +60,10 @@ export function SearchPage() {
   return (
     <div className={styles.page}>
       <section className={styles.hero}>
-        <div className={styles.intro}>
-          <h1 className={styles.headline}>Find the fights that decided your game.</h1>
-          <p className={styles.tagline}>
-            Every fight, objective and tower in your ranked games, graded by how much it moved your
+        <div>
+          <h1 className={styles.headline}>Find the moments that decided your game.</h1>
+          <p className={styles.lead}>
+            Every fight, objective and death in your ranked games, graded by how much it moved your
             team's chance to win.
           </p>
 
@@ -92,7 +80,7 @@ export function SearchPage() {
                 onChange={(e) => setRiotId(e.target.value)}
                 placeholder="Name#TAG"
                 aria-invalid={error ? true : undefined}
-                aria-describedby={error ? errorId : undefined}
+                aria-describedby={messageId}
                 autoFocus
                 autoComplete="off"
                 spellCheck={false}
@@ -117,26 +105,24 @@ export function SearchPage() {
                 {busy ? "Finding games…" : "Find games"}
               </Button>
             </div>
-            <p id={errorId} className={styles.error} role={error ? "alert" : undefined}>
-              {error}
+            {/* The helper line becomes the error while there is one, so the layout doesn't move. */}
+            <p
+              id={messageId}
+              className={`${styles.message} ${error ? styles.error : styles.helper}`}
+              role={error ? "alert" : undefined}
+            >
+              {error ?? HELPER}
             </p>
           </form>
 
-          <div className={styles.after}>
-            {sample && (
-              <Link
-                className={styles.sample}
-                to={gamesPath(sample.platform, sampleName, sampleTag)}
-              >
-                Try a sample player <span className={styles.sampleId}>{sample.riot_id}</span>
-              </Link>
-            )}
+          <div className={styles.recent}>
             {recent.length > 0 && (
-              <nav className={styles.recent} aria-label="Recent searches">
+              <nav className={styles.recentList} aria-label="Recent searches">
                 <span className={styles.recentLabel}>Recent</span>
                 {recent.map((r) => (
                   <Link
                     key={`${r.platform}/${r.name}/${r.tag}`}
+                    className={styles.chip}
                     to={gamesPath(r.platform, r.name, r.tag)}
                   >
                     {r.name}#{r.tag}
@@ -144,73 +130,37 @@ export function SearchPage() {
                 ))}
               </nav>
             )}
+            {sample && (
+              <Link className={styles.chip} to={gamesPath(sample.platform, sampleName, sampleTag)}>
+                Try a sample player <span className={styles.sampleId}>{sample.riot_id}</span>
+              </Link>
+            )}
           </div>
         </div>
 
         <SampleGraph />
       </section>
 
-      <section className={styles.grades} aria-labelledby="grades-title">
-        <h2 id="grades-title" className={styles.sectionTitle}>
-          Four grades, one question: did it help you win?
-        </h2>
-        <dl className={styles.gradeList}>
-          {GRADES.map((g) => (
-            <div key={g} className={styles.grade}>
-              <dt>
-                <GradeBadge grade={g} />
-                <span className={styles.gradeName}>{gradeName(g)}</span>
-              </dt>
-              <dd>{GRADE_MEANING[g]}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-
-      <section className={styles.how} aria-labelledby="how-title">
-        <div className={styles.howText}>
-          <h2 id="how-title" className={styles.sectionTitle}>
-            How the grades are made
-          </h2>
-          <p>
-            A LightGBM model reads the game every 15 seconds: gold, kills, towers, dragons, who is
-            dead and for how long, and where players stand. It predicts each team's chance to win,
-            and a moment's grade is how far that chance moved across it.
+      <ol className={styles.steps} aria-label="How it works">
+        <li>
+          <h2 className={styles.stepTitle}>Search your Riot ID</h2>
+          <p className={styles.stepText}>
+            We pull your recent ranked games from Riot. Nothing to install.
           </p>
-          <p>
-            Reviews come from Riot's match timeline, so no replay file is needed. A Python (FastAPI)
-            backend builds each review; this site is React and TypeScript.
+        </li>
+        <li>
+          <h2 className={styles.stepTitle}>Pick a game</h2>
+          <p className={styles.stepText}>
+            Reviewed games open instantly. New ones take about a minute.
           </p>
-          <p className={styles.links}>
-            <Link to="/model">Model accuracy</Link>
-            <a href={REPO_URL} target="_blank" rel="noreferrer">
-              Source on GitHub
-            </a>
+        </li>
+        <li>
+          <h2 className={styles.stepTitle}>Read the moments</h2>
+          <p className={styles.stepText}>
+            See what swung the game, why, and what the better play was.
           </p>
-        </div>
-        {view && view.games !== null && (
-          <dl className={styles.stats}>
-            <div>
-              <dt>Ranked games trained on</dt>
-              <dd className="num">{view.games.toLocaleString("en-US")}</dd>
-            </div>
-            {view.accuracyAt10 !== null && (
-              <div>
-                <dt>Winner called right at 10 to 15 minutes</dt>
-                <dd className="num">{(view.accuracyAt10 * 100).toFixed(1)}%</dd>
-              </div>
-            )}
-            {view.patches.length > 0 && (
-              <div>
-                <dt>Patches</dt>
-                <dd className="num">
-                  {view.patches[0]} to {view.patches[view.patches.length - 1]}
-                </dd>
-              </div>
-            )}
-          </dl>
-        )}
-      </section>
+        </li>
+      </ol>
     </div>
   );
 }

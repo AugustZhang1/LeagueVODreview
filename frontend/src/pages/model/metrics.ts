@@ -120,5 +120,31 @@ export function readMetrics(raw: ModelMetrics): ModelView {
 
 export const pct = (v: number) => `${Math.round(v * 100)}%`;
 export const pct1 = (v: number) => `${(v * 100).toFixed(1)}%`;
-export const featureName = (f: string) => f.replace(/_/g, " ");
+const FEATURE_NAMES: Record<string, string> = {
+  tier: "Tier",
+  minute: "Game minute",
+  gold_diff: "Gold lead",
+  kill_diff: "Kill lead",
+  tower_diff: "Tower lead",
+  level_diff: "Level lead",
+  cs_diff: "CS lead",
+  grub_diff: "Void grub lead",
+  herald_diff: "Herald lead",
+  quest_diff: "Quest lead",
+  inhibs_down_diff: "Inhibitor lead",
+  baron_active: "Baron active",
+  elder_active: "Elder dragon active",
+  blue_dragons: "Blue dragons",
+  red_dragons: "Red dragons",
+  soul_diff: "Dragon soul lead",
+  soul_type: "Dragon soul type",
+};
+
+/** Plain names for the features. Unknown ones are humanised: "foo_bar_diff" becomes "Foo bar lead". */
+export function featureName(f: string): string {
+  const known = FEATURE_NAMES[f];
+  if (known) return known;
+  const words = f.replace(/_diff$/, " lead").replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
 export const tierName = (t: string) => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();

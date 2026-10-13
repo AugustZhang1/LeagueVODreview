@@ -1,26 +1,15 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
+import { describe, expect, it } from "vitest";
 
-import type { CurvePoint, Moment, Review } from "../../api/models";
+import type { CurvePoint, Player, Review } from "../../api/models";
+import { GRADES, gradeName } from "../../lib/grades";
 import { makeReview } from "../../mocks/makeReview";
 import { HowToRead } from "./HowToRead";
-import { comebackOf } from "./ReviewHeader";
-import { BestPlays, TopMistakes } from "./TopMistakes";
+import { ReviewHeader, comebackOf, scoreRank } from "./ReviewHeader";
 
 const review = makeReview();
 const me = review.players.find((p) => p.is_me)!;
-const base = review.moments[0];
-
-const mistake = (id: string, delta: number, patch: Partial<Moment> = {}): Moment => ({
-  ...base,
-  id,
-  title: `Mistake ${id.toUpperCase()}`,
-  involves_me: true,
-  grade: "?",
-  delta,
-  ...patch,
-});
 
 /** A review whose curve is `points` followed by the final result point. */
 function withCurve(result: "win" | "loss", points: CurvePoint[], finalP: number): Review {
@@ -93,94 +82,72 @@ describe("comebackOf", () => {
   });
 });
 
-describe("TopMistakes", () => {
-  it("lists my worst three mistakes, most negative first", () => {
-    const moments = [
-      mistake("a", -0.05),
-      mistake("b", -0.2),
-      mistake("c", -0.12),
-      mistake("d", -0.08),
-      mistake("e", -0.3, { involves_me: false }),
-      mistake("f", -0.4, { grade: "!" }),
-    ];
-    render(
-      <TopMistakes
-        review={{ ...review, moments }}
-        participantId={me.participant_id}
-        onJump={vi.fn()}
-      />,
-    );
-    const links = screen.getAllByRole("link");
-    expect(links).toHaveLength(3);
-    expect(links[0]).toHaveTextContent("Mistake B");
-    expect(links[0]).toHaveTextContent("−20%");
-    expect(links[1]).toHaveTextContent("Mistake C");
-    expect(links[2]).toHaveTextContent("Mistake D");
+describe("scoreRank", () => {
+  const at = (participant_id: number, score: number | null): Player => ({
+    ...me,
+    participant_id,
+    score,
   });
 
-  it("calls onJump with the moment when a mistake is clicked", async () => {
-    const onJump = vi.fn();
-    const moments = [mistake("b", -0.2)];
-    render(
-      <TopMistakes
-        review={{ ...review, moments }}
-        participantId={me.participant_id}
-        onJump={onJump}
-      />,
-    );
-    await userEvent.click(screen.getByRole("link"));
-    expect(onJump).toHaveBeenCalledWith(moments[0]);
+  it("ranks by score, best first", () => {
+    const players = [at(1, 5), at(2, 8.3), at(3, 6.2), at(4, 7)];
+    expect(scoreRank(players, players[1])).toBe(1);
+    expect(scoreRank(players, players[3])).toBe(2);
+    expect(scoreRank(players, players[2])).toBe(3);
+    expect(scoreRank(players, players[0])).toBe(4);
   });
 
-  it("says so when no mistake was graded against me", () => {
-    const moments = [mistake("a", 0.1, { grade: "!", involves_me: true })];
-    render(
-      <TopMistakes
-        review={{ ...review, moments }}
-        participantId={me.participant_id}
-        onJump={vi.fn()}
-      />,
-    );
-    expect(screen.queryAllByRole("link")).toHaveLength(0);
-    expect(screen.getByText("No mistakes graded against you in this game.")).toBeInTheDocument();
+  it("breaks ties by the lower participant id", () => {
+    const players = [at(7, 8), at(3, 8), at(5, 8)];
+    expect(scoreRank(players, players[1])).toBe(1);
+    expect(scoreRank(players, players[2])).toBe(2);
+    expect(scoreRank(players, players[0])).toBe(3);
+  });
+
+  it("ranks a player with no score below everyone who has one", () => {
+    const players = [at(1, null), at(2, 0.5)];
+    expect(scoreRank(players, players[1])).toBe(1);
+  });
+
+  it("has no rank when I have no score", () => {
+    const players = [at(1, null), at(2, 0.5)];
+    expect(scoreRank(players, players[0])).toBeNull();
   });
 });
 
-describe("BestPlays", () => {
-  it("lists my best three good plays, most positive first", () => {
-    const moments = [
-      mistake("a", 0.05, { grade: "!" }),
-      mistake("b", 0.2, { grade: "!!" }),
-      mistake("c", 0.12, { grade: "!!" }),
-      mistake("d", 0.08, { grade: "!" }),
-      mistake("e", 0.3, { grade: "!!", involves_me: false }),
-      mistake("f", -0.4),
-    ];
+describe("ReviewHeader", () => {
+  const renderHeader = (r: Review) =>
     render(
-      <BestPlays
-        review={{ ...review, moments }}
-        participantId={me.participant_id}
-        onJump={vi.fn()}
-      />,
+      <MemoryRouter>
+        <ReviewHeader review={r} />
+      </MemoryRouter>,
     );
-    expect(screen.getByRole("heading", { name: "Your best plays" })).toBeInTheDocument();
-    const links = screen.getAllByRole("link");
-    expect(links.map((l) => l.textContent)).toEqual([
-      expect.stringContaining("Mistake B"),
-      expect.stringContaining("Mistake C"),
-      expect.stringContaining("Mistake D"),
-    ]);
+
+  it("shows my score with its MVP tag and rank", () => {
+    const players = review.players.map((p) =>
+      p.is_me ? { ...p, score: 8.3, badge: "mvp" as const } : { ...p, score: 5 },
+    );
+    renderHeader({ ...review, players });
+    expect(screen.getByRole("img", { name: "Score 8.3 out of 10" })).toBeInTheDocument();
+    expect(screen.getByText("MVP")).toBeInTheDocument();
+    expect(screen.getByText("Score, 1st of 10")).toBeInTheDocument();
   });
 
-  it("says so when no good play was graded for me", () => {
-    render(
-      <BestPlays
-        review={{ ...review, moments: [mistake("a", -0.1)] }}
-        participantId={me.participant_id}
-        onJump={vi.fn()}
-      />,
-    );
-    expect(screen.getByText("No good plays graded for you in this game.")).toBeInTheDocument();
+  it("ranks a tie by the lower participant id", () => {
+    // everyone ties on 7, so the three players with lower ids (1 to 3) rank above me (id 4)
+    const players = review.players.map((p) => ({ ...p, score: 7 }));
+    renderHeader({ ...review, players });
+    expect(screen.getByText("Score, 4th of 10")).toBeInTheDocument();
+  });
+
+  it("shows my grade counts", () => {
+    renderHeader(review);
+    expect(screen.getByText("Your grades")).toBeInTheDocument();
+    for (const g of GRADES) {
+      expect(
+        screen.getByRole("img", { name: `${gradeName(g)}, ${review.summary.me[g]}` }),
+      ).toBeInTheDocument();
+    }
   });
 });
 

@@ -1,35 +1,21 @@
 .card {
-  position: relative;
   margin: 0;
-  padding: var(--space-4) var(--space-4) var(--space-3);
+  padding: var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
-  overflow: hidden;
-  isolation: isolate;
-}
-
-/* The champion's splash art behind the card's top, fading into the surface. */
-.splash {
-  position: absolute;
-  inset: 0 0 auto;
-  z-index: -1;
-  height: 150px;
-  background-position: center 22%;
-  background-size: cover;
-  opacity: 0.35;
-  mask-image: linear-gradient(to bottom, #000 30%, transparent);
 }
 
 .head {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 48px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
 }
 
 .title {
-  font-size: 18px;
+  margin: 0;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -37,15 +23,16 @@
   color: var(--enemy);
 }
 
-.sub {
-  color: var(--text-2);
+.duration {
+  color: var(--text-3);
+  font-weight: 400;
 }
 
 .readout {
   margin-left: auto;
-  color: var(--text);
   font-size: 16px;
-  white-space: pre;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .stage {
@@ -71,7 +58,7 @@
 
 .line {
   fill: none;
-  stroke: var(--text-2);
+  stroke: var(--text);
   stroke-width: 2;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
@@ -86,7 +73,6 @@
   background: var(--surface);
   outline: 2px solid var(--surface);
   transform: translate(-50%, -50%);
-  transition: transform 150ms ease-out;
 }
 
 .good {
@@ -121,8 +107,9 @@
 .moments {
   display: grid;
   gap: 2px;
-  margin: var(--space-3) 0 0;
-  padding: 0;
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3) 0 0;
+  border-top: 1px solid var(--border-soft);
   list-style: none;
 }
 
@@ -131,7 +118,7 @@
   grid-template-columns: 44px auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-2);
-  min-height: 28px;
+  min-height: 32px;
   padding: 0 var(--space-2);
   border-radius: var(--radius-sm);
   color: var(--text-2);
@@ -146,67 +133,4 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* The curve draws itself left to right, then the fill and the swings arrive. */
-@media (prefers-reduced-motion: no-preference) {
-  .line {
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-    animation: draw 1.4s cubic-bezier(0.45, 0, 0.2, 1) 0.2s forwards;
-  }
-
-  .area {
-    opacity: 0;
-    animation: fade 0.6s ease-out 1.2s forwards;
-  }
-
-  .marker {
-    animation: pop 0.35s cubic-bezier(0.3, 1.6, 0.5, 1) backwards;
-  }
-
-  .moment {
-    animation: rise 0.4s ease-out backwards;
-  }
-
-  .moment:nth-child(1) {
-    animation-delay: 1s;
-  }
-
-  .moment:nth-child(2) {
-    animation-delay: 1.15s;
-  }
-
-  .moment:nth-child(3) {
-    animation-delay: 1.3s;
-  }
-
-  .moment:nth-child(4) {
-    animation-delay: 1.45s;
-  }
-}
-
-@keyframes draw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes fade {
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes pop {
-  from {
-    transform: translate(-50%, -50%) scale(0);
-  }
-}
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
 }

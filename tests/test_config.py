@@ -13,6 +13,7 @@ def test_default_config_loads():
     assert cfg["review"]["great"] > cfg["review"]["good"] > 0
     assert cfg["review"]["blunder"] < cfg["review"]["mistake"] < 0
     assert len(cfg["respawn"]["base_by_level"]) == 18
+    assert cfg["scores"]["lane_at_s"] == 840
 
 
 def test_crawl_settings_are_consistent():
@@ -33,6 +34,24 @@ def test_timers_present():
         assert timers[f"{name}_despawn_s"] > timers[f"{name}_first_s"]
     for name in ("baron_buff_s", "elder_buff_s", "inhibitor_respawn_s"):
         assert timers[name] > 0
+
+
+def test_scores_present():
+    cfg = config.load_config()
+    scores = cfg["scores"]
+    weights = [
+        scores["weight_gold_min"],
+        scores["weight_vs_lane"],
+        scores["weight_kp"],
+        scores["weight_impact"],
+        scores["weight_fights"],
+    ]
+    assert sum(weights) == pytest.approx(1.0)
+    assert scores["lane_at_s"] == 840
+    for role in ("TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"):
+        assert scores["gold_min"][role] > 0
+        assert 0 < scores["kp"][role] < 1
+        assert 0 < scores["fight_share"][role] < 1
 
 
 def test_path_from_env_and_reload(tmp_path, monkeypatch):

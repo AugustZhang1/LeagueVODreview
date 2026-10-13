@@ -1,5 +1,5 @@
 import type { CurvePoint, Moment } from "../../api/models";
-import { formatTime, formatWinChance } from "../../lib/format";
+import { formatWinChance } from "../../lib/format";
 
 /** Win chance (0–1) at time `t`, by linear interpolation along the curve. */
 export function winAt(curve: CurvePoint[], t: number): number {
@@ -48,12 +48,4 @@ export function winWord(p: number): string {
   if (p > 0.35) return "Slightly behind";
   if (p > 0.15) return "Behind";
   return "Losing";
-}
-
-/** The game's turning point (its biggest swing), as "16:40: Lost fight 1 for 3, 50% to 29%". */
-export function turningPoint(moments: Moment[], biggestId: string): string | null {
-  const m = moments.find((x) => x.id === biggestId);
-  if (!m || Math.abs(m.delta) < 0.05) return null;
-  const what = m.title.split(", then")[0];
-  return `${formatTime(m.t_end)}: ${what}, ${formatWinChance(m.p_before)} to ${formatWinChance(m.p_after)}`;
 }

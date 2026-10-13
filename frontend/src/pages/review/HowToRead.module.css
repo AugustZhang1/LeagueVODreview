@@ -1,6 +1,5 @@
-/* at the end of the header's row; open, the text takes the full width below it */
+/* a flex item of the chart card's header row; open, the text takes the full row below it */
 .guide {
-  margin-left: auto;
   color: var(--text-2);
   font-size: 13px;
 }
@@ -12,6 +11,10 @@
 .guide summary {
   cursor: pointer;
   color: var(--text-2);
+}
+
+.guide summary:hover {
+  color: var(--text);
 }
 
 .list {

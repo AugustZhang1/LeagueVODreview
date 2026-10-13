@@ -3,35 +3,36 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
-  min-width: 28px;
+  min-width: 26px;
   height: 20px;
-  padding: 0 6px;
+  padding: 0 5px;
   border-radius: var(--radius-sm);
   font-family: var(--font-num);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
-.strong.good {
-  background: var(--ally);
-  color: var(--bg);
+.great {
+  background: var(--grade-great-tint);
+  color: var(--grade-great-text);
 }
 
-.strong.bad {
-  background: var(--enemy);
-  color: var(--bg);
+.good {
+  background: var(--grade-good-tint);
+  color: var(--grade-good-text);
 }
 
-.soft.good {
-  background: var(--ally-tint);
-  color: var(--ally);
+.mistake {
+  background: var(--grade-mistake-tint);
+  color: var(--grade-mistake-text);
 }
 
-.soft.bad {
-  background: var(--enemy-tint);
-  color: var(--enemy);
+.blunder {
+  background: var(--grade-blunder-tint);
+  color: var(--grade-blunder-text);
 }
 
 .count {

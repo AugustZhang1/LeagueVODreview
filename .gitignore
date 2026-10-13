@@ -20,3 +20,8 @@ dist/
 
 # scratch
 .tmp/
+
+# Local planning notes, kept out of the public repo
+ReviewUpgrades.md
+PlayerScores.md
+ScoreBuild.md

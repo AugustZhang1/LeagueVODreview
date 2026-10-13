@@ -4,12 +4,25 @@ import type {
   PlayerState,
   Review,
   Role,
+  ScoreParts,
   Side,
   Snapshot,
   TeamState,
 } from "../../../api/models";
 import { formatGold, formatGoldDelta, formatTime } from "../../../lib/format";
 import { respawnAt, secondsPastSnapshot } from "./minimapModel";
+
+/** Formats score parts into the tooltip text, e.g. "Gold/min 8.9 · vs lane 8.9 · KP 5.6 · Impact 9.1 · Fights 8.9" */
+export function formatScoreParts(parts: ScoreParts | null | undefined): string | null {
+  if (!parts) return null;
+  return (
+    `Gold/min ${parts.gold_min.toFixed(1)} · ` +
+    `vs lane ${parts.vs_lane.toFixed(1)} · ` +
+    `KP ${parts.kp.toFixed(1)} · ` +
+    `Impact ${parts.impact.toFixed(1)} · ` +
+    `Fights ${parts.fights.toFixed(1)}`
+  );
+}
 
 const ROLE_ORDER: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 const roleRank = (r: Role) => ROLE_ORDER.indexOf(r);

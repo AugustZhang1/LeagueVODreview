@@ -2,7 +2,6 @@ import { memo, useEffect, useRef } from "react";
 import type { Moment, ObjectiveWindow, Review } from "../../api/models";
 import { Delta } from "../../components/Delta";
 import { GradeBadge } from "../../components/GradeBadge";
-import { Panel } from "../../components/Panel";
 import { Segmented } from "../../components/Segmented";
 import { formatDelta, formatTime } from "../../lib/format";
 import { MomentDetail } from "./MomentDetail";
@@ -12,14 +11,16 @@ import type { MomentFilter } from "./useReviewTime";
 
 const OPTIONS: { value: MomentFilter; label: string }[] = [
   { value: "all", label: "All" },
-  { value: "graded", label: "Graded" },
+  { value: "mistakes", label: "Mistakes" },
+  { value: "great", label: "Great" },
   { value: "missed", label: "Missed" },
   { value: "mine", label: "Mine" },
 ];
 
 export function filterMoments(moments: Moment[], filter: MomentFilter): Moment[] {
   if (filter === "missed") return [];
-  if (filter === "graded") return moments.filter((m) => m.grade !== null);
+  if (filter === "mistakes") return moments.filter((m) => m.grade === "?" || m.grade === "??");
+  if (filter === "great") return moments.filter((m) => m.grade === "!!" || m.grade === "!");
   if (filter === "mine") return moments.filter((m) => m.involves_me);
   return moments;
 }
@@ -55,6 +56,7 @@ type Props = {
   onHover: (id: string | null) => void;
 };
 
+/** The rail: the selected item's detail on top, every visible moment and window below it. */
 export const MomentList = memo(function MomentList({
   review,
   moments,
@@ -68,6 +70,9 @@ export const MomentList = memo(function MomentList({
   onHover,
 }: Props) {
   const visible = buildRows(moments, windows, filter);
+  const open = visible.find((r) =>
+    r.kind === "moment" ? r.m.id === selectedId : r.w.id === selectedWindowId,
+  );
   const listRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
@@ -76,23 +81,18 @@ export const MomentList = memo(function MomentList({
     const row = key ? list?.querySelector<HTMLElement>(`[data-moment="${key}"]`) : null;
     if (!list || !row) return;
     if (row.offsetTop < list.scrollTop) list.scrollTop = row.offsetTop;
-    else if (row.offsetTop + row.offsetHeight > list.scrollTop + list.clientHeight) {
-      // Show the whole row with its detail, or its top (title, tip) when it's taller than the list
-      list.scrollTop = Math.min(
-        row.offsetTop,
-        row.offsetTop + row.offsetHeight - list.clientHeight,
-      );
-    }
+    else if (row.offsetTop + row.offsetHeight > list.scrollTop + list.clientHeight)
+      list.scrollTop = row.offsetTop + row.offsetHeight - list.clientHeight;
   }, [selectedId, selectedWindowId, filter]);
 
   return (
-    <Panel
-      title="Moments"
-      className={styles.panel}
-      actions={
+    <section className={styles.rail}>
+      <header className={styles.head}>
+        <h2 className={styles.heading}>Moments</h2>
         <Segmented label="Show moments" options={OPTIONS} value={filter} onChange={onFilter} />
-      }
-    >
+      </header>
+      {open?.kind === "moment" && <MomentDetail moment={open.m} review={review} />}
+      {open?.kind === "window" && <WindowDetail window={open.w} moments={moments} />}
       {visible.length === 0 ? (
         <p className={styles.empty}>No moments here.</p>
       ) : (
@@ -109,6 +109,7 @@ export const MomentList = memo(function MomentList({
                     aria-current={selected || undefined}
                     onClick={() => onSelectWindow(w)}
                   >
+                    <span className={`${styles.time} num`}>{formatTime(w.t_start)}</span>
                     <span className={styles.badge}>
                       {w.used ? (
                         <span role="img" aria-label="Used window" className={styles.used}>
@@ -120,15 +121,11 @@ export const MomentList = memo(function MomentList({
                         </span>
                       )}
                     </span>
-                    <span className={`${styles.time} ${styles.range} num`}>
-                      {formatTime(w.t_start)}–{formatTime(w.t_end)}
-                    </span>
                     <span className={styles.title} title={w.title}>
                       {w.title}
                     </span>
-                    <span className={styles.worth}>worth ~{formatDelta(w.value)}</span>
+                    <span className={`${styles.value} num`}>~{formatDelta(w.value)}</span>
                   </button>
-                  {selected && <WindowDetail window={w} moments={moments} />}
                 </li>
               );
             }
@@ -145,22 +142,21 @@ export const MomentList = memo(function MomentList({
                   onFocus={() => onHover(m.id)}
                   onBlur={() => onHover(null)}
                 >
-                  <span className={styles.badge}>{m.grade && <GradeBadge grade={m.grade} />}</span>
                   <span className={`${styles.time} num`}>{formatTime(m.t_end)}</span>
+                  <span className={styles.badge}>{m.grade && <GradeBadge grade={m.grade} />}</span>
                   <span className={styles.title} title={m.title}>
+                    {m.involves_me && (
+                      <span role="img" aria-label="You were in this" className={styles.you} />
+                    )}
                     {m.title}
                   </span>
-                  {m.involves_me && (
-                    <span role="img" aria-label="You were in this" className={styles.you} />
-                  )}
                   <Delta value={m.delta} muted={m.grade === null} />
                 </button>
-                {selected && <MomentDetail moment={m} review={review} />}
               </li>
             );
           })}
         </ul>
       )}
-    </Panel>
+    </section>
   );
 });

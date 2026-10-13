@@ -6,6 +6,11 @@
   padding: var(--space-4) var(--space-5) 0;
 }
 
+/* The review page (marked data-wide) is wider, so its scoreboard and player names have room. */
+.main:has(> [data-wide]) {
+  max-width: 1440px;
+}
+
 /* Each page arrives with a short rise, so a route change reads as a change. */
 @media (prefers-reduced-motion: no-preference) {
   .main > * {

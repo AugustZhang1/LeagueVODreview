@@ -1,60 +1,111 @@
-.patterns {
-  border-top: 1px solid var(--border);
-}
-
-.summary {
-  padding: var(--space-4);
-  color: var(--text-2);
-  cursor: pointer;
-}
-
-.body {
-  display: grid;
-  gap: var(--space-3);
-  padding: 0 var(--space-4) var(--space-4);
-  color: var(--text-2);
-}
-
-.tables {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--space-4);
-}
-
-.table {
+.card {
   min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 52px;
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.from {
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+/* Four tiles separated by 1 px lines. */
+.tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border-soft);
+}
+
+.tile {
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+}
+
+.value {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.tileLabel {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.block {
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border-soft);
 }
 
 .heading {
-  margin-bottom: var(--space-1);
-  color: var(--text-3);
+  margin-bottom: var(--space-2);
+  color: var(--text-2);
   font-size: 13px;
   font-weight: 600;
 }
 
-.table table {
-  width: 100%;
+.row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: var(--space-2);
+  height: 24px;
   font-size: 13px;
 }
 
-.table th,
-.table td {
-  padding: var(--space-1) var(--space-2);
-  border-bottom: 1px solid var(--border);
+.rowLabel {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* No track behind it: the bar is only the loss. */
+.bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--enemy);
+}
+
+.rowValue {
+  color: var(--enemy);
   text-align: right;
 }
 
-.table thead th {
-  color: var(--text-3);
-  font-weight: 400;
+.lane {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
 }
 
-.table tbody th {
-  max-width: 160px;
-  overflow: hidden;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 400;
-  color: var(--text);
+.big {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.unit {
+  color: var(--text-3);
+}
+
+.note {
+  margin-top: var(--space-2);
+  color: var(--text-3);
+  font-size: 12px;
 }

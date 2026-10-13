@@ -52,7 +52,10 @@ export function AccuracyChart({ rows }: { rows: MinuteRow[] }) {
   const last = rows.length - 1;
   const ticks = Array.from({ length: Math.round((hi - lo) / 0.05) + 1 }, (_, i) => lo + i * 0.05);
   return (
-    <Panel title="Accuracy by minute">
+    <Panel
+      title="Accuracy by minute"
+      actions={<span className={styles.legend}>solid: model, dashed: baseline</span>}
+    >
       <div className={styles.chart}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rows} margin={{ top: 8, right: 84, bottom: 0, left: 0 }}>

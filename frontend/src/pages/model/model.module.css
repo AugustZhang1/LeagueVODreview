@@ -1,5 +1,6 @@
 .intro {
   max-width: 72ch;
+  margin-bottom: var(--space-5);
 }
 
 .heading {
@@ -7,29 +8,62 @@
   font-weight: 600;
 }
 
-.summary {
-  margin-top: var(--space-3);
+.lede {
+  margin-top: var(--space-2);
   color: var(--text-2);
   font-size: 16px;
   line-height: 1.5;
 }
 
-.strong {
-  color: var(--text);
+/* One strip of four numbers. The 1px gaps show the background as dividers. */
+.kpis,
+.kpiSlot {
+  margin-bottom: var(--space-6);
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  background: var(--border-soft);
+}
+
+.kpi {
+  padding: var(--space-4) var(--space-5);
+  background: var(--surface);
+}
+
+.kpiValue {
   font-family: var(--font-num);
-  font-weight: 500;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
+}
+
+.kpiLabel {
+  margin-top: var(--space-1);
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .kpis {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   gap: var(--space-4);
-  margin-top: var(--space-6);
   align-items: start;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1100px) {
   .grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -39,8 +73,13 @@
   height: 260px;
 }
 
-.caption {
-  margin-bottom: var(--space-2);
+.legend {
+  color: var(--text-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.note {
   color: var(--text-2);
 }
 
@@ -101,8 +140,9 @@
   font-family: var(--font-text);
 }
 
+/* Your tier: gold tint with a gold bar on the left. */
 .mine {
-  background: var(--surface-2);
+  background: var(--you-tint);
 }
 
 .mine td:first-child {
@@ -111,15 +151,54 @@
 
 .youTag {
   margin-left: var(--space-2);
-  color: var(--text-3);
+  color: var(--text-2);
   font-size: 12px;
+}
+
+.features {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feature {
+  display: grid;
+  grid-template-columns: minmax(0, 150px) minmax(0, 1fr) 56px;
+  align-items: center;
+  gap: var(--space-3);
+  height: 26px;
+  font-size: 13px;
+}
+
+.featureName {
+  overflow: hidden;
+  color: var(--text-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.featureBar {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--text-2);
+}
+
+.featureValue {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.takeaway {
+  margin-top: var(--space-3);
+  color: var(--text-2);
+  font-size: 13px;
 }
 
 .code {
   font-family: var(--font-num);
   color: var(--text);
-}
-
-.noModel {
-  margin-top: var(--space-4);
 }

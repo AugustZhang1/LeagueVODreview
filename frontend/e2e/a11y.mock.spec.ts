@@ -61,7 +61,11 @@ async function tabUntil(page: Page, stop: RegExp, max = 60) {
       const cs = getComputedStyle(el);
       const name =
         el.getAttribute("aria-label") ?? el.textContent?.trim().slice(0, 30) ?? el.tagName;
-      return { name, ring: cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) >= 2 };
+      // The top bar's Riot ID input draws its ring on the search box around it.
+      const box = el.closest<HTMLElement>('form[role="search"]');
+      const ringed = (s: CSSStyleDeclaration) =>
+        s.outlineStyle !== "none" && parseFloat(s.outlineWidth) >= 2;
+      return { name, ring: ringed(cs) || (box !== null && ringed(getComputedStyle(box))) };
     });
     expect(info.ring, `focus ring on "${info.name}"`).toBe(true);
     seen.push(info.name);
@@ -83,11 +87,20 @@ test.describe("keyboard only", () => {
     await expect(page).toHaveURL(/\/p\/na1\/Me\/NA1/);
   });
 
-  test("games: refresh, then rows in order, Enter opens the review", async ({ page }) => {
+  test("games: refresh, filters, then rows in order, Enter opens the review", async ({ page }) => {
     await page.goto("/p/na1/Me/NA1");
     await expect(page.getByRole("link", { name: /Victory/ }).first()).toBeVisible();
     const seen = await tabUntil(page, /Victory/);
-    expect(seen.slice(0, 4)).toEqual(["LeagueVODreview", "Search", "Model", "Refresh"]);
+    expect(seen.slice(0, 8)).toEqual([
+      "LeagueVODreview",
+      "Search",
+      "Model",
+      "Riot ID",
+      "Refresh",
+      "All",
+      "Reviewed",
+      "Not yet",
+    ]);
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(new RegExp(`/review/${MATCH}`));
   });
@@ -101,13 +114,9 @@ test.describe("keyboard only", () => {
       "LeagueVODreview",
       "Search",
       "Model",
-      "16:50−9%",
-      "16:50Lost fight 1 for 3, then ",
-      "How to read this",
-      "18:55Won fight 3 for 1, then d",
-      "21:50Won fight 4 for 1+6%",
-      "08:18Took 3 Void Grubs+6%",
+      "Riot ID",
       "Games",
+      "How to read this",
       "Previous moment",
       "Next moment",
       "Play",
@@ -119,9 +128,9 @@ test.describe("keyboard only", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByRole("tooltip")).toHaveCount(0);
 
-    // rows of the moments list are reachable and Enter selects one (past Graded, Missed, Mine)
+    // the moment rows are reachable and Enter selects one (past Mistakes, Great, Missed, Mine)
     await tabUntil(page, /^All$/);
-    for (let i = 0; i < 4; i++) await page.keyboard.press("Tab");
+    for (let i = 0; i < 5; i++) await page.keyboard.press("Tab");
     await page.keyboard.press("Enter");
     await expect(page.locator("[data-moment] [aria-current]")).toHaveCount(1);
     await expect(page.locator('[data-testid^="detail-"]')).toBeVisible();

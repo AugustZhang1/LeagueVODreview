@@ -1,18 +1,21 @@
-import { memo, useMemo, useState, type MouseEvent } from "react";
+import { memo, useMemo, useState, type CSSProperties, type MouseEvent } from "react";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import type { Moment, ObjectiveWindow, Review } from "../../api/models";
-import { formatTime } from "../../lib/format";
-import { isGoodGrade, isStrongGrade } from "../../lib/grades";
+import { Delta } from "../../components/Delta";
 import { GradeBadge } from "../../components/GradeBadge";
-import { turningPoint, winAtClock, winLabel, winWord } from "./curve";
-import { PLOT_LEFT, PLOT_RIGHT } from "./layout";
+import { formatTime } from "../../lib/format";
+import { GRADES, gradeColor, gradeName } from "../../lib/grades";
+import { winAtClock, winLabel, winWord } from "./curve";
+import { HowToRead } from "./HowToRead";
+import { GRAPH_HEIGHT, PLOT_LEFT, PLOT_RIGHT } from "./layout";
 import styles from "./WinGraph.module.css";
 
-const HEIGHT = 192;
-const MARGIN = { top: 8, right: PLOT_RIGHT, bottom: 0, left: 0 };
+const HEIGHT = GRAPH_HEIGHT;
+/** Room above the plot for the grade tags. */
+const PLOT_TOP = 24;
+const MARGIN = { top: PLOT_TOP, right: PLOT_RIGHT, bottom: 0, left: 0 };
 const Y_AXIS_WIDTH = PLOT_LEFT;
 const X_AXIS_HEIGHT = 24;
-const PLOT_TOP = MARGIN.top;
 const PLOT_BOTTOM = HEIGHT - X_AXIS_HEIGHT;
 const GRADIENT_ID = "win-fill";
 const Y_TICKS = [0, 50, 100];
@@ -53,6 +56,7 @@ export const GraphChart = memo(function GraphChart({ review }: { review: Review 
     <ResponsiveContainer width="100%" height={HEIGHT}>
       <AreaChart data={data} margin={MARGIN} accessibilityLayer={false}>
         <defs>
+          {/* blue above the 50% line, red below it */}
           <linearGradient
             id={GRADIENT_ID}
             gradientUnits="userSpaceOnUse"
@@ -61,10 +65,10 @@ export const GraphChart = memo(function GraphChart({ review }: { review: Review 
             x2="0"
             y2={PLOT_BOTTOM}
           >
-            <stop offset="0" style={{ stopColor: "var(--ally-fill)" }} />
-            <stop offset="0.5" style={{ stopColor: "var(--ally-fill)" }} />
-            <stop offset="0.5" style={{ stopColor: "var(--enemy-fill)" }} />
-            <stop offset="1" style={{ stopColor: "var(--enemy-fill)" }} />
+            <stop offset="0" style={{ stopColor: "var(--ally-tint)" }} />
+            <stop offset="0.5" style={{ stopColor: "var(--ally-tint)" }} />
+            <stop offset="0.5" style={{ stopColor: "var(--enemy-tint)" }} />
+            <stop offset="1" style={{ stopColor: "var(--enemy-tint)" }} />
           </linearGradient>
         </defs>
         <XAxis
@@ -72,7 +76,7 @@ export const GraphChart = memo(function GraphChart({ review }: { review: Review 
           type="number"
           domain={[0, duration]}
           ticks={xTicks}
-          tickFormatter={(s: number) => String(s / 60)}
+          tickFormatter={(s: number) => formatTime(s)}
           height={X_AXIS_HEIGHT}
           tick={axisText}
           tickMargin={6}
@@ -95,7 +99,7 @@ export const GraphChart = memo(function GraphChart({ review }: { review: Review 
           dataKey="main"
           baseValue={50}
           type="linear"
-          stroke="var(--text-2)"
+          stroke="var(--text)"
           strokeWidth={2}
           fill={`url(#${GRADIENT_ID})`}
           dot={false}
@@ -107,7 +111,7 @@ export const GraphChart = memo(function GraphChart({ review }: { review: Review 
           dataKey="tail"
           baseValue={50}
           type="linear"
-          stroke="var(--text-2)"
+          stroke="var(--text)"
           strokeWidth={2}
           strokeDasharray="2 4"
           fill={`url(#${GRADIENT_ID})`}
@@ -162,6 +166,10 @@ export function WinGraph({ review, t, selected, selectedWindow, hoveredId, onSee
   );
 
   const span = selected ?? selectedWindow;
+  // the selected moment's band takes its grade's colour, faintly
+  const spanFill = selected?.grade
+    ? `color-mix(in srgb, ${gradeColor(selected.grade)} 14%, transparent)`
+    : "var(--surface-2)";
 
   const pct = (frac: number) => `${(Math.min(1, Math.max(0, frac)) * 100).toFixed(3)}%`;
   const timeAt = (e: MouseEvent<HTMLDivElement>) => {
@@ -172,27 +180,29 @@ export function WinGraph({ review, t, selected, selectedWindow, hoveredId, onSee
 
   const hoverMoment = hoverT === null ? null : momentAt(review.moments, hoverT, duration);
   const now = winAtClock(curve, t, duration);
-  const story = useMemo(
-    () => turningPoint(review.moments, review.summary.biggest_id),
-    [review.moments, review.summary.biggest_id],
-  );
 
   return (
     <section className={styles.graph} aria-label="Win chance">
-      <div className={styles.labelRow}>
-        <h2 className={styles.label}>
-          Win chance
-          <span className={`${styles.value} num`}>{winLabel(curve, t, duration)}</span>
-          <span className={styles.word}>{winWord(now)}</span>
-          <span className={styles.tug} aria-hidden="true">
-            <span className={styles.tugAlly} style={{ transform: `scaleX(${now})` }} />
-          </span>
-        </h2>
-        {story && (
-          <p className={styles.story}>
-            <span className={styles.storyLabel}>Turning point</span> {story}
+      <div className={styles.head}>
+        <div className={styles.current}>
+          <p className={styles.kicker}>
+            Win chance at <span className="num">{formatTime(t)}</span>
           </p>
-        )}
+          <div className={styles.reading}>
+            <span className={`${styles.value} num`}>{winLabel(curve, t, duration)}</span>
+            {selected && <Delta value={selected.delta} />}
+            <span className={styles.word}>{winWord(now)}</span>
+          </div>
+        </div>
+        <div className={styles.legend}>
+          {GRADES.map((g) => (
+            <span key={g} className={styles.legendItem}>
+              <GradeBadge grade={g} />
+              {gradeName(g).toLowerCase()}
+            </span>
+          ))}
+        </div>
+        <HowToRead />
       </div>
       <div className={styles.stage} style={{ height: HEIGHT }}>
         <div className={styles.layer} style={plotInset} aria-hidden="true">
@@ -214,6 +224,7 @@ export function WinGraph({ review, t, selected, selectedWindow, hoveredId, onSee
               style={{
                 left: pct(span.t_start / duration),
                 width: `max(2px, ${pct((span.t_end - span.t_start) / duration)})`,
+                background: spanFill,
               }}
             />
           )}
@@ -225,19 +236,25 @@ export function WinGraph({ review, t, selected, selectedWindow, hoveredId, onSee
           {markers.map(({ m, x, p }) => {
             const grade = m.grade!;
             const big = hoveredId === m.id || selected?.id === m.id;
-            const size = (isStrongGrade(grade) ? 10 : 8) + (big ? 4 : 0);
             return (
               <span
                 key={m.id}
                 data-testid={`marker-${m.id}`}
                 data-grown={big || undefined}
-                className={[
-                  styles.marker,
-                  isGoodGrade(grade) ? styles.good : styles.bad,
-                  isStrongGrade(grade) ? styles.filled : styles.ring,
-                ].join(" ")}
-                style={{ left: pct(x), top: pct(1 - p), width: size, height: size }}
-              />
+                className={big ? `${styles.marker} ${styles.grown}` : styles.marker}
+                style={
+                  {
+                    left: pct(x),
+                    top: pct(1 - p),
+                    "--grade": gradeColor(grade),
+                  } as CSSProperties
+                }
+              >
+                <span className={styles.dot} />
+                <span className={styles.tag} aria-hidden="true">
+                  {grade}
+                </span>
+              </span>
             );
           })}
           <div className={styles.now} style={{ left: pct(t / duration) }} data-testid="now-line" />

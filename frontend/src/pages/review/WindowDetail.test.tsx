@@ -27,6 +27,15 @@ const at = (id: string, t_end: number, title: string): Moment => ({
 });
 
 describe("WindowDetail", () => {
+  it("shows the span, worth and title above the reason", () => {
+    render(<WindowDetail window={win} moments={[]} />);
+    const detail = screen.getByTestId("detail-w9");
+    expect(within(detail).getByText("10:00–10:40")).toBeInTheDocument();
+    expect(within(detail).getByText("worth ~+7%")).toBeInTheDocument();
+    expect(within(detail).getByRole("heading", { level: 3 })).toHaveTextContent(win.title);
+    expect(within(detail).getByText(win.reason)).toBeInTheDocument();
+  });
+
   it("lists the moments that ended in the window or 10 s after it", () => {
     const moments = [
       at("before", 599, "Too early"),

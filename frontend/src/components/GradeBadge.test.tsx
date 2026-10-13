@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { GRADES } from "../lib/grades";
 import { GradeBadge } from "./GradeBadge";
 
 describe("GradeBadge", () => {
@@ -21,5 +22,15 @@ describe("GradeBadge", () => {
   it("keeps the glyph out of the accessibility tree", () => {
     render(<GradeBadge grade="??" />);
     expect(screen.getByText("??")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("gives each grade its own tone", () => {
+    const tones = GRADES.map((grade) => {
+      const { container, unmount } = render(<GradeBadge grade={grade} />);
+      const className = container.firstElementChild?.className;
+      unmount();
+      return className;
+    });
+    expect(new Set(tones).size).toBe(GRADES.length);
   });
 });

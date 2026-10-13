@@ -1,15 +1,11 @@
 import { ChevronLeft } from "lucide-react";
 import { Link } from "react-router-dom";
-import type { GradeCounts, Moment, Review } from "../../api/models";
+import type { Player, Review } from "../../api/models";
 import { ChampIcon } from "../../components/ChampIcon";
-import { Delta } from "../../components/Delta";
 import { GradeBadge } from "../../components/GradeBadge";
-import { splashUrl } from "../../lib/ddragon";
+import { ScoreBadge } from "../../components/ScoreBadge";
 import { formatFullDate, formatRelative, formatTime, formatWinChance } from "../../lib/format";
 import { GRADES } from "../../lib/grades";
-import { momentEnd } from "./curve";
-import { HowToRead } from "./HowToRead";
-import { BestPlays, TopMistakes } from "./TopMistakes";
 import styles from "./ReviewHeader.module.css";
 
 const ROLE_NAMES = {
@@ -28,24 +24,6 @@ function Facts({ label, value, title }: { label: string; value: string; title?: 
     </span>
   );
 }
-
-function Grades({ label, counts }: { label: string; counts: GradeCounts }) {
-  return (
-    <span className={styles.group}>
-      <span className={styles.factLabel}>{label}</span>
-      {GRADES.map((g) => (
-        <GradeBadge key={g} grade={g} count={counts[g]} />
-      ))}
-    </span>
-  );
-}
-
-type Props = {
-  review: Review;
-  participantId: number;
-  /** Jumps to a moment (the biggest swing). */
-  onJump: (m: Moment) => void;
-};
 
 export function notesFor(review: Review): string[] {
   const { match } = review;
@@ -78,11 +56,24 @@ export function comebackOf(review: Review): Comeback | null {
   return null;
 }
 
-export function ReviewHeader({ review, participantId, onJump }: Props) {
+/**
+ * My place among the players by score (1 is best). Ties go to the lower participant id,
+ * and a player with no score ranks below everyone who has one. Null when I have no score.
+ */
+export function scoreRank(players: Player[], me: Player): number | null {
+  const mine = me.score;
+  if (mine == null) return null;
+  const ahead = players.filter((p) => {
+    const s = p.score ?? -1;
+    return s > mine || (s === mine && p.participant_id < me.participant_id);
+  });
+  return ahead.length + 1;
+}
+
+export function ReviewHeader({ review }: { review: Review }) {
   const { match, summary } = review;
   const me = review.players.find((p) => p.is_me) ?? review.players[0];
   const win = match.result === "win";
-  const biggest = review.moments.find((m) => m.id === summary.biggest_id);
   const [name, tag] = me.riot_id.split("#");
   const gamesHref = `/p/${encodeURIComponent(match.platform.toLowerCase())}/${encodeURIComponent(name)}/${encodeURIComponent(tag ?? "")}`;
   const surrender = match.surrender
@@ -95,16 +86,15 @@ export function ReviewHeader({ review, participantId, onJump }: Props) {
 
   return (
     <header className={styles.header}>
-      <div
-        className={styles.splash}
-        style={{ backgroundImage: `url(${splashUrl(me.champion)})` }}
-        aria-hidden="true"
-      />
+      <Link to={gamesHref} className={styles.back}>
+        <ChevronLeft size={16} aria-hidden="true" />
+        Games
+      </Link>
       <ChampIcon
         version={match.ddragon_version}
         champion={me.champion}
         name={me.champion_name}
-        size={48}
+        size={42}
       />
       <div className={styles.body}>
         <div className={styles.titleRow}>
@@ -113,11 +103,21 @@ export function ReviewHeader({ review, participantId, onJump }: Props) {
             {me.champion_name}
             {surrender}
           </h1>
-          {notes.map((n) => (
-            <p key={n} className={styles.note}>
-              {n}
-            </p>
-          ))}
+          <div className={styles.summary}>
+            <ScoreBadge
+              score={me.score}
+              badge={me.badge}
+              rank={scoreRank(review.players, me)}
+              label="Score"
+              size="md"
+            />
+            <span className={styles.grades}>
+              <span className={styles.label}>Your grades</span>
+              {GRADES.map((g) => (
+                <GradeBadge key={g} grade={g} count={summary.me[g]} />
+              ))}
+            </span>
+          </div>
         </div>
         <div className={styles.facts}>
           <Facts label="Role" value={ROLE_NAMES[me.role]} />
@@ -128,24 +128,6 @@ export function ReviewHeader({ review, participantId, onJump }: Props) {
             value={formatRelative(match.started_at)}
             title={formatFullDate(match.started_at)}
           />
-          <Grades label="You" counts={summary.me} />
-          <Grades label="Team" counts={summary.team} />
-          {biggest && (
-            <span className={styles.fact}>
-              <span className={styles.factLabel}>Biggest swing</span>
-              <a
-                className={styles.link}
-                href={`/review/${encodeURIComponent(match.match_id)}?p=${participantId}&t=${momentEnd(biggest, match.duration_s)}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onJump(biggest);
-                }}
-              >
-                <span className="num">{formatTime(biggest.t_end)}</span>
-                <Delta value={biggest.delta} />
-              </a>
-            </span>
-          )}
           {comeback && (
             <Facts
               label={comeback.kind === "comeback" ? "Comeback" : "Thrown lead"}
@@ -153,18 +135,12 @@ export function ReviewHeader({ review, participantId, onJump }: Props) {
             />
           )}
         </div>
-        <div className={styles.row}>
-          <TopMistakes review={review} participantId={participantId} onJump={onJump} />
-          <HowToRead />
-        </div>
-        <div className={styles.row}>
-          <BestPlays review={review} participantId={participantId} onJump={onJump} />
-        </div>
+        {notes.map((n) => (
+          <p key={n} className={styles.note}>
+            {n}
+          </p>
+        ))}
       </div>
-      <Link to={gamesHref} className={styles.back}>
-        <ChevronLeft size={16} aria-hidden="true" />
-        Games
-      </Link>
     </header>
   );
 }

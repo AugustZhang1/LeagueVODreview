@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import type { Moment, Review } from "../../api/models";
 import { useReplaySeek, useReplayStatus, useReview } from "../../api/queries";
@@ -6,7 +6,9 @@ import { ErrorBox } from "../../components/ErrorBox";
 import { Panel } from "../../components/Panel";
 import { Skeleton } from "../../components/Skeleton";
 import { GameNotes } from "./GameNotes";
+import { ImpactChart } from "./ImpactChart";
 import { LaneChart } from "./LaneChart";
+import { GRAPH_HEIGHT } from "./layout";
 import { Minimap } from "./Minimap";
 import { MomentList } from "./MomentList";
 import { ReviewHeader } from "./ReviewHeader";
@@ -18,6 +20,8 @@ import styles from "./ReviewPage.module.css";
 
 /** How far before a moment starts the League replay is sent, in seconds. */
 const REPLAY_LEAD_S = 15;
+
+const leadIn = (m: Moment) => Math.max(0, m.t_start - REPLAY_LEAD_S);
 
 const TYPING = "input:not([type=range]), textarea, select, [contenteditable]";
 
@@ -79,42 +83,64 @@ function ReviewView({
 }) {
   const matchId = review.match.match_id;
   const status = useReplayStatus(matchId);
-  const seekReplay = useReplaySeek(matchId);
+  // mutate is stable, so this callback only changes when replayReady does
+  const seekTo = useReplaySeek(matchId).mutate;
   const replayReady = status.data?.available === true;
-  const leadIn = (m: Moment) => Math.max(0, m.t_start - REPLAY_LEAD_S);
-  const time = useReviewTime(review, initialT, (m) => {
-    if (replayReady) seekReplay.mutate(leadIn(m));
-  });
+  const onSelectMoment = useCallback(
+    (m: Moment) => {
+      if (replayReady) seekTo(leadIn(m));
+    },
+    [replayReady, seekTo],
+  );
+  const time = useReviewTime(review, initialT, onSelectMoment);
   const replay: ReplayControl = {
     available: replayReady,
     reason: status.data?.reason ?? "Open this game's replay in the League client",
-    onOpen: () => seekReplay.mutate(time.selected ? leadIn(time.selected) : time.t),
+    onOpen: () => seekTo(time.selected ? leadIn(time.selected) : time.t),
   };
   useShortcuts(time, () => replayReady && replay.onOpen());
   const { t, snapshot, selected, selectedWindow, moments, windows } = time;
   const { seek, selectMoment, selectWindow, setHoveredId, setFilter } = time;
 
   return (
-    <div className={styles.page}>
-      <ReviewHeader review={review} participantId={participantId} onJump={selectMoment} />
-      <WinGraph
-        review={review}
-        t={t}
-        selected={selected}
-        selectedWindow={selectedWindow}
-        hoveredId={time.hoveredId}
-        onSeek={seek}
-      />
-      <Scrubber
-        t={t}
-        duration={time.duration}
-        curve={review.curve}
-        playing={time.playing}
-        onSeek={seek}
-        onStep={time.stepMoment}
-        onTogglePlay={time.togglePlay}
-        replay={replay}
-      />
+    <div className={styles.page} data-wide>
+      <div className={styles.head}>
+        <ReviewHeader review={review} />
+      </div>
+      <div className={styles.chart}>
+        <WinGraph
+          review={review}
+          t={t}
+          selected={selected}
+          selectedWindow={selectedWindow}
+          hoveredId={time.hoveredId}
+          onSeek={seek}
+        />
+        <Scrubber
+          t={t}
+          duration={time.duration}
+          curve={review.curve}
+          playing={time.playing}
+          onSeek={seek}
+          onStep={time.stepMoment}
+          onTogglePlay={time.togglePlay}
+          replay={replay}
+        />
+      </div>
+      <div className={styles.moments}>
+        <MomentList
+          review={review}
+          moments={moments}
+          windows={windows}
+          filter={time.filter}
+          selectedId={selected?.id ?? null}
+          onFilter={setFilter}
+          selectedWindowId={selectedWindow?.id ?? null}
+          onSelect={selectMoment}
+          onSelectWindow={selectWindow}
+          onHover={setHoveredId}
+        />
+      </div>
       <div className={styles.panels}>
         <div className={styles.minimap}>
           <Minimap review={review} snapshot={snapshot} t={t} />
@@ -122,23 +148,10 @@ function ReviewView({
         <div className={styles.scoreboard}>
           <Scoreboard review={review} snapshot={snapshot} t={t} />
         </div>
-        <div className={styles.moments}>
-          <MomentList
-            review={review}
-            moments={moments}
-            windows={windows}
-            filter={time.filter}
-            selectedId={selected?.id ?? null}
-            onFilter={setFilter}
-            selectedWindowId={selectedWindow?.id ?? null}
-            onSelect={selectMoment}
-            onSelectWindow={selectWindow}
-            onHover={setHoveredId}
-          />
-        </div>
       </div>
       <div className={styles.extras}>
         <LaneChart review={review} />
+        <ImpactChart review={review} />
         <GameNotes matchId={matchId} participantId={participantId} t={t} />
       </div>
     </div>
@@ -147,40 +160,45 @@ function ReviewView({
 
 function ReviewSkeleton({ building }: { building: boolean }) {
   return (
-    <div className={styles.page} aria-busy="true">
-      <div className={styles.skelHeader}>
-        <Skeleton width={48} height={48} round />
-        <div className={styles.skelHeaderText}>
-          <Skeleton width={220} height={24} />
-          <Skeleton width={560} height={20} />
-          <div className={styles.skelRow}>
-            <Skeleton width={140} height={18} />
-            <Skeleton width={220} height={20} />
-            <Skeleton width={110} height={18} />
-          </div>
-          <div className={styles.skelRow}>
-            <Skeleton width={120} height={18} />
-            <Skeleton width={220} height={20} />
+    <div className={styles.page} aria-busy="true" data-wide>
+      <div className={styles.head}>
+        <div className={styles.skelHeader}>
+          <Skeleton width={42} height={42} round />
+          <div className={styles.skelHeaderText}>
+            <div className={styles.skelTitleRow}>
+              <Skeleton width={260} height={28} />
+              <div className={styles.skelSummary}>
+                <Skeleton width={44} height={32} />
+                <Skeleton width={260} height={20} />
+              </div>
+            </div>
+            <Skeleton width={480} height={18} />
           </div>
         </div>
       </div>
-      <div className={styles.skelGraph}>
-        <Skeleton height={216} />
-        {building && <p className={styles.building}>Building review…</p>}
+      <div className={styles.chart}>
+        <div className={styles.skelReading}>
+          <Skeleton width={180} height={16} />
+          <Skeleton width={120} height={34} />
+        </div>
+        <div className={styles.skelGraph}>
+          <Skeleton height={GRAPH_HEIGHT} />
+          {building && <p className={styles.building}>Building review…</p>}
+        </div>
+        <Skeleton height={32} />
       </div>
-      <Skeleton height={32} />
+      <div className={styles.moments}>
+        <Panel title="Moments" className={styles.skelMoments}>
+          <Skeleton height={346} />
+        </Panel>
+      </div>
       <div className={styles.panels}>
-        <div className={styles.minimap}>
-          <Skeleton height={360} />
+        <div className={`${styles.minimap} ${styles.skelMinimap}`}>
+          <Skeleton height="100%" />
         </div>
         <div className={styles.scoreboard}>
           <Panel title="Scoreboard">
             <Skeleton height={344} />
-          </Panel>
-        </div>
-        <div className={styles.moments}>
-          <Panel title="Moments" className={styles.skelMoments}>
-            <Skeleton height={346} />
           </Panel>
         </div>
       </div>
@@ -190,6 +208,12 @@ function ReviewSkeleton({ building }: { building: boolean }) {
           <div className={styles.skelChecks}>
             <Skeleton height={20} />
             <Skeleton height={20} />
+          </div>
+        </Panel>
+        <Panel title={<Skeleton width={160} height={16} />}>
+          <Skeleton height={200} />
+          <div className={styles.skelChecks}>
+            <Skeleton height={17} />
           </div>
         </Panel>
         <Panel title="Notes">
@@ -212,7 +236,7 @@ export function ReviewPage() {
 
   if (query.isError) {
     return (
-      <div className={styles.page}>
+      <div className={styles.page} data-wide>
         <ErrorBox error={query.error} onRetry={() => void query.refetch()} />
       </div>
     );

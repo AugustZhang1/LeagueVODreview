@@ -1,23 +1,50 @@
 .row {
   position: relative;
   display: grid;
-  grid-template-columns: 32px 88px 88px 120px 80px 64px 1fr 64px;
+  grid-template-columns: 32px 92px 108px minmax(56px, 1fr) 84px 56px 76px 104px 84px;
   align-items: center;
-  gap: var(--space-4);
-  height: 56px;
+  gap: var(--space-2);
+  min-height: 64px;
   padding: 0 var(--space-4);
+  font-variant-numeric: tabular-nums;
 }
 
-.link {
-  display: grid;
+/* The games list is the container (see GamesPage). Narrower lists drop CS and grade counts,
+   then the sparkline and the time. */
+@container games (max-width: 787px) {
+  .row {
+    grid-template-columns: 32px 92px 108px minmax(56px, 1fr) 84px 76px 84px;
+  }
+
+  .cs,
+  .grades {
+    display: none;
+  }
 }
 
-.link:hover {
-  background: var(--surface-2);
+@container games (max-width: 611px) {
+  .row {
+    grid-template-columns: 32px 92px 108px 84px 84px;
+  }
+
+  .chart,
+  .time {
+    display: none;
+  }
 }
 
-.link::before,
-.muted::before {
+@container games (max-width: 463px) {
+  .row {
+    grid-template-columns: 32px minmax(56px, 1fr) 108px 84px;
+  }
+
+  .kda {
+    display: none;
+  }
+}
+
+/* Left edge: blue for a win, red for a loss, none for a remake. */
+.row::before {
   content: "";
   position: absolute;
   top: 0;
@@ -26,12 +53,16 @@
   width: 3px;
 }
 
-.link:has(.win)::before {
+.win::before {
   background: var(--ally);
 }
 
-.link:has(.loss)::before {
+.loss::before {
   background: var(--enemy);
+}
+
+.link:hover {
+  background: var(--surface-2);
 }
 
 .muted {
@@ -42,72 +73,125 @@
   font-weight: 600;
 }
 
-.win {
+.win .result {
   color: var(--ally);
 }
 
-.loss {
+.loss .result {
   color: var(--enemy);
 }
 
 .role {
-  color: var(--text-2);
-}
-
-.muted .role,
-.muted .result {
+  display: block;
   color: var(--text-3);
+  font-size: 12px;
+  font-weight: 400;
 }
 
-.num {
+.chart {
+  min-width: 0;
+}
+
+.sparkSvg {
+  display: block;
+  width: 100%;
+  height: 28px;
+  overflow: visible;
+}
+
+.midline {
+  stroke: var(--border);
+  stroke-dasharray: 2 3;
+}
+
+.lineWin,
+.lineLoss {
+  fill: none;
+  stroke-width: 1.5px;
+}
+
+.lineWin {
+  stroke: var(--ally);
+}
+
+.lineLoss {
+  stroke: var(--enemy);
+}
+
+/* One line: the cell is about 68 px wide at desktop widths, and "Not reviewed" is 68 px at 12 px. */
+.none {
+  display: block;
+  color: var(--text-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.kda {
+  display: grid;
+  justify-items: end;
   text-align: right;
+}
+
+/* Beats the global .num weight. */
+.row .kdaLine {
+  font-family: var(--font-num);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ratio {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.cs {
+  color: var(--text-2);
+  font-family: var(--font-num);
+  text-align: right;
+}
+
+.time {
+  display: grid;
+  justify-items: end;
+  color: var(--text-2);
+  font-family: var(--font-num);
 }
 
 .date {
   color: var(--text-3);
+  font-family: var(--font-text);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
-.check {
+.grades {
   display: flex;
   justify-content: flex-end;
-  color: var(--text-3);
+  gap: 4px;
+  min-width: 0;
 }
 
-/* "Review" shows on the row under the mouse or focus, so the list reads as clickable. */
-.open {
-  color: var(--text);
+.tagCell {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 600;
-  opacity: 0;
-  transform: translateX(-4px);
-  transition:
-    opacity 150ms ease-out,
-    transform 150ms ease-out;
+  white-space: nowrap;
 }
 
-.link:hover .open,
-.link:focus-visible .open {
-  opacity: 1;
-  transform: none;
+/* Neutral outline: reviewed already. */
+.done {
+  border: 1px solid var(--border);
+  color: var(--text-2);
 }
 
-.link {
-  transition: background-color 120ms ease-out;
-}
-
-@media (max-width: 640px) {
-  .row {
-    grid-template-columns: 32px 72px 1fr 64px;
-  }
-
-  .open {
-    opacity: 1;
-    transform: none;
-  }
-
-  .row > :nth-child(3),
-  .row > :nth-child(5),
-  .row > :nth-child(6),
-  .row > :nth-child(7) {
-    display: none;
-  }
+/* Filled light: not reviewed yet. */
+.todo {
+  background: var(--text);
+  color: var(--bg);
 }
