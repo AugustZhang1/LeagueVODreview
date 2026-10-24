@@ -143,9 +143,13 @@ describe("review page", () => {
     const list = () => document.querySelectorAll("[data-moment]");
     const count = (keep: (m: Moment) => boolean) => review.moments.filter(keep).length;
     expect(list()).toHaveLength(review.moments.length + review.windows.length);
-    await user.click(screen.getByRole("button", { name: "Mistakes" }));
-    expect(count((m) => m.grade === "?" || m.grade === "??")).toBeGreaterThan(0);
-    expect(list()).toHaveLength(count((m) => m.grade === "?" || m.grade === "??"));
+    const bad = (m: Moment) => m.grade === "?" || m.grade === "??";
+    await user.click(screen.getByRole("button", { name: "Your mistakes" }));
+    expect(count((m) => bad(m) && m.involves_me)).toBeGreaterThan(0);
+    expect(list()).toHaveLength(count((m) => bad(m) && m.involves_me));
+    await user.click(screen.getByRole("button", { name: "Team mistakes" }));
+    expect(count((m) => bad(m) && !m.involves_me)).toBeGreaterThan(0);
+    expect(list()).toHaveLength(count((m) => bad(m) && !m.involves_me));
     await user.click(screen.getByRole("button", { name: "Great" }));
     expect(count((m) => m.grade === "!!" || m.grade === "!")).toBeGreaterThan(0);
     expect(list()).toHaveLength(count((m) => m.grade === "!!" || m.grade === "!"));
@@ -172,7 +176,7 @@ describe("review page", () => {
     await user.click(screen.getByRole("button", { name: "Missed" }));
     expect(rows()).toHaveLength(missed.length);
     expect(screen.queryByLabelText("Used window")).toBeNull();
-    await user.click(screen.getByRole("button", { name: "Mistakes" }));
+    await user.click(screen.getByRole("button", { name: "Your mistakes" }));
     expect(screen.queryByLabelText("Missed window")).toBeNull();
     expect(screen.queryByLabelText("Used window")).toBeNull();
     expect(screen.queryByText(/Baron up/)).toBeNull();

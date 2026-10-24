@@ -11,15 +11,19 @@ import type { MomentFilter } from "./useReviewTime";
 
 const OPTIONS: { value: MomentFilter; label: string }[] = [
   { value: "all", label: "All" },
-  { value: "mistakes", label: "Mistakes" },
+  { value: "yours", label: "Your mistakes" },
+  { value: "team", label: "Team mistakes" },
   { value: "great", label: "Great" },
   { value: "missed", label: "Missed" },
   { value: "mine", label: "Mine" },
 ];
 
+const isMistake = (m: Moment) => m.grade === "?" || m.grade === "??";
+
 export function filterMoments(moments: Moment[], filter: MomentFilter): Moment[] {
   if (filter === "missed") return [];
-  if (filter === "mistakes") return moments.filter((m) => m.grade === "?" || m.grade === "??");
+  if (filter === "yours") return moments.filter((m) => isMistake(m) && m.involves_me);
+  if (filter === "team") return moments.filter((m) => isMistake(m) && !m.involves_me);
   if (filter === "great") return moments.filter((m) => m.grade === "!!" || m.grade === "!");
   if (filter === "mine") return moments.filter((m) => m.involves_me);
   return moments;

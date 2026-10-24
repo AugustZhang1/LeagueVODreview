@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Moment, ObjectiveWindow, Review, Snapshot } from "../../api/models";
 import { momentEnd } from "./curve";
 
-export type MomentFilter = "all" | "mistakes" | "great" | "missed" | "mine";
+export type MomentFilter = "all" | "yours" | "team" | "great" | "missed" | "mine";
 
 const URL_WRITE_MS = 200;
 const PLAY_RATE = 60;

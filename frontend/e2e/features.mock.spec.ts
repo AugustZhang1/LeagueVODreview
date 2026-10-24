@@ -36,11 +36,11 @@ test("How to read this opens and explains the grades", async ({ page }) => {
   await expect(page.getByText("The model is least sure in the first 5 minutes.")).toBeVisible();
 });
 
-test("the Mistakes filter lists the mistakes and jumps to the moment", async ({ page }) => {
-  // The header's "Your biggest mistakes" links were removed; the Mistakes filter replaces them.
+test("the Your mistakes filter lists the mistakes and jumps to the moment", async ({ page }) => {
+  // The header's "Your biggest mistakes" links were removed; the mistakes filters replace them.
   await openReview(page);
   const moments = panel(page, "Moments");
-  await moments.getByRole("button", { name: "Mistakes", exact: true }).click();
+  await moments.getByRole("button", { name: "Your mistakes", exact: true }).click();
   await expect(row(page, /Won fight 2 for 1/)).toHaveCount(0);
 
   await row(page, /Lost fight 1 for 3/).click();

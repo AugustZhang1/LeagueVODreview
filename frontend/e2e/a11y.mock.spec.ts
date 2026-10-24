@@ -128,9 +128,9 @@ test.describe("keyboard only", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByRole("tooltip")).toHaveCount(0);
 
-    // the moment rows are reachable and Enter selects one (past Mistakes, Great, Missed, Mine)
+    // the moment rows are reachable and Enter selects one (past Your mistakes, Team mistakes, Great, Missed, Mine)
     await tabUntil(page, /^All$/);
-    for (let i = 0; i < 5; i++) await page.keyboard.press("Tab");
+    for (let i = 0; i < 6; i++) await page.keyboard.press("Tab");
     await page.keyboard.press("Enter");
     await expect(page.locator("[data-moment] [aria-current]")).toHaveCount(1);
     await expect(page.locator('[data-testid^="detail-"]')).toBeVisible();
