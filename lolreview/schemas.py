@@ -343,3 +343,66 @@ class ReplaySeek(BaseModel):
 
 class ReplaySeekResult(BaseModel):
     ok: bool
+
+
+class WorldsPlayer(BaseModel):
+    name: str
+    champion: str  # Data Dragon id, e.g. "KSante"
+    role: str
+    level: int
+    k: int
+    d: int
+    a: int
+    cs: int
+    gold: int
+
+
+class WorldsTeam(BaseModel):
+    code: str
+    name: str
+    side: Literal["blue", "red"]
+    series_wins: int
+    gold: int
+    kills: int
+    towers: int
+    dragons: int
+    barons: int
+    players: list[WorldsPlayer]
+
+
+class WorldsPoint(BaseModel):
+    t: int  # seconds into the game
+    blue: WorldsTeam  # both teams as they stood at t
+    red: WorldsTeam
+
+
+class WorldsGame(BaseModel):
+    id: str
+    stage: str
+    best_of: int
+    patch: str
+    elapsed_s: int
+    live: bool  # still being played
+    points: list[WorldsPoint]
+
+
+class WorldsLive(BaseModel):
+    games: list[WorldsGame]
+
+
+class WorldsMatchTeam(BaseModel):
+    code: str
+    wins: int
+
+
+class WorldsMatch(BaseModel):
+    id: str
+    start: str
+    stage: str
+    best_of: int
+    live: bool
+    teams: list[WorldsMatchTeam]
+
+
+class WorldsMatches(BaseModel):
+    matches: list[WorldsMatch]

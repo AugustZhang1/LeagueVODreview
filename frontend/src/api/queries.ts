@@ -8,6 +8,8 @@ import type {
   ReplaySeekResult,
   ReplayStatus,
   Review,
+  WorldsLive,
+  WorldsMatches,
 } from "./models";
 
 const PAGE_SIZE = 10;
@@ -101,5 +103,34 @@ export function useReplaySeek(matchId: string) {
   return useMutation({
     mutationFn: (t: number) =>
       apiPost<ReplaySeekResult>("/api/replay/seek", { match_id: matchId, t }),
+  });
+}
+
+/** The Worlds games being played now, refreshed every 10 s while the tab is open. */
+export function useWorldsLive() {
+  return useQuery({
+    queryKey: ["worlds-live"],
+    queryFn: ({ signal }) => apiGet<WorldsLive>("/api/worlds/live", signal),
+    refetchInterval: 10_000,
+    ...retryOptions,
+  });
+}
+
+export function useWorldsMatches() {
+  return useQuery({
+    queryKey: ["worlds-matches"],
+    queryFn: ({ signal }) => apiGet<WorldsMatches>("/api/worlds/matches", signal),
+    ...retryOptions,
+  });
+}
+
+/** Every game played so far in one Worlds match; finished games don't change, so it is cached. */
+export function useWorldsMatch(matchId: string | null) {
+  return useQuery({
+    queryKey: ["worlds-match", matchId],
+    queryFn: ({ signal }) => apiGet<WorldsLive>(`/api/worlds/match/${matchId}`, signal),
+    enabled: matchId !== null,
+    staleTime: Infinity,
+    ...retryOptions,
   });
 }

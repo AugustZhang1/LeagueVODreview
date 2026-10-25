@@ -6,6 +6,7 @@ import { TopBar } from "./components/TopBar";
 import { GamesPage } from "./pages/GamesPage";
 import { ModelPage } from "./pages/ModelPage";
 import { SearchPage } from "./pages/SearchPage";
+import { WorldsPage } from "./pages/WorldsPage";
 import { ReviewPage } from "./pages/review/ReviewPage";
 import styles from "./App.module.css";
 
@@ -38,6 +39,7 @@ export function App() {
           path="/review/NA1_1000000004"
           element={<Navigate to="/review/NA1_5650873814?p=1" replace />}
         />
+        <Route path="/worlds" element={<WorldsPage />} />
         <Route path="/model" element={<ModelPage />} />
         {DevComponents && (
           <Route

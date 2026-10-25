@@ -137,6 +137,10 @@ export const handlers = [
     return HttpResponse.json(reviewFor(String(params.matchId)));
   }),
 
+  http.get("/api/worlds/live", () => HttpResponse.json({ games: [] })),
+  http.get("/api/worlds/matches", () => HttpResponse.json({ matches: [] })),
+  http.get("/api/worlds/match/:id", () => HttpResponse.json({ games: [] })),
+
   http.get("/api/replay/status", async () => {
     const status: ReplayStatus = { available: false, reason: replayReason };
     if (mode === "replay_open") return HttpResponse.json({ available: true, reason: null });

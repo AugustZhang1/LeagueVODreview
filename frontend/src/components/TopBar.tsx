@@ -21,6 +21,9 @@ export function TopBar() {
           <NavLink to="/" end className={navClass}>
             Search
           </NavLink>
+          <NavLink to="/worlds" className={navClass}>
+            World Stats
+          </NavLink>
           <NavLink to="/model" className={navClass}>
             Model
           </NavLink>

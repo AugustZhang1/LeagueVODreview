@@ -123,6 +123,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/worlds/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Worlds Live */
+        get: operations["worlds_live_api_worlds_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/worlds/match/{match_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Worlds Match */
+        get: operations["worlds_match_api_worlds_match__match_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/worlds/matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Worlds Matches */
+        get: operations["worlds_matches_api_worlds_matches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -710,6 +761,109 @@ export interface components {
             /** What */
             what: string;
         };
+        /** WorldsGame */
+        WorldsGame: {
+            /** Best Of */
+            best_of: number;
+            /** Elapsed S */
+            elapsed_s: number;
+            /** Id */
+            id: string;
+            /** Live */
+            live: boolean;
+            /** Patch */
+            patch: string;
+            /** Points */
+            points: components["schemas"]["WorldsPoint"][];
+            /** Stage */
+            stage: string;
+        };
+        /** WorldsLive */
+        WorldsLive: {
+            /** Games */
+            games: components["schemas"]["WorldsGame"][];
+        };
+        /** WorldsMatch */
+        WorldsMatch: {
+            /** Best Of */
+            best_of: number;
+            /** Id */
+            id: string;
+            /** Live */
+            live: boolean;
+            /** Stage */
+            stage: string;
+            /** Start */
+            start: string;
+            /** Teams */
+            teams: components["schemas"]["WorldsMatchTeam"][];
+        };
+        /** WorldsMatchTeam */
+        WorldsMatchTeam: {
+            /** Code */
+            code: string;
+            /** Wins */
+            wins: number;
+        };
+        /** WorldsMatches */
+        WorldsMatches: {
+            /** Matches */
+            matches: components["schemas"]["WorldsMatch"][];
+        };
+        /** WorldsPlayer */
+        WorldsPlayer: {
+            /** A */
+            a: number;
+            /** Champion */
+            champion: string;
+            /** Cs */
+            cs: number;
+            /** D */
+            d: number;
+            /** Gold */
+            gold: number;
+            /** K */
+            k: number;
+            /** Level */
+            level: number;
+            /** Name */
+            name: string;
+            /** Role */
+            role: string;
+        };
+        /** WorldsPoint */
+        WorldsPoint: {
+            blue: components["schemas"]["WorldsTeam"];
+            red: components["schemas"]["WorldsTeam"];
+            /** T */
+            t: number;
+        };
+        /** WorldsTeam */
+        WorldsTeam: {
+            /** Barons */
+            barons: number;
+            /** Code */
+            code: string;
+            /** Dragons */
+            dragons: number;
+            /** Gold */
+            gold: number;
+            /** Kills */
+            kills: number;
+            /** Name */
+            name: string;
+            /** Players */
+            players: components["schemas"]["WorldsPlayer"][];
+            /** Series Wins */
+            series_wins: number;
+            /**
+             * Side
+             * @enum {string}
+             */
+            side: "blue" | "red";
+            /** Towers */
+            towers: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -1144,6 +1298,230 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Review"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    worlds_live_api_worlds_live_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldsLive"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    worlds_match_api_worlds_match__match_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                match_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldsLive"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    worlds_matches_api_worlds_matches_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldsMatches"];
                 };
             };
             /** @description Unauthorized */

@@ -1717,6 +1717,282 @@
         ],
         "title": "WindowOption",
         "type": "object"
+      },
+      "WorldsGame": {
+        "properties": {
+          "best_of": {
+            "title": "Best Of",
+            "type": "integer"
+          },
+          "elapsed_s": {
+            "title": "Elapsed S",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "live": {
+            "title": "Live",
+            "type": "boolean"
+          },
+          "patch": {
+            "title": "Patch",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/WorldsPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "stage",
+          "best_of",
+          "patch",
+          "elapsed_s",
+          "live",
+          "points"
+        ],
+        "title": "WorldsGame",
+        "type": "object"
+      },
+      "WorldsLive": {
+        "properties": {
+          "games": {
+            "items": {
+              "$ref": "#/components/schemas/WorldsGame"
+            },
+            "title": "Games",
+            "type": "array"
+          }
+        },
+        "required": [
+          "games"
+        ],
+        "title": "WorldsLive",
+        "type": "object"
+      },
+      "WorldsMatch": {
+        "properties": {
+          "best_of": {
+            "title": "Best Of",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "live": {
+            "title": "Live",
+            "type": "boolean"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "string"
+          },
+          "start": {
+            "title": "Start",
+            "type": "string"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/WorldsMatchTeam"
+            },
+            "title": "Teams",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "start",
+          "stage",
+          "best_of",
+          "live",
+          "teams"
+        ],
+        "title": "WorldsMatch",
+        "type": "object"
+      },
+      "WorldsMatchTeam": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "wins": {
+            "title": "Wins",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "wins"
+        ],
+        "title": "WorldsMatchTeam",
+        "type": "object"
+      },
+      "WorldsMatches": {
+        "properties": {
+          "matches": {
+            "items": {
+              "$ref": "#/components/schemas/WorldsMatch"
+            },
+            "title": "Matches",
+            "type": "array"
+          }
+        },
+        "required": [
+          "matches"
+        ],
+        "title": "WorldsMatches",
+        "type": "object"
+      },
+      "WorldsPlayer": {
+        "properties": {
+          "a": {
+            "title": "A",
+            "type": "integer"
+          },
+          "champion": {
+            "title": "Champion",
+            "type": "string"
+          },
+          "cs": {
+            "title": "Cs",
+            "type": "integer"
+          },
+          "d": {
+            "title": "D",
+            "type": "integer"
+          },
+          "gold": {
+            "title": "Gold",
+            "type": "integer"
+          },
+          "k": {
+            "title": "K",
+            "type": "integer"
+          },
+          "level": {
+            "title": "Level",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "champion",
+          "role",
+          "level",
+          "k",
+          "d",
+          "a",
+          "cs",
+          "gold"
+        ],
+        "title": "WorldsPlayer",
+        "type": "object"
+      },
+      "WorldsPoint": {
+        "properties": {
+          "blue": {
+            "$ref": "#/components/schemas/WorldsTeam"
+          },
+          "red": {
+            "$ref": "#/components/schemas/WorldsTeam"
+          },
+          "t": {
+            "title": "T",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "t",
+          "blue",
+          "red"
+        ],
+        "title": "WorldsPoint",
+        "type": "object"
+      },
+      "WorldsTeam": {
+        "properties": {
+          "barons": {
+            "title": "Barons",
+            "type": "integer"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "dragons": {
+            "title": "Dragons",
+            "type": "integer"
+          },
+          "gold": {
+            "title": "Gold",
+            "type": "integer"
+          },
+          "kills": {
+            "title": "Kills",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/WorldsPlayer"
+            },
+            "title": "Players",
+            "type": "array"
+          },
+          "series_wins": {
+            "title": "Series Wins",
+            "type": "integer"
+          },
+          "side": {
+            "enum": [
+              "blue",
+              "red"
+            ],
+            "title": "Side",
+            "type": "string"
+          },
+          "towers": {
+            "title": "Towers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "side",
+          "series_wins",
+          "gold",
+          "kills",
+          "towers",
+          "dragons",
+          "barons",
+          "players"
+        ],
+        "title": "WorldsTeam",
+        "type": "object"
       }
     }
   },
@@ -2312,6 +2588,251 @@
           }
         },
         "summary": "Review"
+      }
+    },
+    "/api/worlds/live": {
+      "get": {
+        "operationId": "worlds_live_api_worlds_live_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorldsLive"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Worlds Live"
+      }
+    },
+    "/api/worlds/match/{match_id}": {
+      "get": {
+        "operationId": "worlds_match_api_worlds_match__match_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "match_id",
+            "required": true,
+            "schema": {
+              "title": "Match Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorldsLive"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Worlds Match"
+      }
+    },
+    "/api/worlds/matches": {
+      "get": {
+        "operationId": "worlds_matches_api_worlds_matches_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorldsMatches"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Worlds Matches"
       }
     }
   }

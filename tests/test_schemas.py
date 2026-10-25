@@ -128,6 +128,9 @@ def test_openapi_paths():
         "/api/model",
         "/api/replay/status",
         "/api/replay/seek",
+        "/api/worlds/live",
+        "/api/worlds/matches",
+        "/api/worlds/match/{match_id}",
     }
     params = {p["name"] for p in paths["/api/player/{platform}/{name}/{tag}"]["get"]["parameters"]}
     assert {"start", "count"} <= params

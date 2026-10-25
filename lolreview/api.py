@@ -11,7 +11,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from lolreview import replay, riot
+from lolreview import replay, riot, worlds
 from lolreview.cache import Cache, default_path
 from lolreview.config import ROOT, load_config, read_env
 from lolreview.constants import (
@@ -38,6 +38,8 @@ from lolreview.schemas import (
     ReplaySeekResult,
     ReplayStatus,
     Review,
+    WorldsLive,
+    WorldsMatches,
 )
 
 log = logging.getLogger(__name__)
@@ -551,6 +553,18 @@ def create_app(
         except replay.ReplayUnavailable as exc:
             raise ApiError(409, "replay_unavailable", exc.reason) from exc
         return ReplaySeekResult(ok=True)
+
+    @app.get("/api/worlds/live", response_model=WorldsLive, responses=errors)
+    def worlds_live():
+        return worlds.live_games()
+
+    @app.get("/api/worlds/matches", response_model=WorldsMatches, responses=errors)
+    def worlds_matches():
+        return worlds.matches()
+
+    @app.get("/api/worlds/match/{match_id}", response_model=WorldsLive, responses=errors)
+    def worlds_match(match_id: str):
+        return worlds.match_games(match_id)
 
     return app
 

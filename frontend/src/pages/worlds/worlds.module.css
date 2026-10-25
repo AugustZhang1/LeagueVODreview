@@ -1,0 +1,168 @@
+.intro {
+  max-width: 72ch;
+  margin-bottom: var(--space-5);
+}
+
+.heading {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.lede {
+  margin-top: var(--space-2);
+  color: var(--text-2);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.empty {
+  color: var(--text-2);
+}
+
+.game {
+  margin-bottom: var(--space-6);
+}
+
+.head {
+  margin-bottom: var(--space-3);
+  text-align: center;
+}
+
+.kicker {
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.score {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-4);
+  margin: var(--space-1) 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.pct {
+  font-size: 30px;
+}
+
+.blue {
+  color: var(--ally);
+}
+
+.red {
+  color: var(--enemy);
+}
+
+.objectives {
+  display: flex;
+  justify-content: space-between;
+  margin: var(--space-3) 0 var(--space-4);
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.objectives dt {
+  font-weight: 600;
+}
+
+.teams {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-3);
+  text-align: right;
+}
+
+.table th:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+
+.table thead th {
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.player {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+@media (max-width: 900px) {
+  .teams {
+    grid-template-columns: 1fr;
+  }
+}
+
+.slider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.slider input {
+  flex: 1;
+  accent-color: var(--ally);
+}
+
+.liveBtn {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.subheading {
+  margin: var(--space-6) 0 var(--space-3);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.matches {
+  max-height: 260px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.match {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.match:hover,
+.picked {
+  background: var(--surface-2);
+}
+
+.when {
+  color: var(--text-3);
+}
