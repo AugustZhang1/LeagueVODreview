@@ -1,6 +1,7 @@
 """Live Worlds games, from the same public feed lolesports.com reads."""
 
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
@@ -33,11 +34,18 @@ _starts: dict[str, float] = {}  # game -> epoch of its first frame
 
 
 def _get(url: str, **params) -> dict | None:
-    try:
-        r = requests.get(url, headers=HEADERS, params=params, timeout=10)
-    except requests.RequestException:
-        return None
-    return r.json() if r.status_code == 200 else None
+    """The JSON, or None when there is none (204: past the end of a game) or it keeps failing."""
+    for attempt in range(3):
+        try:
+            r = requests.get(url, headers=HEADERS, params=params, timeout=10)
+        except requests.RequestException:
+            r = None
+        if r is not None and r.status_code == 200:
+            return r.json()
+        if r is not None and r.status_code == 204:
+            return None
+        time.sleep(0.5 * (attempt + 1))
+    return None
 
 
 def _window(game_id: str, epoch: float | None = None) -> dict | None:
@@ -104,7 +112,9 @@ def _team(info: dict, side: str, frame_team: dict, meta: dict) -> WorldsTeam:
 
 def live_games() -> WorldsLive:
     """Every Worlds game being played right now, with its minute-by-minute stats."""
-    events = (_get(LIVE_URL, hl="en-US") or {}).get("data", {}).get("schedule", {}).get("events", [])
+    events = (
+        (_get(LIVE_URL, hl="en-US") or {}).get("data", {}).get("schedule", {}).get("events", [])
+    )
     now = datetime.now(UTC).timestamp()
     games = []
     for event in events:
@@ -132,7 +142,14 @@ def live_games() -> WorldsLive:
 
 
 def _game(
-    game: dict, teams: dict, stage: str, match: dict, meta: dict, start: float, frames: list, live: bool
+    game: dict,
+    teams: dict,
+    stage: str,
+    match: dict,
+    meta: dict,
+    start: float,
+    frames: list,
+    live: bool,
 ) -> WorldsGame:
     sides = {s["side"]: teams[s["id"]] for s in game["teams"]}
     points = [
@@ -200,16 +217,24 @@ def _finished_game(game: dict, teams: dict, stage: str, match: dict) -> WorldsGa
         return None
     start = _epoch(first["frames"][0])
     frames = [first["frames"][0]]
-    k = 1
-    while True:  # one frame a minute, until the feed has no more
+    # one frame a minute, until the game is over. Recent games then run out of frames; older
+    # ones keep returning their last frame.
+    for k in range(1, 300, 16):
         with ThreadPoolExecutor(8) as pool:
             got = list(pool.map(lambda i: _window(gid, start + i * STEP_S), range(k, k + 16)))
-        frames += [d["frames"][-1] for d in got if d is not None]
-        if any(d is None for d in got):
-            break
-        k += 16
+        for d in got:
+            if d is None or _epoch(d["frames"][-1]) <= _epoch(frames[-1]):
+                break  # out of frames, or the feed is repeating its last one
+            frames.append(d["frames"][-1])
+            if frames[-1]["gameState"] == "finished":
+                break
+        else:
+            continue
+        break
     frames.sort(key=_epoch)
     for _ in range(10):  # the last minute, which the steps above stepped over
+        if frames[-1]["gameState"] == "finished":
+            break
         d = _window(gid, _epoch(frames[-1]))
         if d is None or _epoch(d["frames"][-1]) <= _epoch(frames[-1]):
             break
@@ -227,9 +252,7 @@ def match_games(match_id: str) -> WorldsLive:
         return WorldsLive(games=[])
     match = details["event"]["match"]
     teams = {t["id"]: t for t in match["teams"]}
-    games = [
-        _finished_game(g, teams, event["blockName"], match)
-        for g in match["games"]
-        if g["state"] == "completed"
-    ]
+    done = [g for g in match["games"] if g["state"] == "completed"]
+    with ThreadPoolExecutor(5) as pool:  # a best-of-five loads its games side by side
+        games = list(pool.map(lambda g: _finished_game(g, teams, event["blockName"], match), done))
     return WorldsLive(games=[g for g in games if g is not None])
